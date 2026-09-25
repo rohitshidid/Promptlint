@@ -1,0 +1,289 @@
+{
+  "n_prompts": 100,
+  "n_labels": 700,
+  "accuracy": 0.9571428571428572,
+  "per_check": {
+    "has_output_format": {
+      "accuracy": 0.91,
+      "precision": 0.8536585365853658,
+      "recall": 0.9210526315789473,
+      "positives": 38,
+      "tp": 35,
+      "fp": 6,
+      "fn": 3,
+      "tn": 56
+    },
+    "has_constraints": {
+      "accuracy": 0.88,
+      "precision": 0.7708333333333334,
+      "recall": 0.9736842105263158,
+      "positives": 38,
+      "tp": 37,
+      "fp": 11,
+      "fn": 1,
+      "tn": 51
+    },
+    "has_audience": {
+      "accuracy": 0.98,
+      "precision": 0.9473684210526315,
+      "recall": 0.9473684210526315,
+      "positives": 19,
+      "tp": 18,
+      "fp": 1,
+      "fn": 1,
+      "tn": 80
+    },
+    "has_examples": {
+      "accuracy": 0.99,
+      "precision": 0.9523809523809523,
+      "recall": 1.0,
+      "positives": 20,
+      "tp": 20,
+      "fp": 1,
+      "fn": 0,
+      "tn": 79
+    },
+    "conflicting": {
+      "accuracy": 0.99,
+      "precision": 1.0,
+      "recall": 0.9166666666666666,
+      "positives": 12,
+      "tp": 11,
+      "fp": 0,
+      "fn": 1,
+      "tn": 88
+    },
+    "multi_task": {
+      "accuracy": 0.98,
+      "precision": 0.8333333333333334,
+      "recall": 1.0,
+      "positives": 10,
+      "tp": 10,
+      "fp": 2,
+      "fn": 0,
+      "tn": 88
+    },
+    "needs_current_info": {
+      "accuracy": 0.97,
+      "precision": 0.8571428571428571,
+      "recall": 1.0,
+      "positives": 18,
+      "tp": 18,
+      "fp": 3,
+      "fn": 0,
+      "tn": 79
+    }
+  },
+  "disagreements": [
+    {
+      "id": "k008",
+      "check": "has_output_format",
+      "label": false,
+      "probability": 0.98,
+      "prompt": "Summarize this article in under 50 words:\n\nThe city council voted on Tuesday to expand the bike-lane network by 40 km ov"
+    },
+    {
+      "id": "k011",
+      "check": "has_output_format",
+      "label": false,
+      "probability": 0.65,
+      "prompt": "Write a product description in the same style as this example: 'Meet Aero. Light enough to forget, strong enough to rely"
+    },
+    {
+      "id": "k032",
+      "check": "has_output_format",
+      "label": true,
+      "probability": 0.41,
+      "prompt": "Rewrite this tweet to be funnier: 'Mondays are hard.'"
+    },
+    {
+      "id": "k043",
+      "check": "has_output_format",
+      "label": true,
+      "probability": 0.35,
+      "prompt": "Write a speech for my father's retirement party and plan the seating arrangement for 50 guests."
+    },
+    {
+      "id": "k055",
+      "check": "has_output_format",
+      "label": false,
+      "probability": 0.84,
+      "prompt": "Write a regex that matches Indian PIN codes (6 digits, first digit not 0). Examples that should match: 560001, 110011. E"
+    },
+    {
+      "id": "k061",
+      "check": "has_output_format",
+      "label": true,
+      "probability": 0.41,
+      "prompt": "Summarize the following meeting notes into action items with owners:\nRavi will update the budget by Friday. Neha to emai"
+    },
+    {
+      "id": "k066",
+      "check": "has_output_format",
+      "label": false,
+      "probability": 0.62,
+      "prompt": "Name three famous Indian mathematicians."
+    },
+    {
+      "id": "k080",
+      "check": "has_output_format",
+      "label": false,
+      "probability": 0.94,
+      "prompt": "Explain machine learning to hospital administrators deciding whether to buy an AI triage tool, in under 200 words, witho"
+    },
+    {
+      "id": "k095",
+      "check": "has_output_format",
+      "label": false,
+      "probability": 0.93,
+      "prompt": "Tell me a clean joke suitable for a school assembly for 8-year-olds, under 25 words."
+    },
+    {
+      "id": "k006",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.85,
+      "prompt": "Write a haiku about autumn and also translate the French sentence 'Il pleut beaucoup' into English."
+    },
+    {
+      "id": "k011",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.77,
+      "prompt": "Write a product description in the same style as this example: 'Meet Aero. Light enough to forget, strong enough to rely"
+    },
+    {
+      "id": "k017",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.9,
+      "prompt": "Write a cover letter, then a LinkedIn summary, then a list of 10 interview questions for a data analyst role."
+    },
+    {
+      "id": "k021",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.65,
+      "prompt": "Write a limerick about a forgetful dog."
+    },
+    {
+      "id": "k032",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.69,
+      "prompt": "Rewrite this tweet to be funnier: 'Mondays are hard.'"
+    },
+    {
+      "id": "k035",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.52,
+      "prompt": "Translate 'Where is the train station?' into Spanish, French and German, and then write a short poem about trains."
+    },
+    {
+      "id": "k043",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.72,
+      "prompt": "Write a speech for my father's retirement party and plan the seating arrangement for 50 guests."
+    },
+    {
+      "id": "k045",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.58,
+      "prompt": "Which smartphones launched in India this week?"
+    },
+    {
+      "id": "k047",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.6,
+      "prompt": "Explain Big-O notation. Use a Markdown table comparing O(1), O(n) and O(n\u00b2) with one example each."
+    },
+    {
+      "id": "k049",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.5,
+      "prompt": "Extract all dates from this text and return them in YYYY-MM-DD format: 'The contract starts on March 3, 2026 and ends 15"
+    },
+    {
+      "id": "k053",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.89,
+      "prompt": "Proofread my paragraph, then write three alternative titles for it, then suggest where to publish it.\n\nParagraph: Remote"
+    },
+    {
+      "id": "k077",
+      "check": "has_constraints",
+      "label": true,
+      "probability": 0.41,
+      "prompt": "Answer in Spanish."
+    },
+    {
+      "id": "k019",
+      "check": "has_audience",
+      "label": false,
+      "probability": 0.62,
+      "prompt": "Explain quantum entanglement in simple words, using technical jargon throughout."
+    },
+    {
+      "id": "k056",
+      "check": "has_audience",
+      "label": true,
+      "probability": 0.44,
+      "prompt": "Draft a polite reminder email to a client about an unpaid invoice, in a firm tone, no more than 5 sentences."
+    },
+    {
+      "id": "k006",
+      "check": "has_examples",
+      "label": false,
+      "probability": 0.57,
+      "prompt": "Write a haiku about autumn and also translate the French sentence 'Il pleut beaucoup' into English."
+    },
+    {
+      "id": "k044",
+      "check": "conflicting",
+      "label": true,
+      "probability": 0.49,
+      "prompt": "Make the text shorter but add more detail to every sentence:\n\nOur team shipped the new dashboard. Users like it."
+    },
+    {
+      "id": "k025",
+      "check": "multi_task",
+      "label": false,
+      "probability": 0.75,
+      "prompt": "Is the Chennai airport open right now, and are flights delayed because of the cyclone?"
+    },
+    {
+      "id": "k096",
+      "check": "multi_task",
+      "label": false,
+      "probability": 0.67,
+      "prompt": "Is the new iPhone out yet, and how much does it cost in India?"
+    },
+    {
+      "id": "k064",
+      "check": "needs_current_info",
+      "label": false,
+      "probability": 0.54,
+      "prompt": "Write a function to reverse a string, and separately explain the history of the C programming language, and recommend a "
+    },
+    {
+      "id": "k084",
+      "check": "needs_current_info",
+      "label": false,
+      "probability": 0.7,
+      "prompt": "Plan a trip."
+    },
+    {
+      "id": "k085",
+      "check": "needs_current_info",
+      "label": false,
+      "probability": 0.74,
+      "prompt": "Plan a 3-day trip to Jaipur for a family with two young kids, on a budget of \u20b930,000, as a day-by-day itinerary."
+    }
+  ]
+}

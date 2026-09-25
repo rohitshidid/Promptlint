@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="4" x2="78" y2="86" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10b981"/>
+      <stop offset="1" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="44" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="88" height="88" rx="20" fill="url(#bg)"/>
+  <rect width="88" height="44" rx="20" fill="url(#shine)"/>
+  <!-- prompt lines -->
+  <rect x="18" y="24" width="40" height="6" rx="3" fill="#fff" fill-opacity=".95"/>
+  <rect x="18" y="37" width="30" height="6" rx="3" fill="#fff" fill-opacity=".75"/>
+  <rect x="18" y="50" width="22" height="6" rx="3" fill="#fff" fill-opacity=".55"/>
+  <!-- check badge -->
+  <circle cx="60" cy="59" r="15" fill="#fff"/>
+  <path d="M53.5 59.5l4.5 4.5 8.5-9" stroke="#047857" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

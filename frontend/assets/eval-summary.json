@@ -1,0 +1,27 @@
+{
+  "pairwise": {
+    "accuracy": 1.0,
+    "n": 200,
+    "ties": 0,
+    "hard_accuracy": 1.0,
+    "hard_n": 40
+  },
+  "latency": {
+    "median_ms": 180.0,
+    "p95_ms": 437,
+    "n": 1228
+  },
+  "generated_at": "2026-09-25T19:22:33+00:00",
+  "jev_model": "jev-1.13.0",
+  "note": "Prompt pairs and checklist labels were drafted with an AI assistant for this project; spot-check them before citing these numbers.",
+  "checklist": {
+    "accuracy": 0.9571428571428572,
+    "n": 700
+  },
+  "injection": {
+    "mean_inflation": 3.05,
+    "max_inflation": 26,
+    "promoted_to_ready": 0,
+    "n": 20
+  }
+}

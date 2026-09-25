@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jev API Playground</title>
+<title>Jev API Playground · PromptLint</title>
+<link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
 <style>
   :root {
     --bg: #f6f6f3;
@@ -233,6 +234,7 @@
     <div class="title-row">
       <h1>Jev API Playground</h1>
       <span class="pill">System One</span>
+      <a href="../" style="margin-left:auto;font-size:13px;color:var(--muted)">← Back to PromptLint</a>
     </div>
     <p class="lead">Send some text and a few typed questions to TypeSafe's Jev API, then see the answers it returns. Question types: pick one option (choice), rate on a scale (score) or yes/no (noul).</p>
   </header>
@@ -253,7 +255,7 @@
           <input id="model" value="jev-latest" spellcheck="false">
         </label>
       </div>
-      <p class="hint" id="keyHint">The key stays in this page's memory. It goes to the local server (<code>node server.js</code>), which passes it on to api.typesafe.ai. Nothing saves it.</p>
+      <p class="hint" id="keyHint">The key stays in this page's memory. It goes to the PromptLint server, which passes it on to api.typesafe.ai. Nothing saves it.</p>
     </div>
   </section>
 
@@ -535,7 +537,7 @@ async function run() {
     renderAnswers(data, body.questions);
   } catch (e) {
     setStatus("Network error", "err");
-    $("answers").innerHTML = `<div class="error"><strong>Couldn't reach the local server</strong><ul><li>Start it with <code>node server.js</code>, then reload this page.</li></ul></div>`;
+    $("answers").innerHTML = `<div class="error"><strong>Couldn't reach the local server</strong><ul><li>Start it (see the README), then reload this page.</li></ul></div>`;
     $("raw").textContent = String(e);
   } finally {
     btn.disabled = false; btn.classList.remove("loading"); $("runLabel").textContent = "Run";

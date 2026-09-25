@@ -1,0 +1,429 @@
+{
+  "n_prompts": 100,
+  "n_labels": 700,
+  "accuracy": 0.9285714285714286,
+  "per_check": {
+    "has_output_format": {
+      "accuracy": 0.91,
+      "precision": 0.8536585365853658,
+      "recall": 0.9210526315789473,
+      "positives": 38,
+      "tp": 35,
+      "fp": 6,
+      "fn": 3,
+      "tn": 56
+    },
+    "has_constraints": {
+      "accuracy": 0.74,
+      "precision": 0.59375,
+      "recall": 1.0,
+      "positives": 38,
+      "tp": 38,
+      "fp": 26,
+      "fn": 0,
+      "tn": 36
+    },
+    "has_audience": {
+      "accuracy": 0.98,
+      "precision": 0.9473684210526315,
+      "recall": 0.9473684210526315,
+      "positives": 19,
+      "tp": 18,
+      "fp": 1,
+      "fn": 1,
+      "tn": 80
+    },
+    "has_examples": {
+      "accuracy": 0.99,
+      "precision": 0.9523809523809523,
+      "recall": 1.0,
+      "positives": 20,
+      "tp": 20,
+      "fp": 1,
+      "fn": 0,
+      "tn": 79
+    },
+    "conflicting": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "positives": 12,
+      "tp": 12,
+      "fp": 0,
+      "fn": 0,
+      "tn": 88
+    },
+    "multi_task": {
+      "accuracy": 0.91,
+      "precision": 0.5263157894736842,
+      "recall": 1.0,
+      "positives": 10,
+      "tp": 10,
+      "fp": 9,
+      "fn": 0,
+      "tn": 81
+    },
+    "needs_current_info": {
+      "accuracy": 0.97,
+      "precision": 0.8571428571428571,
+      "recall": 1.0,
+      "positives": 18,
+      "tp": 18,
+      "fp": 3,
+      "fn": 0,
+      "tn": 79
+    }
+  },
+  "disagreements": [
+    {
+      "id": "k008",
+      "check": "has_output_format",
+      "label": false,
+      "probability": 0.98,
+      "prompt": "Summarize this article in under 50 words:\n\nThe city council voted on Tuesday to expand the bike-lane network by 40 km ov"
+    },
+    {
+      "id": "k011",
+      "check": "has_output_format",
+      "label": false,
+      "probability": 0.68,
+      "prompt": "Write a product description in the same style as this example: 'Meet Aero. Light enough to forget, strong enough to rely"
+    },
+    {
+      "id": "k032",
+      "check": "has_output_format",
+      "label": true,
+      "probability": 0.46,
+      "prompt": "Rewrite this tweet to be funnier: 'Mondays are hard.'"
+    },
+    {
+      "id": "k043",
+      "check": "has_output_format",
+      "label": true,
+      "probability": 0.38,
+      "prompt": "Write a speech for my father's retirement party and plan the seating arrangement for 50 guests."
+    },
+    {
+      "id": "k055",
+      "check": "has_output_format",
+      "label": false,
+      "probability": 0.86,
+      "prompt": "Write a regex that matches Indian PIN codes (6 digits, first digit not 0). Examples that should match: 560001, 110011. E"
+    },
+    {
+      "id": "k061",
+      "check": "has_output_format",
+      "label": true,
+      "probability": 0.46,
+      "prompt": "Summarize the following meeting notes into action items with owners:\nRavi will update the budget by Friday. Neha to emai"
+    },
+    {
+      "id": "k066",
+      "check": "has_output_format",
+      "label": false,
+      "probability": 0.54,
+      "prompt": "Name three famous Indian mathematicians."
+    },
+    {
+      "id": "k080",
+      "check": "has_output_format",
+      "label": false,
+      "probability": 0.94,
+      "prompt": "Explain machine learning to hospital administrators deciding whether to buy an AI triage tool, in under 200 words, witho"
+    },
+    {
+      "id": "k095",
+      "check": "has_output_format",
+      "label": false,
+      "probability": 0.92,
+      "prompt": "Tell me a clean joke suitable for a school assembly for 8-year-olds, under 25 words."
+    },
+    {
+      "id": "k002",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.81,
+      "prompt": "Explain recursion to a 10-year-old."
+    },
+    {
+      "id": "k006",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.93,
+      "prompt": "Write a haiku about autumn and also translate the French sentence 'Il pleut beaucoup' into English."
+    },
+    {
+      "id": "k011",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.93,
+      "prompt": "Write a product description in the same style as this example: 'Meet Aero. Light enough to forget, strong enough to rely"
+    },
+    {
+      "id": "k012",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.88,
+      "prompt": "Return a JSON object with keys name and age for a fictional person."
+    },
+    {
+      "id": "k014",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.57,
+      "prompt": "What's the latest version of Python released this month?"
+    },
+    {
+      "id": "k017",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.68,
+      "prompt": "Write a cover letter, then a LinkedIn summary, then a list of 10 interview questions for a data analyst role."
+    },
+    {
+      "id": "k018",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.72,
+      "prompt": "Classify these reviews as positive or negative. Example: 'Loved it!' -> positive. Reviews: 'Terrible support.', 'Works g"
+    },
+    {
+      "id": "k020",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.6,
+      "prompt": "What are today's top headlines in India?"
+    },
+    {
+      "id": "k021",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.95,
+      "prompt": "Write a limerick about a forgetful dog."
+    },
+    {
+      "id": "k032",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.79,
+      "prompt": "Rewrite this tweet to be funnier: 'Mondays are hard.'"
+    },
+    {
+      "id": "k035",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.68,
+      "prompt": "Translate 'Where is the train station?' into Spanish, French and German, and then write a short poem about trains."
+    },
+    {
+      "id": "k039",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.67,
+      "prompt": "Explain what an API is for non-technical small-business owners."
+    },
+    {
+      "id": "k045",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.76,
+      "prompt": "Which smartphones launched in India this week?"
+    },
+    {
+      "id": "k046",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.8,
+      "prompt": "Write a bedtime story for my 4-year-old daughter about a friendly dragon."
+    },
+    {
+      "id": "k047",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.82,
+      "prompt": "Explain Big-O notation. Use a Markdown table comparing O(1), O(n) and O(n\u00b2) with one example each."
+    },
+    {
+      "id": "k049",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.9,
+      "prompt": "Extract all dates from this text and return them in YYYY-MM-DD format: 'The contract starts on March 3, 2026 and ends 15"
+    },
+    {
+      "id": "k053",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.69,
+      "prompt": "Proofread my paragraph, then write three alternative titles for it, then suggest where to publish it.\n\nParagraph: Remote"
+    },
+    {
+      "id": "k055",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.58,
+      "prompt": "Write a regex that matches Indian PIN codes (6 digits, first digit not 0). Examples that should match: 560001, 110011. E"
+    },
+    {
+      "id": "k061",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.56,
+      "prompt": "Summarize the following meeting notes into action items with owners:\nRavi will update the budget by Friday. Neha to emai"
+    },
+    {
+      "id": "k063",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.66,
+      "prompt": "What movies are playing at PVR Forum Mall tonight?"
+    },
+    {
+      "id": "k068",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.64,
+      "prompt": "Explain how a bill becomes a law in India for college students studying political science."
+    },
+    {
+      "id": "k070",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.55,
+      "prompt": "Write me something nice."
+    },
+    {
+      "id": "k075",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.55,
+      "prompt": "Write a YAML config for a GitHub Actions workflow that runs npm test on every push."
+    },
+    {
+      "id": "k078",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.68,
+      "prompt": "Turn this list into a comma-separated string: apples, bananas, cherries (one per line in my file)."
+    },
+    {
+      "id": "k090",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.73,
+      "prompt": "Explain what inflation is for high-school students."
+    },
+    {
+      "id": "k091",
+      "check": "has_constraints",
+      "label": false,
+      "probability": 0.73,
+      "prompt": "Which companies announced layoffs this month?"
+    },
+    {
+      "id": "k019",
+      "check": "has_audience",
+      "label": false,
+      "probability": 0.61,
+      "prompt": "Explain quantum entanglement in simple words, using technical jargon throughout."
+    },
+    {
+      "id": "k056",
+      "check": "has_audience",
+      "label": true,
+      "probability": 0.42,
+      "prompt": "Draft a polite reminder email to a client about an unpaid invoice, in a firm tone, no more than 5 sentences."
+    },
+    {
+      "id": "k006",
+      "check": "has_examples",
+      "label": false,
+      "probability": 0.54,
+      "prompt": "Write a haiku about autumn and also translate the French sentence 'Il pleut beaucoup' into English."
+    },
+    {
+      "id": "k025",
+      "check": "multi_task",
+      "label": false,
+      "probability": 0.96,
+      "prompt": "Is the Chennai airport open right now, and are flights delayed because of the cyclone?"
+    },
+    {
+      "id": "k036",
+      "check": "multi_task",
+      "label": false,
+      "probability": 0.9,
+      "prompt": "Convert these temperatures to Fahrenheit: 0\u00b0C, 37\u00b0C, 100\u00b0C."
+    },
+    {
+      "id": "k040",
+      "check": "multi_task",
+      "label": false,
+      "probability": 0.69,
+      "prompt": "List 5 healthy breakfast ideas."
+    },
+    {
+      "id": "k047",
+      "check": "multi_task",
+      "label": false,
+      "probability": 0.85,
+      "prompt": "Explain Big-O notation. Use a Markdown table comparing O(1), O(n) and O(n\u00b2) with one example each."
+    },
+    {
+      "id": "k066",
+      "check": "multi_task",
+      "label": false,
+      "probability": 0.78,
+      "prompt": "Name three famous Indian mathematicians."
+    },
+    {
+      "id": "k067",
+      "check": "multi_task",
+      "label": false,
+      "probability": 0.53,
+      "prompt": "Write a detailed step-by-step answer, but reply with only one word."
+    },
+    {
+      "id": "k096",
+      "check": "multi_task",
+      "label": false,
+      "probability": 0.95,
+      "prompt": "Is the new iPhone out yet, and how much does it cost in India?"
+    },
+    {
+      "id": "k098",
+      "check": "multi_task",
+      "label": false,
+      "probability": 0.83,
+      "prompt": "Keep the answer strictly under 50 words, and include a full 10-step tutorial with code samples for every step."
+    },
+    {
+      "id": "k099",
+      "check": "multi_task",
+      "label": false,
+      "probability": 0.53,
+      "prompt": "Explain the difference between affect and effect for ESL learners, with two example sentences each, as a short table."
+    },
+    {
+      "id": "k064",
+      "check": "needs_current_info",
+      "label": false,
+      "probability": 0.51,
+      "prompt": "Write a function to reverse a string, and separately explain the history of the C programming language, and recommend a "
+    },
+    {
+      "id": "k084",
+      "check": "needs_current_info",
+      "label": false,
+      "probability": 0.67,
+      "prompt": "Plan a trip."
+    },
+    {
+      "id": "k085",
+      "check": "needs_current_info",
+      "label": false,
+      "probability": 0.78,
+      "prompt": "Plan a 3-day trip to Jaipur for a family with two young kids, on a budget of \u20b930,000, as a day-by-day itinerary."
+    }
+  ]
+}

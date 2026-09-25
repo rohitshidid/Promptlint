@@ -1,0 +1,46 @@
+[project]
+name = "promptlint"
+version = "1.0.0"
+description = "Lint your prompt before you send it. One TypeSafe Jev call, deterministic scoring."
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "pyyaml>=6.0",
+  "typesafe-sdk>=0.7.1,<0.8",
+  "tiktoken>=0.14",
+  "slowapi>=0.1.9",
+  "httpx>=0.27",
+  "anthropic>=0.60",
+]
+
+[project.optional-dependencies]
+# Shared rate-limit storage for multi-instance deploys (RATE_LIMIT_STORAGE=redis://...).
+redis = ["redis>=5.0"]
+dev = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.24",
+  "ruff>=0.6",
+]
+load = ["locust>=2.29"]
+eval = [
+  "matplotlib>=3.9",
+  "nbformat>=5.10",
+  "nbclient>=0.10",
+  "ipykernel>=6.29",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["ignore::DeprecationWarning"]

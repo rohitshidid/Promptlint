@@ -1,0 +1,80 @@
+# Per-million-token list prices (USD, standard tier, short context), copied from each provider's
+# official pricing page. Never hard-code prices in code. Check monthly and bump last_updated.
+#
+# Sources (checked 2026-09-25):
+#   Anthropic: https://platform.claude.com/docs/en/about-claude/pricing
+#   OpenAI:    https://developers.openai.com/api/docs/pricing
+#   Google:    https://ai.google.dev/gemini-api/docs/pricing  (page last updated 2026-09-24)
+#
+# tokenizer:
+#   anthropic -> Anthropic count_tokens endpoint when ANTHROPIC_API_KEY is set, else chars/4 (approx.)
+#   gemini    -> Gemini countTokens endpoint when GEMINI_API_KEY is set, else chars/4 (approx.)
+#   tiktoken:<encoding> -> local tiktoken; `exact: false` when the model's own encoding is unpublished
+# tier: small | mid | frontier, used by the model-tier hint.
+
+last_updated: "2026-09-25"
+
+models:
+  - id: claude-opus-5-5
+    name: Claude Opus 5.5
+    provider: Anthropic
+    input: 4.00
+    output: 20.00
+    tokenizer: anthropic
+    tier: frontier
+  - id: claude-sonnet-5
+    name: Claude Sonnet 5
+    provider: Anthropic
+    input: 2.00
+    output: 10.00
+    tokenizer: anthropic
+    tier: mid
+  - id: claude-haiku-4-5
+    name: Claude Haiku 4.5
+    provider: Anthropic
+    input: 1.00
+    output: 5.00
+    tokenizer: anthropic
+    tier: small
+  - id: gpt-6-astra
+    name: GPT-6 Astra
+    provider: OpenAI
+    input: 10.00
+    output: 50.00
+    # tiktoken 0.14 has no mapping for GPT-6 yet; o200k_base is the closest published encoding.
+    tokenizer: tiktoken:o200k_base
+    exact: false
+    tier: frontier
+  - id: gpt-6-luna
+    name: GPT-6 Luna
+    provider: OpenAI
+    input: 0.10
+    output: 0.50
+    tokenizer: tiktoken:o200k_base
+    exact: false
+    tier: small
+  - id: gemini-3.1-pro-preview
+    name: Gemini 3.1 Pro
+    provider: Google
+    input: 2.00
+    output: 12.00
+    tokenizer: gemini
+    tier: frontier
+  - id: gemini-3.8-flash
+    name: Gemini 3.8 Flash
+    provider: Google
+    # Introductory price through 2026-12-31; rises to $1.50 / $7.50 on 2027-01-01.
+    input: 0.75
+    output: 3.75
+    note: Introductory price until Dec 31, 2026
+    tokenizer: gemini
+    tier: mid
+
+default_models: [claude-sonnet-5, gpt-6-luna, gemini-3.8-flash]
+
+# Output-token range per `expected_length` level (PromptLint.md §8).
+output_ranges:
+  - [10, 60]
+  - [60, 300]
+  - [300, 900]
+  - [900, 3000]

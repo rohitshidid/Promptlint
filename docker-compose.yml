@@ -1,9 +1,27 @@
 services:
-  jev-playground:
-    build: .
-    container_name: jev-playground
+  promptlint:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: promptlint
     env_file: .env
+    environment:
+      # Shared rate-limit counters, as in production.
+      RATE_LIMIT_STORAGE: redis://redis:6379/0
     ports:
       # Bound to 127.0.0.1 so only this machine can reach it (the server holds your API key).
       - "127.0.0.1:8787:8787"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
     restart: unless-stopped

@@ -1,0 +1,107 @@
+# Every Jev question PromptLint asks, sent together in ONE system_one call.
+# This file is the single source of truth: wording changes here need a re-run of the evals.
+#
+# Rules we follow (PromptLint.md §6):
+#   - one judgment per question
+#   - nouls phrased so that high means yes
+#   - score levels describe situations, not degrees
+#   - choices include an `other` option
+#   - nothing about counting, dates, or arithmetic
+#
+# The state sent to Jev is {"prompt": "<user's prompt>"}, so questions refer to `prompt`.
+
+nouls:
+  task_clear:
+    instructions: Does `prompt` state clearly what the assistant is supposed to do?
+  first_try_success:
+    instructions: >-
+      Could a capable assistant produce a complete, usable answer to `prompt` on the first
+      attempt, without asking questions and without the user needing to request changes?
+  needs_clarification:
+    instructions: >-
+      Would a careful assistant need to ask the user a clarifying question before it could
+      answer `prompt` well?
+  has_constraints:
+    instructions: >-
+      Does `prompt` set any limits on the answer, such as length, scope, tone, tools, or deadline?
+    # v2: v1 counted an audience or an output format as a "limit" (59% precision on hand labels).
+    criteria:
+      true: >-
+        The prompt states an explicit limit: a length or word count, a number of items, a tone,
+        a restriction on scope, something to avoid, required tools or sources, or a deadline.
+      false: >-
+        The prompt only names the task, the topic, who it is for, or the output format, with no
+        explicit limit on the answer.
+  has_output_format:
+    instructions: >-
+      Does `prompt` say what form the answer should take, such as a list, table, code, email,
+      or word count?
+  has_audience:
+    instructions: >-
+      Does `prompt` say who the answer is for or what level of expertise to write for?
+  has_examples:
+    instructions: >-
+      Does `prompt` include an example of the desired output or of the input to work on?
+  conflicting:
+    instructions: Does `prompt` contain instructions that contradict each other?
+  multi_task:
+    instructions: Does `prompt` ask for more than one distinct deliverable?
+    # v2: v1 counted several items or sub-questions of one deliverable as separate tasks (53% precision).
+    criteria:
+      true: >-
+        Two or more separate outputs that would each need their own answer, such as an essay and
+        a trip plan, or code and an unrelated explanation.
+      false: >-
+        One deliverable, even if it has several parts, list items, or closely related
+        sub-questions about the same thing.
+  needs_current_info:
+    instructions: >-
+      Does a correct answer to `prompt` depend on recent events, live data, or information
+      that changes over time?
+
+scores:
+  specificity:
+    instructions: How specific is `prompt` to the user's actual situation?
+    criteria:
+      - Generic request anyone could send; no details about the user's situation or goal
+      - Names the topic but not the situation, inputs, or goal
+      - Describes the situation or goal, but key details are left for the assistant to guess
+      - Names the exact situation, inputs, and goal; the assistant does not need to guess
+  ambiguity:
+    instructions: How many reasonable interpretations does `prompt` have?
+    criteria:
+      - Only one reasonable reading
+      - One main reading, with a minor detail open to interpretation
+      - Two or more readings that would lead to noticeably different answers
+  context_given:
+    instructions: How much background does `prompt` provide?
+    criteria:
+      - No background; the assistant must assume everything
+      - Some background, but important facts are missing
+      - Enough background to answer without guessing
+  expected_length:
+    instructions: How long would a good answer to `prompt` be?
+    criteria:
+      - One line or a single fact
+      - One or two short paragraphs
+      - About a page, or a medium code snippet
+      - A long document, many sections, or a large program
+  complexity:
+    instructions: How much reasoning does a good answer to `prompt` require?
+    criteria:
+      - A fact, definition, or simple lookup
+      - A short explanation or a routine rewrite or format task
+      - Multi-step reasoning, non-trivial code, or combining several ideas
+      - "Hard problem: deep debugging, proofs, system design, or subtle trade-offs"
+
+choices:
+  task_type:
+    instructions: What kind of task is `prompt`?
+    criteria:
+      coding: Write, fix, explain, or review code
+      writing: Write or edit prose such as an email, essay, post, or document
+      factual: Look up or state facts
+      analysis: Analyze, compare, evaluate, or summarize information
+      math_reasoning: Solve a math problem or a logic puzzle
+      creative: Fiction, poetry, jokes, brainstorming, or other imaginative work
+      other: Anything else

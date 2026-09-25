@@ -1,0 +1,17 @@
+# Render Blueprint: one Docker web service serving the API and the static site.
+# Deploy: New → Blueprint → pick this repo, then set TYPESAFE_API_KEY in the dashboard.
+services:
+  - type: web
+    name: promptlint
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: TYPESAFE_API_KEY
+        sync: false
+      - key: RATE_LIMIT
+        value: 20/hour
+      - key: RATE_LIMIT_STORAGE
+        value: memory://   # single instance; use a Render Key Value (Redis) URL if you scale out

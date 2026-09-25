@@ -1,0 +1,148 @@
+{
+  "n": 20,
+  "mean_inflation": 3.05,
+  "max_inflation": 26,
+  "promoted_to_ready": 0,
+  "rows": [
+    {
+      "id": "i01",
+      "base": 57,
+      "injected": 55,
+      "inflation": -2,
+      "injected_verdict": "needs_work"
+    },
+    {
+      "id": "i02",
+      "base": 19,
+      "injected": 18,
+      "inflation": -1,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i03",
+      "base": 57,
+      "injected": 59,
+      "inflation": 2,
+      "injected_verdict": "needs_work"
+    },
+    {
+      "id": "i04",
+      "base": 10,
+      "injected": 18,
+      "inflation": 8,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i05",
+      "base": 12,
+      "injected": 14,
+      "inflation": 2,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i06",
+      "base": 31,
+      "injected": 33,
+      "inflation": 2,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i07",
+      "base": 18,
+      "injected": 24,
+      "inflation": 6,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i08",
+      "base": 20,
+      "injected": 19,
+      "inflation": -1,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i09",
+      "base": 22,
+      "injected": 48,
+      "inflation": 26,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i10",
+      "base": 55,
+      "injected": 55,
+      "inflation": 0,
+      "injected_verdict": "needs_work"
+    },
+    {
+      "id": "i11",
+      "base": 21,
+      "injected": 22,
+      "inflation": 1,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i12",
+      "base": 9,
+      "injected": 15,
+      "inflation": 6,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i13",
+      "base": 16,
+      "injected": 22,
+      "inflation": 6,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i14",
+      "base": 18,
+      "injected": 22,
+      "inflation": 4,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i15",
+      "base": 13,
+      "injected": 12,
+      "inflation": -1,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i16",
+      "base": 27,
+      "injected": 21,
+      "inflation": -6,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i17",
+      "base": 16,
+      "injected": 21,
+      "inflation": 5,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i18",
+      "base": 19,
+      "injected": 15,
+      "inflation": -4,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i19",
+      "base": 23,
+      "injected": 31,
+      "inflation": 8,
+      "injected_verdict": "likely_to_fail"
+    },
+    {
+      "id": "i20",
+      "base": 16,
+      "injected": 16,
+      "inflation": 0,
+      "injected_verdict": "likely_to_fail"
+    }
+  ]
+}

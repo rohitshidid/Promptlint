@@ -1,0 +1,148 @@
+{
+  "prompt": "Write a detailed 2,000-word essay on climate policy. Keep it under 100 words. Use bullet points only, no lists.",
+  "model": "jev-1.13.0",
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "task_clear": {
+        "type": "noul",
+        "noul": 0.11
+      },
+      "first_try_success": {
+        "type": "noul",
+        "noul": 0.1
+      },
+      "needs_clarification": {
+        "type": "noul",
+        "noul": 0.93
+      },
+      "has_constraints": {
+        "type": "noul",
+        "noul": 0.99
+      },
+      "has_output_format": {
+        "type": "noul",
+        "noul": 0.97
+      },
+      "has_audience": {
+        "type": "noul",
+        "noul": 0.03
+      },
+      "has_examples": {
+        "type": "noul",
+        "noul": 0.04
+      },
+      "conflicting": {
+        "type": "noul",
+        "noul": 0.99
+      },
+      "multi_task": {
+        "type": "noul",
+        "noul": 0.14
+      },
+      "needs_current_info": {
+        "type": "noul",
+        "noul": 0.36
+      },
+      "specificity": {
+        "type": "score",
+        "score": 0.47,
+        "confidence": 0.53,
+        "legend": {
+          "0": "Generic request anyone could send; no details about the user's situation or goal",
+          "1": "Names the topic but not the situation, inputs, or goal",
+          "2": "Describes the situation or goal, but key details are left for the assistant to guess",
+          "3": "Names the exact situation, inputs, and goal; the assistant does not need to guess"
+        },
+        "probabilities": {
+          "0": 0.55,
+          "1": 0.43,
+          "2": 0.01,
+          "3": 0.01
+        }
+      },
+      "ambiguity": {
+        "type": "score",
+        "score": 1.53,
+        "confidence": 0.29,
+        "legend": {
+          "0": "Only one reasonable reading",
+          "1": "One main reading, with a minor detail open to interpretation",
+          "2": "Two or more readings that would lead to noticeably different answers"
+        },
+        "probabilities": {
+          "0": 0.16,
+          "1": 0.16,
+          "2": 0.68
+        }
+      },
+      "context_given": {
+        "type": "score",
+        "score": 0.04,
+        "confidence": 0.94,
+        "legend": {
+          "0": "No background; the assistant must assume everything",
+          "1": "Some background, but important facts are missing",
+          "2": "Enough background to answer without guessing"
+        },
+        "probabilities": {
+          "0": 0.96,
+          "1": 0.03,
+          "2": 0.01
+        }
+      },
+      "expected_length": {
+        "type": "score",
+        "score": 1.25,
+        "confidence": 0.35,
+        "legend": {
+          "0": "One line or a single fact",
+          "1": "One or two short paragraphs",
+          "2": "About a page, or a medium code snippet",
+          "3": "A long document, many sections, or a large program"
+        },
+        "probabilities": {
+          "0": 0.2,
+          "1": 0.53,
+          "2": 0.09,
+          "3": 0.18
+        }
+      },
+      "complexity": {
+        "type": "score",
+        "score": 1.79,
+        "confidence": 0.62,
+        "legend": {
+          "0": "A fact, definition, or simple lookup",
+          "1": "A short explanation or a routine rewrite or format task",
+          "2": "Multi-step reasoning, non-trivial code, or combining several ideas",
+          "3": "Hard problem: deep debugging, proofs, system design, or subtle trade-offs"
+        },
+        "probabilities": {
+          "0": 0.01,
+          "1": 0.28,
+          "2": 0.62,
+          "3": 0.09
+        }
+      },
+      "task_type": {
+        "type": "choice",
+        "choice": "writing",
+        "confidence": 0.99,
+        "probabilities": {
+          "analysis": 0.0,
+          "math_reasoning": 0.0,
+          "other": 0.01,
+          "creative": 0.0,
+          "factual": 0.0,
+          "coding": 0.0,
+          "writing": 0.99
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 1300,
+      "output_tokens": 324
+    }
+  }
+}

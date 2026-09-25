@@ -1,2 +1,12 @@
 .env
 node_modules/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.ipynb_checkpoints/
+# Raw Jev answers used for offline rescoring; regenerate with the eval scripts.
+eval/results/cache/
+eval/results/first_try_cache.jsonl

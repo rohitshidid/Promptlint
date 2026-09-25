@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PromptLint · Lint your prompt before you send it</title>
+<meta name="description" content="Paste a prompt and get a 0–100 score, the odds an LLM gets it right first try, what's missing, fix-it tips and per-model cost, from one TypeSafe Jev call.">
+<meta property="og:title" content="PromptLint · Lint your prompt before you send it">
+<meta property="og:description" content="A report card for your prompt in about 200 ms. No LLM in the loop, nothing stored.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/report.css">
+<style>
+  /* ---- hero demo window */
+  .demo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); min-height: 430px; }
+  @media (max-width: 760px) { .demo { grid-template-columns: minmax(0, 1fr); } }
+  .demo-prompt { padding: 22px 22px 24px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  @media (max-width: 760px) { .demo-prompt { border-right: 0; border-bottom: 1px solid var(--line); } }
+  .demo-k { font-size: 11px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); display: flex; justify-content: space-between; }
+  .demo-text {
+    font: 14.5px/1.6 var(--sans); color: var(--ink); background: var(--bg-tint); border: 1px solid var(--line-soft);
+    border-radius: 12px; padding: 14px 15px; min-height: 150px; white-space: pre-wrap; overflow-wrap: anywhere; flex: 1;
+  }
+  .demo-text .cur { display: inline-block; width: 2px; height: 1.1em; background: var(--accent-mid); vertical-align: -3px; animation: blink 1s step-end infinite; margin-left: 1px; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .demo-text .cur { animation: none; } }
+  .demo-btn { align-self: flex-start; pointer-events: none; }
+  .demo-btn.pressed { transform: scale(.96); }
+  .demo-out { padding: 22px; display: grid; gap: 14px; align-content: start; min-width: 0; transition: opacity .35s; }
+  .demo-out.dim { opacity: .25; }
+  .demo-row { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; }
+  .demo-row .gauge-wrap { width: 150px; }
+  .demo-row .gauge { width: 150px; height: 96px; }
+  .demo-row .gauge-num { font-size: 40px; }
+  .demo .checks li { padding: 5px 6px; font-size: .84rem; }
+  .demo .checks small { display: none; }
+  .demo .tips li { padding: 9px 12px; font-size: .84rem; }
+  .demo-tips-k { margin-top: 2px; }
+
+  /* ---- architecture */
+  .flow { display: grid; gap: 10px; }
+  .flow-step { display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; background: var(--bg-tint); }
+  .flow-step .n { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-size: .8rem; font-weight: 700; color: #fff; background: var(--accent); }
+  .flow-step.jev .n { background: #16181d; }
+  .flow-step b { display: block; font-size: .95rem; letter-spacing: -0.01em; }
+  .flow-step small { color: var(--ink-faint); font-size: .8rem; }
+  .flow-step .ms { font-family: var(--mono); font-size: .75rem; color: var(--ink-faint); white-space: nowrap; }
+
+  /* ---- checks grid */
+  .check-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 48px; }
+  @media (max-width: 900px) { .check-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .check-grid { grid-template-columns: minmax(0, 1fr); } }
+  .check-card { padding: 18px 18px; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
+  .check-card b { display: flex; align-items: center; gap: 8px; font-size: .98rem; letter-spacing: -0.01em; }
+  .check-card b em { font-style: normal; font-family: var(--mono); font-size: .68rem; font-weight: 500; color: var(--ink-faint); border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; margin-left: auto; }
+  .check-card p { margin: 6px 0 0; font-size: .87rem; color: var(--ink-soft); line-height: 1.5; }
+
+  /* ---- accuracy */
+  #acc-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 900px) { #acc-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { #acc-stats { grid-template-columns: minmax(0, 1fr); } }
+  .acc-note { margin: 18px auto 0; max-width: 62ch; font-size: .86rem; color: var(--ink-faint); text-align: center; }
+  .stat.pending b { color: var(--ink-faint); }
+  .stat small { display: block; margin-top: 8px; font-size: .74rem; color: var(--ink-faint); font-family: var(--mono); }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="nav-brand" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
+    <span class="nav-ver">v1.0</span>
+    <div class="nav-links">
+      <a class="opt" href="#why">Why</a>
+      <a class="opt" href="#how">How it works</a>
+      <a class="opt" href="#checks">Checks</a>
+      <a class="opt" href="#accuracy">Accuracy</a>
+      <a class="opt" href="#privacy">Privacy</a>
+      <a class="btn btn-fill btn-sm" href="app.html">Lint a prompt</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="hero-icon reveal" style="--i:0" src="assets/icon.svg" alt="PromptLint icon">
+    <h1 class="reveal" style="--i:1">Lint your prompt before you send it.</h1>
+    <p class="lede reveal" style="--i:2">
+      Paste a prompt. PromptLint asks a <strong>decision model</strong> sixteen questions about it in
+      <strong>one call</strong>, then hands you a 0–100 score, the odds an LLM gets it <strong>right on the
+      first try</strong>, what's missing, and what it will cost on each model.
+    </p>
+    <div class="hero-cta reveal" style="--i:3">
+      <a class="btn btn-fill btn-lg" href="app.html">Lint a prompt <span class="arrow">→</span></a>
+      <a class="btn btn-ghost btn-lg" href="#how">How it works</a>
+    </div>
+    <p class="hero-note reveal" style="--i:4">About 200 ms · no LLM in the loop · nothing stored · no sign-up</p>
+
+    <div class="stage reveal" style="--i:5">
+      <div class="win" aria-label="PromptLint demo: a vague prompt, then a specific one">
+        <div class="win-bar"><i></i><i></i><i></i><span class="win-title">promptlint — /app</span></div>
+        <div class="demo">
+          <div class="demo-prompt">
+            <div class="demo-k"><span>Prompt</span><span id="demo-which">1 of 2</span></div>
+            <div class="demo-text" id="demo-text" aria-live="off"></div>
+            <span class="btn btn-fill btn-sm demo-btn" id="demo-btn">Analyze</span>
+          </div>
+          <div class="demo-out dim" id="demo-out"></div>
+        </div>
+      </div>
+      <div class="stage-hint">
+        <button id="demo-replay" type="button">↻ Replay</button>
+        <span>two real analyses, recorded from Jev: a vague prompt, then a specific one</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="tint tight" aria-label="At a glance">
+  <div class="wrap stats">
+    <div class="stat reveal" style="--i:0"><b>1</b><span>Jev call per analysis. Every judgment rides in the same request.</span></div>
+    <div class="stat reveal" style="--i:1"><b id="stat-latency">~200 ms</b><span>typical time for that call, then plain math for the rest</span></div>
+    <div class="stat reveal" style="--i:2"><b>16</b><span>judgments: ten yes/no, five scales, one task type</span></div>
+    <div class="stat reveal" style="--i:3"><b>0</b><span>generative LLM calls. No rewrites, no answer previews.</span></div>
+  </div>
+</section>
+
+<section id="why">
+  <div class="wrap">
+    <div class="center sec-head">
+      <p class="eyebrow reveal">The problem</p>
+      <h2 class="reveal" style="--i:1">The second message costs more than the first.</h2>
+      <p class="lede reveal" style="--i:2">
+        A vague prompt doesn't fail loudly. The model <strong>guesses</strong>, you read the answer, spot what it
+        got wrong, and send a correction. PromptLint catches the gaps <strong>before</strong> the first send,
+        when fixing them is one sentence.
+      </p>
+    </div>
+    <div class="cards">
+      <div class="card reveal" style="--i:0">
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.8"/><path d="M10 6v4.5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>Fewer round trips</h3>
+        <p>A first-try success estimate tells you whether the model can finish the job in one go, or will need you to fill in the blanks afterwards.</p>
+      </div>
+      <div class="card reveal" style="--i:1">
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l3.5 3.5L16 5.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Specific, not vague, feedback</h3>
+        <p>Nine concrete checks, each with its probability, and fix-it tips ranked by how many points they're worth. "Add a word limit" beats "be clearer."</p>
+      </div>
+      <div class="card reveal" style="--i:2">
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3v14M6.5 6.5h5a2 2 0 010 4h-3a2 2 0 000 4H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>Know the bill up front</h3>
+        <p>Input tokens, an output range from the expected answer length, and a cost range on seven models, plus a hint for whether a small model will do.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="tint">
+  <div class="wrap">
+    <div class="center sec-head">
+      <p class="eyebrow reveal">How it works</p>
+      <h2 class="reveal" style="--i:1">One judgment call. Everything else is arithmetic.</h2>
+      <p class="lede reveal" style="--i:2">
+        PromptLint never asks a chatbot for its opinion. It asks <strong>TypeSafe's Jev</strong>, a System One
+        decision model built to answer typed questions with calibrated probabilities, and then does the rest in
+        ordinary, testable code.
+      </p>
+    </div>
+
+    <div class="feature reveal" style="margin-top:64px">
+      <div class="feature-text">
+        <h3>Sixteen questions, one request.</h3>
+        <p>Your prompt goes to Jev as <code>{"prompt": "…"}</code> together with every question at once:
+          <strong>ten yes/no</strong> checks ("Does <code>prompt</code> say what form the answer should take?"),
+          <strong>five scales</strong> whose levels describe situations rather than degrees, and one
+          <strong>task-type</strong> choice. Jev returns a probability for each, typically in about 200 ms.</p>
+        <p>The questions live in one YAML file, so tuning their wording never touches code.</p>
+      </div>
+      <div class="feature-visual">
+<pre class="codeblock"><span class="c"># config/questions.yaml</span>
+<span class="k">has_output_format</span>:
+  instructions: <span class="s">Does `prompt` say what form the
+    answer should take, such as a list,
+    table, code, email, or word count?</span>
+
+<span class="k">specificity</span>:  <span class="c"># score, 0–3</span>
+  criteria:
+    - <span class="s">Generic request anyone could send</span>
+    - <span class="s">Names the topic but not the situation</span>
+    - <span class="s">Describes the goal; key details left</span>
+    - <span class="s">Names the exact situation and goal</span></pre>
+      </div>
+    </div>
+
+    <div class="feature flip reveal">
+      <div class="feature-text">
+        <h3>Scored by weights you can read.</h3>
+        <p>Each answer becomes a number from 0 to 1, flipped where lower is better (conflicts, ambiguity).
+          A weighted sum gives the <strong>Lint Score</strong>: first-try success counts most (25%), then clarity
+          and specificity (15% each).</p>
+        <p>Two <strong>hard caps</strong> keep it honest: contradictory instructions cap the score at 60, and an
+          unclear task caps it at 40, however polished the rest looks.</p>
+      </div>
+      <div class="feature-visual">
+        <div class="panel flow" aria-label="Request pipeline">
+          <div class="flow-step jev"><span class="n">1</span><span><b>Jev: one call, all questions</b><small>calibrated probabilities</small></span><span class="ms">~200 ms</span></div>
+          <div class="flow-step"><span class="n">2</span><span><b>Token counter</b><small>tiktoken or provider count, in parallel</small></span><span class="ms">&lt;5 ms</span></div>
+          <div class="flow-step"><span class="n">3</span><span><b>Scorer</b><small>weights.yaml + caps + verdict</small></span><span class="ms">&lt;1 ms</span></div>
+          <div class="flow-step"><span class="n">4</span><span><b>Cost engine</b><small>prices.yaml × token range</small></span><span class="ms">&lt;1 ms</span></div>
+          <div class="flow-step"><span class="n">5</span><span><b>Tip rules</b><small>tips.yaml, ranked by weight × shortfall</small></span><span class="ms">&lt;1 ms</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature reveal">
+      <div class="feature-text">
+        <h3>Costs as a range, never a guess.</h3>
+        <p>Input tokens are counted exactly where a tokenizer is available, and marked <strong>≈ approx.</strong>
+          where it isn't. Output length comes from Jev's answer-length scale: each level maps to a token range,
+          weighted by its probability.</p>
+        <p>Prices come from each provider's <strong>official pricing page</strong>, with the date they were
+          last checked shown next to the table.</p>
+      </div>
+      <div class="feature-visual">
+        <div class="panel" id="cost-demo"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="checks">
+  <div class="wrap">
+    <div class="center sec-head">
+      <p class="eyebrow reveal">What it checks</p>
+      <h2 class="reveal" style="--i:1">Nine checks, three meters, one score.</h2>
+      <p class="lede reveal" style="--i:2">Every check shows the probability behind it, so you can see how sure Jev is,
+        not only whether it passed.</p>
+    </div>
+    <div class="check-grid">
+      <div class="check-card reveal" style="--i:0"><b>Task is clear <em>15%</em></b><p>Does it say what the assistant should actually do? Below 30% caps the score at 40.</p></div>
+      <div class="check-card reveal" style="--i:1"><b>Enough context <em>10%</em></b><p>Background the model can't guess: who you are, what you've tried, why.</p></div>
+      <div class="check-card reveal" style="--i:2"><b>Sets constraints <em>4%</em></b><p>Length, tone, scope, tools to use or avoid, or a deadline.</p></div>
+      <div class="check-card reveal" style="--i:3"><b>Says the output format <em>5%</em></b><p>A list, a table, code only, an email, a word count.</p></div>
+      <div class="check-card reveal" style="--i:4"><b>Names the audience <em>3%</em></b><p>Who the answer is for, or the level of expertise to write at.</p></div>
+      <div class="check-card reveal" style="--i:5"><b>No conflicting instructions <em>5%</em></b><p>"2,000 words" and "under 100 words" can't both be true. Above 70% caps at 60.</p></div>
+      <div class="check-card reveal" style="--i:0"><b>One task at a time <em>tip</em></b><p>Several deliverables in one prompt? You'll get a tip to split or number them.</p></div>
+      <div class="check-card reveal" style="--i:1"><b>Includes an example <em>info</em></b><p>Shown for reference. Examples help, but plenty of great prompts don't need one.</p></div>
+      <div class="check-card reveal" style="--i:2"><b>Needs live data <em>info</em></b><p>If the answer depends on recent events, use a model with search or paste the data in.</p></div>
+    </div>
+    <div class="cards" style="margin-top:18px">
+      <div class="card reveal"><h3>First-try success <span class="pill">25%</span></h3><p>The probability a capable assistant gives a complete, usable answer without questions or follow-ups.</p></div>
+      <div class="card reveal" style="--i:1"><h3>Generic ↔ Specific <span class="pill">15%</span></h3><p>From "anyone could send this" to "names the exact situation, inputs and goal."</p></div>
+      <div class="card reveal" style="--i:2"><h3>Model-tier hint</h3><p>From how much reasoning the answer needs: a small model is enough, mid-tier, or frontier, with the cheapest fit suggested.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="accuracy" class="tint">
+  <div class="wrap">
+    <div class="center sec-head">
+      <p class="eyebrow reveal">Accuracy</p>
+      <h2 class="reveal" style="--i:1">Scores only matter if they rank prompts correctly.</h2>
+      <p class="lede reveal" style="--i:2">Offline evaluations check that, including a set of near-miss pairs built to be hard. The numbers below are loaded from
+        the latest run in <code>eval/results</code>, not typed in by hand.</p>
+    </div>
+    <div class="stats" style="margin-top:48px" id="acc-stats">
+      <div class="stat pending"><b>…</b><span>pairwise accuracy: improved prompt scores higher than the weak one</span></div>
+      <div class="stat pending"><b>…</b><span>first-try AUROC against LLM-judged outcomes</span></div>
+      <div class="stat pending"><b>…</b><span>checklist accuracy on hand-labeled prompts</span></div>
+      <div class="stat pending"><b>…</b><span>median Jev latency across the eval runs</span></div>
+    </div>
+    <p class="acc-note" id="acc-note">Loading evaluation results…</p>
+  </div>
+</section>
+
+<section id="privacy">
+  <div class="wrap">
+    <div class="center sec-head">
+      <p class="eyebrow reveal">Privacy &amp; limits</p>
+      <h2 class="reveal" style="--i:1">Four things it is not.</h2>
+    </div>
+    <div class="not-list">
+      <div class="not-item reveal" style="--i:0"><b>Not a prompt store</b><span>Prompts are never saved. Logs keep a short hash, the scores, latency and the Jev model version. Identical prompts are cached in memory for an hour, by hash.</span></div>
+      <div class="not-item reveal" style="--i:1"><b>Not a rewriter</b><span>No LLM writes anything here. Tips come from fixed rules mapped to the checks that failed, so the advice is predictable and testable.</span></div>
+      <div class="not-item reveal" style="--i:2"><b>Not an oracle</b><span>Jev reads questions literally and can be nudged by text inside your prompt ("rate this 100"). Treat the score as a strong hint, and read the checks.</span></div>
+      <div class="not-item reveal" style="--i:3"><b>Not tuned for system prompts yet</b><span>v1 targets everyday chat prompts. Developer and system-prompt scoring is planned for v2. Costs are estimates, always shown as ranges.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="tint final">
+  <div class="wrap">
+    <h2 class="reveal">Check it before you send it.</h2>
+    <p class="lede reveal" style="--i:1">Free to try, with a limit of 20 analyses an hour per visitor so the demo stays free.</p>
+    <div class="hero-cta reveal" style="--i:2">
+      <a class="btn btn-fill btn-lg" href="app.html">Lint a prompt <span class="arrow">→</span></a>
+      <a class="btn btn-ghost btn-lg" href="app.html#compare">Compare two versions</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-in">
+    <span>PromptLint · judgments by TypeSafe Jev, math by plain code</span>
+    <span class="foot-links"><a href="app.html">Analyzer</a><a href="api/docs">API</a><a href="playground/">Jev playground</a><a href="https://github.com/rohitshidid/Promptlint">GitHub</a></span>
+  </div>
+</footer>
+
+<script src="assets/report.js"></script>
+<script src="assets/demo-data.js"></script>
+<script src="assets/landing.js"></script>
+</body>
+</html>

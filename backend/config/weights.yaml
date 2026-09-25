@@ -1,0 +1,43 @@
+# Composite Lint Score weights and thresholds (PromptLint.md §7).
+# Starting values; tune with the eval set and commit only when the metrics improve.
+#
+# Each signal is normalized to 0–1 where 1 is good:
+#   noul   -> probability (inverted when `invert: true`)
+#   score  -> score / top_level (inverted when `invert: true`)
+
+weights:
+  first_try_success:   { weight: 0.25 }
+  task_clear:          { weight: 0.15 }
+  specificity:         { weight: 0.15 }
+  context_given:       { weight: 0.10 }
+  ambiguity:           { weight: 0.10, invert: true }
+  needs_clarification: { weight: 0.08, invert: true }
+  has_output_format:   { weight: 0.05 }
+  has_constraints:     { weight: 0.04 }
+  has_audience:        { weight: 0.03 }
+  conflicting:         { weight: 0.05, invert: true }
+
+# Hard caps, applied after weighting.
+caps:
+  - { signal: conflicting, above: 0.7, cap: 60 }   # raw noul probability
+  - { signal: task_clear,  below: 0.3, cap: 40 }
+
+verdicts:
+  ready_to_send: 75   # score >= 75
+  needs_work: 50      # 50 <= score < 75; below 50 is likely_to_fail
+
+# Show a "low confidence" badge when the mean confidence of the Score and Choice answers is below this.
+low_confidence_below: 0.5
+
+# Generic ↔ Specific meter labels, by normalized specificity.
+specificity_labels:
+  - { below: 0.25, label: Generic }
+  - { below: 0.50, label: Mostly generic }
+  - { below: 0.75, label: Fairly specific }
+  - { below: 1.01, label: Specific }
+
+# Model-tier hint from the expected `complexity` score (0–3).
+tier_hint:
+  - { below: 1.0, tier: small }      # a small model is enough
+  - { below: 2.0, tier: mid }
+  - { below: 3.01, tier: frontier }  # needs a frontier model

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lint a prompt · PromptLint</title>
+<meta name="description" content="Paste a prompt and get a 0–100 lint score, first-try success odds, missing pieces, tips and per-model cost.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/report.css">
+<style>
+  .app-head { padding: 40px 0 8px; position: relative; }
+  .app-head::before {
+    content: ""; position: absolute; inset: -200px 0 auto; height: 480px; z-index: -1; pointer-events: none;
+    background: radial-gradient(560px 300px at 30% 10%, rgba(16,185,129,.12), transparent 70%),
+                radial-gradient(420px 260px at 80% 0%, rgba(13,148,164,.08), transparent 70%);
+  }
+  .app-head-in { display: flex; align-items: end; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .app-head h1 { font-size: clamp(2rem, 4.4vw, 2.9rem); }
+  .app-head p { margin: 8px 0 0; color: var(--ink-soft); font-size: 1.02rem; }
+
+  .seg { display: inline-flex; padding: 4px; gap: 4px; background: rgba(22,24,29,.05); border-radius: 999px; }
+  .seg button {
+    font: inherit; font-size: .88rem; font-weight: 550; border: 0; background: transparent; color: var(--ink-soft);
+    padding: 8px 18px; border-radius: 999px; cursor: pointer;
+  }
+  .seg button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 22px; align-items: start; padding: 22px 0 80px; }
+  .layout.compare { grid-template-columns: minmax(0, 1fr); }
+  @media (max-width: 980px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+  .editor { position: sticky; top: 72px; }
+  .layout.compare .editor { position: static; }
+  @media (max-width: 980px) { .editor { position: static; } }
+
+  .ed-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-sm); padding: 18px; }
+  .ed-pair { display: grid; gap: 14px; }
+  .layout.compare .ed-pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  @media (max-width: 760px) { .layout.compare .ed-pair { grid-template-columns: minmax(0, 1fr); } }
+  .ed-slot[hidden] { display: none; }
+  .ed-label { display: flex; justify-content: space-between; align-items: center; margin: 0 0 8px; font-size: .8rem; font-weight: 650; color: var(--ink-soft); }
+  .ed-label .tag { display: inline-flex; align-items: center; gap: 6px; }
+  .ed-label .tag i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  textarea {
+    width: 100%; min-height: 230px; resize: vertical; display: block;
+    font: 15px/1.55 var(--sans); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 14px; padding: 14px 15px; background: var(--bg-tint);
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  textarea:focus { outline: none; border-color: var(--accent-mid); background: #fff; box-shadow: 0 0 0 4px var(--accent-glow); }
+  .counter { display: flex; justify-content: space-between; gap: 10px; margin-top: 7px; font-size: .78rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+  .counter .over { color: var(--bad-ink); font-weight: 600; }
+
+  .examples { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 0; align-items: center; }
+  .examples span { font-size: .78rem; color: var(--ink-faint); margin-right: 2px; }
+  .chip {
+    font: inherit; font-size: .8rem; border: 1px solid var(--line); background: #fff; color: var(--ink-soft);
+    border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: border-color .15s, background .15s, color .15s;
+  }
+  .chip:hover { border-color: rgba(4,120,87,.35); color: var(--ink); }
+
+  fieldset.models { border: 0; padding: 0; margin: 18px 0 0; min-width: 0; }
+  fieldset.models legend { font-size: .8rem; font-weight: 650; color: var(--ink-soft); padding: 0; margin-bottom: 8px; }
+  .model-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .model-grid label {
+    display: inline-flex; align-items: center; gap: 7px; font-size: .82rem; cursor: pointer; user-select: none;
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px 5px 9px; background: #fff; color: var(--ink-soft);
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .model-grid input { accent-color: var(--accent); margin: 0; }
+  .model-grid label:has(input:checked) { border-color: rgba(4,120,87,.4); background: var(--accent-soft); color: var(--ink); }
+  .model-grid label:has(input:focus-visible) { outline: 2px solid var(--accent-mid); outline-offset: 2px; }
+
+  .ed-actions { display: flex; align-items: center; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+  .ed-actions .kbd { font-family: var(--mono); font-size: .72rem; opacity: .75; font-weight: 400; }
+  .spinner { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; animation: spin .7s linear infinite; display: none; }
+  .loading .spinner { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .privacy-note { font-size: .76rem; color: var(--ink-faint); margin: 12px 0 0; }
+
+  .results { min-width: 0; padding: 0; }
+  .empty {
+    border: 1.5px dashed rgba(22,24,29,.14); border-radius: 20px; padding: 56px 28px; text-align: center; color: var(--ink-faint);
+  }
+  .empty img { width: 52px; height: 52px; border-radius: 13px; opacity: .9; }
+  .empty h2 { font-size: 1.3rem; letter-spacing: -0.02em; color: var(--ink); margin-top: 16px; }
+  .empty p { margin: 8px auto 0; max-width: 40ch; font-size: .94rem; line-height: 1.55; }
+
+  .err {
+    border: 1px solid rgba(208,59,59,.3); background: var(--bad-soft); border-radius: 16px; padding: 16px 18px; color: var(--ink);
+    display: grid; grid-template-columns: 22px 1fr; gap: 10px;
+  }
+  .err svg { width: 18px; height: 18px; color: var(--bad-ink); margin-top: 2px; }
+  .err b { color: var(--bad-ink); }
+  .err p { margin: 4px 0 0; font-size: .9rem; color: var(--ink-soft); }
+
+  .skeleton { display: grid; gap: 14px; }
+  .skeleton div { border-radius: 16px; background: linear-gradient(90deg, #f1f2f4 0%, #f8f9fa 50%, #f1f2f4 100%); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  @media (prefers-reduced-motion: reduce) { .skeleton div { animation: none; } }
+
+  .cmp-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; }
+  @media (max-width: 900px) { .cmp-grid { grid-template-columns: minmax(0, 1fr); } }
+  .cmp-col h3 { font-size: .8rem; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+  .cmp-col h3 i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .cmp-radar { margin-top: 18px; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="nav-brand" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
+    <span class="nav-ver">v1.0</span>
+    <div class="nav-links">
+      <a class="opt" href="./#how">How it works</a>
+      <a class="opt" href="./#accuracy">Accuracy</a>
+      <a class="opt" href="./#privacy">Privacy</a>
+      <a class="opt" href="playground/">Jev playground</a>
+      <a href="app.html" aria-current="page">Analyzer</a>
+    </div>
+  </div>
+</nav>
+
+<header class="app-head">
+  <div class="wrap app-head-in">
+    <div>
+      <h1>Lint a prompt</h1>
+      <p>One Jev call judges it; everything else is deterministic math.</p>
+    </div>
+    <div class="seg" role="tablist" aria-label="Mode">
+      <button role="tab" id="tab-single" aria-selected="true" aria-controls="layout">Single</button>
+      <button role="tab" id="tab-compare" aria-selected="false" aria-controls="layout">Compare</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap layout" id="layout">
+  <section class="editor" aria-label="Prompt editor" style="padding:0">
+    <div class="ed-card">
+      <div class="ed-pair">
+        <div class="ed-slot" id="slot-a">
+          <label class="ed-label" for="prompt-a"><span class="tag" id="label-a">Your prompt</span></label>
+          <textarea id="prompt-a" spellcheck="true" placeholder="Paste the prompt you're about to send to ChatGPT, Claude or Gemini…"></textarea>
+          <div class="counter" id="counter-a" aria-live="polite"></div>
+        </div>
+        <div class="ed-slot" id="slot-b" hidden>
+          <label class="ed-label" for="prompt-b"><span class="tag"><i style="background:var(--series-2)"></i>Version B</span></label>
+          <textarea id="prompt-b" spellcheck="true" placeholder="Paste the improved version…"></textarea>
+          <div class="counter" id="counter-b" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div class="examples" id="examples"><span>Try:</span></div>
+
+      <fieldset class="models">
+        <legend>Price it on</legend>
+        <div class="model-grid" id="models"><span class="counter">Loading models…</span></div>
+      </fieldset>
+
+      <div class="ed-actions">
+        <button class="btn btn-fill btn-md" id="analyze"><span class="spinner"></span><span id="analyze-label">Analyze</span> <span class="kbd">⌘↵</span></button>
+        <span class="counter" id="status" role="status" style="margin:0"></span>
+      </div>
+      <p class="privacy-note">Your prompt goes to TypeSafe's Jev for one judgment call and is not stored. Logs keep only a hash and the scores.</p>
+    </div>
+  </section>
+
+  <section class="results" id="results" aria-live="polite" aria-label="Report">
+    <div class="empty">
+      <img src="assets/icon.svg" alt="">
+      <h2>Your report card shows up here</h2>
+      <p>Score, first-try odds, what's missing, fix-it tips, and what it will cost on each model.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <span>PromptLint · judgments by TypeSafe Jev, math by plain code</span>
+    <span class="foot-links"><a href="./">Home</a><a href="./#privacy">Privacy</a><a href="api/docs">API</a><a href="playground/">Jev playground</a></span>
+  </div>
+</footer>
+
+<script src="assets/report.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

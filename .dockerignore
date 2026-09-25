@@ -1,6 +1,13 @@
 .env
 .env.*
+!.env.example
 .git
-node_modules
+.github
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+eval
+backend/tests
+PromptLint.md
 README.md
-*.png
