@@ -193,9 +193,7 @@ Free forever as of Sept 2026 (free tiers change, so re-check): **Render** free w
 3. In the Render dashboard set `TYPESAFE_API_KEY` and `DATABASE_URL` (the Neon string). Optional: `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` for a free captcha on sign-up.
 4. Deploy. Migrations run on startup. Open `/v1/health`: `"database": "ok"`.
 
-5. **Keep it awake (optional, free).** `.github/workflows/keep-awake.yml` pings `/api/health` every 10 minutes so visitors never hit a cold start. Turn it on by telling it your address: `gh variable set PROMPTLINT_URL --body "https://<your-app>.onrender.com"`. It deliberately avoids `/v1/health`, which would keep the Neon database awake too and use up its free compute hours.
-
-What to expect on free tiers: without step 5 the service sleeps after 15 minutes idle and the first request after that takes about a minute; Neon's compute also scales to zero (the pinger leaves it asleep). 750 free instance-hours/month cover one service all month. Tables keep metadata only and prune after 90 days, well inside Neon's 0.5 GB. **Avoid** Render's free Postgres (deleted after 30 days) and SQLite on Render (the disk is wiped on deploy). Jev itself is billed by TypeSafe; `backend: "heuristic"` costs nothing.
+What to expect on free tiers: the service sleeps after 15 minutes idle and the first request after that takes about a minute; Neon's compute also scales to zero. 750 free instance-hours/month cover one service all month. Tables keep metadata only and prune after 90 days, well inside Neon's 0.5 GB. **Avoid** Render's free Postgres (deleted after 30 days) and SQLite on Render (the disk is wiped on deploy). Jev itself is billed by TypeSafe; `backend: "heuristic"` costs nothing.
 
 ## Privacy and security
 

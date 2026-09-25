@@ -5,9 +5,6 @@
 #                Postgres: it is deleted 30 days after creation.
 #   rate limits: in memory (single instance). No Redis needed.
 #
-# Cold starts: .github/workflows/keep-awake.yml pings /api/health every 10 min once the repo variable
-# PROMPTLINT_URL is set (it avoids /v1/health so the Neon database can still sleep).
-#
 # Deploy: New → Blueprint → pick this repo. Then in the dashboard set TYPESAFE_API_KEY and DATABASE_URL
 # (paste Neon's connection string as-is; sslmode is handled). Migrations run on startup.
 services:
