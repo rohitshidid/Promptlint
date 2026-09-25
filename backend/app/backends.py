@@ -8,6 +8,7 @@ Both return `JevAnswers`, so scoring, cost and tips never care which backend ran
 failure, marking the result `degraded`.
 """
 
+import datetime as dt
 import logging
 import math
 import re
@@ -238,6 +239,9 @@ class BackendRouter:
     def __init__(self, *, jev: Judge | None, heuristic: Judge):
         self.jev = jev
         self.heuristic = heuristic
+        # The most recent Jev failure, cleared by the next success. /v1/health reports it so a rejected
+        # server key shows up without reading logs.
+        self.last_jev_error: dict | None = None
 
     @property
     def jev_available(self) -> bool:
@@ -251,9 +255,17 @@ class BackendRouter:
                 raise JevError(503, "The Jev backend is not configured on this server.")
             return Judged(await self.heuristic.judge(prompt, system), "heuristic", True, "jev_not_configured")
         try:
-            return Judged(await self.jev.judge(prompt, system), "jev", False)
+            answers = await self.jev.judge(prompt, system)
         except JevError as e:
+            self.last_jev_error = {
+                "status": e.status,
+                "reason": f"jev_{e.status}",
+                "message": e.message,
+                "at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds"),
+            }
             if backend == "jev":
                 raise
             log.warning("Jev failed (%s); serving the heuristic backend instead", e.status)
             return Judged(await self.heuristic.judge(prompt, system), "heuristic", True, f"jev_{e.status}")
+        self.last_jev_error = None
+        return Judged(answers, "jev", False)

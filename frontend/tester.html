@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check a prompt · PromptLint</title>
+<meta name="description" content="Try your PromptLint API key: check a prompt and get a plain-English explanation of the result.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+  .t-head { padding: 40px 0 8px; position: relative; }
+  .t-head::before {
+    content: ""; position: absolute; inset: -200px 0 auto; height: 480px; z-index: -1; pointer-events: none;
+    background: radial-gradient(560px 300px at 30% 10%, rgba(16,185,129,.12), transparent 70%),
+                radial-gradient(420px 260px at 80% 0%, rgba(13,148,164,.08), transparent 70%);
+  }
+  .t-head h1 { font-size: clamp(2rem, 4.4vw, 2.9rem); }
+  .t-head p { margin: 8px 0 0; color: var(--ink-soft); font-size: 1.02rem; max-width: 62ch; }
+  main.narrow { padding: 18px 0 90px; }
+
+  .box { background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-sm); padding: 24px; min-width: 0; margin-bottom: 16px; }
+  .box h2 { font-size: 1.15rem; letter-spacing: -0.015em; }
+  .box .sub { color: var(--ink-soft); font-size: .92rem; margin: 6px 0 16px; line-height: 1.5; }
+
+  /* ---- form */
+  .fg { margin-bottom: 18px; }
+  label.f, .f { display: block; font-size: .82rem; font-weight: 600; color: var(--ink-soft); margin: 0 0 6px; }
+  .hint { font-size: .8rem; color: var(--ink-faint); margin: 6px 0 0; line-height: 1.45; }
+  .t, textarea.t, select.t {
+    width: 100%; font: inherit; font-size: .98rem; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--bg-tint); color: var(--ink); transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .t:focus { outline: none; border-color: var(--accent-mid); background: #fff; box-shadow: 0 0 0 4px var(--accent-glow); }
+  textarea.t { min-height: 130px; resize: vertical; line-height: 1.5; }
+  .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 640px) { .two-cols { grid-template-columns: 1fr; } }
+  .key-row { display: flex; gap: 8px; }
+  .key-row input { flex: 1; min-width: 0; font-family: var(--mono); font-size: .88rem; }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: .86rem; color: var(--ink-soft); cursor: pointer; }
+  .check input { accent-color: var(--accent); }
+  .chips, .examples { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .examples { margin-top: 8px; }
+  .examples span { color: var(--ink-faint); font-size: .82rem; }
+  .chip {
+    font: inherit; font-size: .82rem; cursor: pointer; color: var(--ink-soft); background: #fff;
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; transition: background-color .15s, border-color .15s, color .15s;
+  }
+  .chip:hover { background: var(--bg-tint); }
+  .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: rgba(4,120,87,.35); color: var(--accent); font-weight: 550; }
+  details.adv { margin-bottom: 18px; }
+  details.adv summary { cursor: pointer; color: var(--ink-soft); font-size: .88rem; }
+  details.adv .fg { margin: 12px 0 0; }
+  #submitBtn { width: 100%; }
+  .loader { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; animation: spin 1s linear infinite; display: none; }
+
+  .status { display: inline-flex; align-items: center; gap: 8px; font-size: .84rem; color: var(--ink-soft);
+            background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; margin-top: 16px; }
+  .status i { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+  .status.on i { background: var(--good); box-shadow: 0 0 0 3px var(--good-soft); }
+  .status.off i { background: var(--bad); box-shadow: 0 0 0 3px var(--bad-soft); }
+  .status.waking i { animation: pulse 1.2s ease-in-out infinite; }
+
+  /* ---- results */
+  #results { margin-top: 26px; display: none; }
+  .headline { display: grid; grid-template-columns: auto 1fr; gap: 26px; align-items: center; }
+  @media (max-width: 640px) { .headline { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
+  .ring { position: relative; width: 150px; height: 150px; }
+  .ring svg { width: 150px; height: 150px; transform: rotate(-90deg); }
+  .ring-num { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .ring-num b { font-size: 2.8rem; line-height: 1; letter-spacing: -.04em; }
+  .ring-num small { display: block; color: var(--ink-faint); font-size: .8rem; margin-top: 4px; }
+  .verdict { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; padding: 5px 12px 5px 10px; font-size: .88rem; font-weight: 650; }
+  .verdict.good { background: var(--good-soft); color: var(--good-ink); }
+  .verdict.warn { background: var(--warn-soft); color: var(--warn-ink); }
+  .verdict.bad { background: var(--bad-soft); color: var(--bad-ink); }
+  .plain { font-size: 1.02rem; line-height: 1.6; color: var(--ink-soft); margin: 10px 0 0; }
+  .plain b { color: var(--ink); font-weight: 600; }
+  .second-score { margin: 12px 0 0; color: var(--ink-faint); font-size: .86rem; line-height: 1.5; }
+  .second-score b { color: var(--ink-soft); }
+
+  .meters { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 26px; }
+  @media (max-width: 640px) { .meters { grid-template-columns: 1fr; } }
+  .m-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .m-top span { font-weight: 600; font-size: .95rem; }
+  .m-top b { font-size: 1.15rem; letter-spacing: -0.02em; }
+  .m-bar { height: 8px; background: var(--bg-tint); border-radius: 999px; overflow: hidden; margin: 8px 0 6px; }
+  .m-bar i { display: block; height: 100%; border-radius: 999px; transition: width .8s cubic-bezier(.22,.61,.36,1); }
+  .m p { margin: 0; color: var(--ink-faint); font-size: .83rem; line-height: 1.45; }
+
+  .missing { display: grid; gap: 8px; }
+  .miss { display: grid; grid-template-columns: 24px 1fr auto; gap: 12px; align-items: start; padding: 12px 14px; background: var(--bg-tint); border: 1px solid var(--line-soft); border-radius: 12px; }
+  .miss .ico { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font-weight: 700; font-size: .8rem; }
+  .miss.no .ico { background: var(--bad-soft); color: var(--bad-ink); }
+  .miss.yes .ico { background: var(--good-soft); color: var(--good-ink); }
+  .miss b { display: block; font-size: .94rem; }
+  .miss span { color: var(--ink-soft); font-size: .84rem; line-height: 1.45; }
+  .miss em { font-style: normal; color: var(--ink-faint); font-size: .76rem; font-family: var(--mono); white-space: nowrap; padding-top: 2px; }
+
+  ol.tips { margin: 0; padding: 0; list-style: none; counter-reset: t; display: grid; gap: 8px; }
+  ol.tips li { counter-increment: t; display: grid; grid-template-columns: 26px 1fr auto; gap: 12px; align-items: start; background: var(--bg-tint); border: 1px solid var(--line-soft); border-radius: 12px; padding: 12px 14px; line-height: 1.5; font-size: .94rem; }
+  ol.tips li::before { content: counter(t); width: 26px; height: 26px; border-radius: 8px; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: .8rem; }
+  ol.tips .gain { color: var(--good-ink); font-family: var(--mono); font-size: .8rem; white-space: nowrap; padding-top: 2px; }
+
+  .template { background: var(--bg-tint); border: 1px dashed rgba(22,24,29,.2); border-radius: 12px; padding: 14px 16px; font-family: var(--mono); font-size: .84rem; line-height: 1.7; white-space: pre-wrap; color: var(--ink); }
+  .template .blank { color: var(--accent); font-weight: 600; }
+  .row-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+  table.cost { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  table.cost th { text-align: left; font-size: .72rem; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; padding: 0 6px 8px; border-bottom: 1px solid var(--line); }
+  table.cost td { padding: 10px 6px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  table.cost .r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.cost small { color: var(--ink-faint); display: block; font-size: .78rem; }
+  .table-scroll { overflow-x: auto; }
+
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+  .fact { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .fact small { display: block; font-size: .72rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
+  .fact b { display: block; font-size: 1.05rem; margin-top: 4px; letter-spacing: -0.01em; }
+  .fact span { display: block; color: var(--ink-faint); font-size: .8rem; margin-top: 3px; line-height: 1.4; }
+
+  .notice { border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; line-height: 1.55; font-size: .92rem; }
+  .notice.warn { background: var(--warn-soft); border: 1px solid rgba(250,178,25,.55); color: var(--warn-ink); }
+  .notice.err { background: var(--bad-soft); border: 1px solid rgba(208,59,59,.3); color: var(--bad-ink); }
+  .notice b { color: var(--ink); }
+  .notice ul { margin: 8px 0 0; padding-left: 20px; }
+  .notice .more { margin-top: 8px; font-size: .85rem; opacity: .9; }
+
+  details.raw { margin-top: 6px; }
+  details.raw summary { cursor: pointer; color: var(--ink-soft); padding: 8px 0; font-size: .9rem; }
+  details.raw pre { margin: 6px 0 0; max-height: 480px; overflow: auto; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="nav-brand" id="linkSite" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
+    <span class="nav-ver">v1.1</span>
+    <div class="nav-links">
+      <a class="opt" id="linkApp" href="app.html">Analyzer</a>
+      <a class="opt" id="linkDocs" href="docs.html">API docs</a>
+      <a class="opt" href="tester.html" aria-current="page">Tester</a>
+      <a id="linkAccount" href="account.html">Account</a>
+    </div>
+  </div>
+</nav>
+
+<header class="t-head">
+  <div class="narrow">
+    <h1>Check a prompt with your key</h1>
+    <p>Paste a prompt you're about to send to ChatGPT, Claude or Gemini. PromptLint checks it through the API with your key and explains, in plain words, whether an AI will understand it and what to add.</p>
+    <div class="status waking" id="status" role="status"><i></i><span id="statusText">Connecting to the server…</span></div>
+  </div>
+</header>
+
+<main class="narrow">
+  <form class="box" id="apiForm" novalidate>
+    <div class="fg">
+      <label class="f" for="apiKey">API key</label>
+      <div class="key-row">
+        <input class="t" type="password" id="apiKey" placeholder="pqs_live_..." autocomplete="off" spellcheck="false">
+        <button type="button" class="btn btn-ghost btn-sm" id="toggleKey">Show</button>
+      </div>
+      <label class="check"><input type="checkbox" id="rememberKey"> Remember the key on this device</label>
+      <p class="hint">Use a key from your <a id="accountLink" href="account.html">account page</a>. Paste the whole key (it starts with <code>pqs_live_</code>), with no <code>$</code> in front.</p>
+    </div>
+
+    <div class="fg">
+      <label class="f" for="promptText">Your prompt</label>
+      <textarea class="t" id="promptText" placeholder="e.g. write me a poem about the sea...">write me a poem</textarea>
+      <div class="examples"><span>Try:</span>
+        <button type="button" class="chip" data-example="vague">A vague one</button>
+        <button type="button" class="chip" data-example="good">A detailed one</button>
+        <button type="button" class="chip" data-example="conflict">A contradictory one</button>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label class="f" for="systemPrompt">System prompt (optional)</label>
+      <input class="t" type="text" id="systemPrompt" placeholder="e.g. You are a helpful assistant.">
+      <p class="hint">Background instructions some apps give the AI. Leave empty if you don't know what this is.</p>
+    </div>
+
+    <div class="two-cols">
+      <div class="fg">
+        <label class="f" for="backendSelect">Who checks the prompt</label>
+        <select class="t" id="backendSelect">
+          <option value="auto">Automatic (recommended)</option>
+          <option value="jev">Jev AI judge only</option>
+          <option value="heuristic">Simple rules only (no AI)</option>
+        </select>
+        <p class="hint" id="backendHint"></p>
+      </div>
+      <div class="fg">
+        <span class="f">Show the cost on</span>
+        <div class="chips" id="models"><span class="hint">Loading models…</span></div>
+      </div>
+    </div>
+
+    <details class="adv"><summary>Advanced</summary>
+      <div class="fg">
+        <label class="f" for="server">Server address</label>
+        <input class="t" type="text" id="server" spellcheck="false">
+        <p class="hint">Leave this as is. Keys only work on the server they were created on.</p>
+      </div>
+    </details>
+
+    <button type="submit" class="btn btn-fill btn-lg" id="submitBtn">
+      <span id="btnText">Check my prompt</span>
+      <span class="loader" id="btnLoader"></span>
+    </button>
+  </form>
+
+  <div id="results" aria-live="polite"></div>
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <span>PromptLint · judgments by TypeSafe Jev, math by plain code</span>
+    <span class="foot-links"><a href="./">Home</a><a href="app.html">Analyzer</a><a href="docs.html">API docs</a><a href="account.html">Account</a></span>
+  </div>
+</footer>
+
+<script>
+(() => {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const pct = (x) => Math.round(x * 100) + "%";
+    const store = {
+        get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+        set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { /* private mode */ } },
+    };
+
+    // ------------------------------------------------------------ plain-English dictionaries
+    const VERDICT = {
+        ready_to_send: { label: "Ready to send", cls: "good", icon: "✓", text: "An AI should understand this and give a useful answer on the first try." },
+        needs_work: { label: "Needs work", cls: "warn", icon: "!", text: "An AI will probably answer, but it will have to guess some things you care about." },
+        likely_to_fail: { label: "Likely to fail", cls: "bad", icon: "✕", text: "An AI will probably have to guess what you want, and you'll likely need to ask again." },
+    };
+    const COMPONENTS = {
+        goal: ["Your goal", "Why you need it, or what you'll use the answer for."],
+        context: ["Background", "Who you are, what you're working on, what you've already tried."],
+        constraints: ["Limits", "How long, what tone, what to include or leave out."],
+        output_format: ["Format", "The shape of the answer: a list, a table, an email, code only…"],
+        audience: ["Audience", "Who the answer is for, like a beginner, your boss, or 10-year-olds."],
+        examples: ["An example", "A sample of what you want, or the text/data to work on."],
+        success_criteria: ["What \"done\" looks like", "How you'll know the answer is right or complete."],
+    };
+    const TEMPLATE = {
+        goal: "I need this because / so that: ___",
+        context: "About me / my situation: ___",
+        audience: "It's for: ___ (who will read or use it)",
+        constraints: "Keep it: ___ (length, tone, things to avoid)",
+        output_format: "Give it to me as: ___ (a list, a table, an email, code only…)",
+        examples: "Here's an example / the material to use: ___",
+        success_criteria: "A good answer must: ___",
+    };
+    const TASK = {
+        coding: "a coding task", writing: "a writing task", analysis: "an analysis task", math: "a math problem",
+        factual_qa: "a factual question", brainstorming: "a brainstorming task", extraction_transformation: "a summarize/convert task",
+        conversation: "a chat message", other: "a general request",
+    };
+    const COMPLEXITY = { low: "Simple", medium: "Medium", high: "Hard" };
+    const TIER = { small: "a small, cheap AI model is enough", mid: "a mid-range AI model fits", frontier: "it needs a top-end AI model" };
+    const ERRORS = {
+        missing_api_key: ["No API key was sent", ["Paste your key in the API key box.", "If you typed $ before the key in a terminal, remove it."]],
+        invalid_api_key: ["That API key doesn't work", ["Check you copied the whole key (it starts with pqs_live_).", "It may have been revoked. Create a new one on the account page."]],
+        rate_limit_exceeded: ["Too many checks in a short time", ["Wait a minute and try again. Your plan allows a set number of checks per minute."]],
+        quota_exceeded: ["You've used today's free checks", ["The free plan resets every day at midnight UTC."]],
+        prompt_too_long: ["The prompt is too long", ["Prompts can be up to 32,000 characters. Shorten it and try again."]],
+        unknown_model: ["One of the selected models isn't known", ["Pick models from the list on this page."]],
+        invalid_request: ["Something in the request isn't right", ["Make sure the prompt box isn't empty."]],
+        backend_unavailable: ["The Jev AI judge is down right now", ["Switch \"Who checks the prompt\" to Automatic or Simple rules and try again."]],
+        account_disabled: ["This account is disabled", ["Contact whoever runs this PromptLint server."]],
+    };
+    const EXAMPLES = {
+        vague: "write me a poem",
+        good: "I'm a high-school chemistry teacher. Write a 12-line rhyming poem for my Year 10 class that explains ionic vs covalent bonding. Use one simple analogy per bond type, keep the vocabulary at a 15-year-old's level, and end with a two-line summary they can memorize. Return only the poem.",
+        conflict: "Write a detailed 2,000-word essay on climate policy. Keep it under 100 words. Use bullet points only, no lists.",
+    };
+    // Why the Jev judge was skipped (`backend.fallback_reason`, or `/v1/health` → backends.jev.last_error).
+    const FALLBACK = {
+        jev_500: "TypeSafe rejected this server's Jev API key (the TYPESAFE_API_KEY setting is wrong, revoked or out of credit). Whoever runs this PromptLint server needs to update it.",
+        jev_not_configured: "This server has no Jev API key set (TYPESAFE_API_KEY), so it can only use the simple rules.",
+        jev_503: "The Jev service was busy or couldn't be reached. Try again in a minute.",
+        jev_504: "The Jev service took too long to answer. Try again in a minute.",
+        jev_502: "The Jev service returned an error. Try again in a minute.",
+    };
+    const fallbackText = (reason) => FALLBACK[reason] || "The Jev AI judge wasn't available.";
+
+    const BACKEND_HINT = {
+        auto: "Uses the Jev AI judge. If it's unavailable, simple rules take over so you still get an answer.",
+        jev: "Always the Jev AI judge. Shows an error if it's unavailable.",
+        heuristic: "Quick keyword rules, no AI. Instant and private, but rougher.",
+    };
+
+    // ------------------------------------------------------------ settings
+    // Served by PromptLint itself: talk to this same server. Opened from disk (file://): use the live one.
+    const LIVE = "https://promptlint.onrender.com";
+    const HOSTED = location.protocol === "http:" || location.protocol === "https:";
+    const DEFAULT_SERVER = HOSTED ? location.origin : LIVE;
+    const server = () => ($("server").value.trim() || DEFAULT_SERVER).replace(/\/+$/, "");
+    $("server").value = (!HOSTED && store.get("pl_live_server")) || DEFAULT_SERVER;
+    const savedKey = store.get("pl_live_key");
+    if (savedKey) { $("apiKey").value = savedKey; $("rememberKey").checked = true; }
+    $("rememberKey").addEventListener("change", () => store.set("pl_live_key", $("rememberKey").checked ? $("apiKey").value.trim() : null));
+    $("apiKey").addEventListener("input", () => { if ($("rememberKey").checked) store.set("pl_live_key", $("apiKey").value.trim()); });
+    $("toggleKey").onclick = () => {
+        const show = $("apiKey").type === "password";
+        $("apiKey").type = show ? "text" : "password";
+        $("toggleKey").textContent = show ? "Hide" : "Show";
+    };
+    const syncBackendHint = () => { $("backendHint").textContent = BACKEND_HINT[$("backendSelect").value]; };
+    $("backendSelect").addEventListener("change", syncBackendHint);
+    syncBackendHint();
+    document.querySelectorAll("[data-example]").forEach((b) => b.onclick = () => { $("promptText").value = EXAMPLES[b.dataset.example]; $("promptText").focus(); });
+
+    // Free servers sleep after 15 idle minutes; wake it as soon as the page opens.
+    async function wake() {
+        const st = $("status"), txt = $("statusText");
+        st.className = "status waking"; txt.textContent = "Connecting to the server…";
+        const slow = setTimeout(() => { txt.textContent = "Waking up the server (it naps when unused). This can take up to a minute…"; }, 2500);
+        try {
+            const ctrl = new AbortController();
+            const t = setTimeout(() => ctrl.abort(), 90000);
+            // /v1/health allows calls from any page (this file is opened from disk). One check per page load.
+            const r = await fetch(server() + "/v1/health", { signal: ctrl.signal });
+            clearTimeout(t);
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            const h = await r.json();
+            const jev = (h.backends && h.backends.jev) || {};
+            const lastErr = jev.last_error;
+            st.className = h.database === "ok" && jev.configured && !lastErr ? "status on" : "status";
+            txt.textContent = h.database !== "ok" ? "Online · database having trouble, try again soon"
+                : !jev.configured ? "Online · AI judge not configured (simple rules only)"
+                : lastErr && lastErr.status === 500 ? "Online · the server's Jev key is being rejected, so checks use simple rules"
+                : lastErr ? "Online · the AI judge failed on the last check; simple rules may take over"
+                : "Online · AI judge ready";
+            return true;
+        } catch {
+            st.className = "status off";
+            txt.textContent = "Can't reach the server. Check your internet connection and reload the page.";
+            return false;
+        } finally { clearTimeout(slow); }
+    }
+
+    async function loadModels() {
+        if (server() !== location.origin) {
+            for (const [id, path] of [["accountLink", "/account.html"], ["linkAccount", "/account.html"], ["linkDocs", "/docs.html"], ["linkApp", "/app.html"], ["linkSite", "/"]]) $(id).href = server() + path;
+        }
+        const box = $("models");
+        try {
+            const r = await fetch(server() + "/v1/pricing");
+            const p = await r.json();
+            const chosen = new Set(JSON.parse(store.get("pl_live_models") || "null") || p.default_models);
+            box.innerHTML = p.models.map((m) =>
+                `<button type="button" class="chip" data-model="${esc(m.id)}" aria-pressed="${chosen.has(m.id)}" title="$${m.input}/M input · $${m.output}/M output">${esc(m.name)}</button>`).join("");
+            box.querySelectorAll("[data-model]").forEach((b) => b.onclick = () => {
+                b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true");
+                store.set("pl_live_models", JSON.stringify(selectedModels()));
+            });
+        } catch {
+            box.innerHTML = `<span class="hint">Couldn't reach the server at ${esc(server())}. Check the address and that it's running.</span>`;
+        }
+    }
+    const selectedModels = () => [...document.querySelectorAll("[data-model][aria-pressed='true']")].map((b) => b.dataset.model);
+    $("server").addEventListener("change", () => { store.set("pl_live_server", server()); wake().then(loadModels); });
+    wake().then(loadModels);
+
+    // ------------------------------------------------------------ rendering helpers
+    const level = (v) => (v >= 0.7 ? "good" : v >= 0.4 ? "warn" : "bad");
+    function ring(score, cls) {
+        const r = 64, c = 2 * Math.PI * r, color = { good: "var(--good)", warn: "var(--warn)", bad: "var(--bad)" }[cls];
+        return `<div class="ring" role="img" aria-label="Score ${score} out of 100">
+            <svg viewBox="0 0 150 150"><circle cx="75" cy="75" r="${r}" fill="none" stroke="var(--bg-tint)" stroke-width="12"/>
+            <circle cx="75" cy="75" r="${r}" fill="none" stroke="${color}" stroke-width="12" stroke-linecap="round"
+                stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - score / 100)}"/></svg>
+            <div class="ring-num"><div><b>${score}</b><small>out of 100</small></div></div></div>`;
+    }
+    function meter(title, value, explain) {
+        const l = level(value);
+        return `<div class="m"><div class="m-top"><span>${title}</span><b style="color:var(--${l}-ink)">${pct(value)}</b></div>
+            <div class="m-bar"><i style="width:${(value * 100).toFixed(1)}%;background:var(--${l})"></i></div><p>${explain}</p></div>`;
+    }
+    function money(x) {
+        if (x >= 1) return "$" + x.toFixed(2);
+        if (x >= 0.01) return "$" + x.toFixed(3);
+        if (x === 0) return "$0";
+        return "$" + x.toFixed(Math.min(8, Math.max(2, -Math.floor(Math.log10(x)) + 1)));
+    }
+
+    function summarize(d) {
+        const s = d.signals, v = VERDICT[d.scores.verdict];
+        const missing = s.missing_components.map((m) => (COMPONENTS[m] || [m])[0].toLowerCase());
+        const parts = [];
+        parts.push(`This looks like <b>${TASK[s.task_type.label] || "a request"}</b>. ${v.text}`);
+        if (s.specificity < 0.34) parts.push(`It's <b>very general</b>: almost anyone could have written it, so the AI knows little about your situation.`);
+        else if (s.specificity < 0.67) parts.push(`It's <b>somewhat specific</b>, but leaves some details for the AI to guess.`);
+        else parts.push(`It's <b>specific</b>: the AI knows your situation and what you want.`);
+        if (missing.length) {
+            const shown = missing.slice(0, 4);
+            const list = shown.length > 1 ? shown.slice(0, -1).join(", ") + " and " + shown[shown.length - 1] : shown[0];
+            parts.push(`To improve it, add <b>${list}</b>${missing.length > 4 ? ` (plus ${missing.length - 4} more below)` : ""}.`);
+        }
+        return parts.join(" ");
+    }
+
+    function render(d, headers, elapsed) {
+        const s = d.signals, v = VERDICT[d.scores.verdict];
+        const firstTry = s.first_try_success;
+        const missingSet = new Set(s.missing_components);
+        let html = "";
+
+        if (d.backend.degraded) {
+            html += `<div class="notice warn"><b>Checked with simple rules instead of the AI judge.</b>
+                This result comes from keyword rules, so it's rougher than usual.
+                <div class="more">${esc(fallbackText(d.backend.fallback_reason))} <span style="opacity:.75">(${esc(d.backend.fallback_reason || "unavailable")})</span></div></div>`;
+        }
+
+        html += `<div class="box"><div class="headline">${ring(d.overall_score, v.cls)}
+            <div><span class="verdict ${v.cls}">${v.icon} ${v.label}</span>
+            <p class="plain">${summarize(d)}</p>
+            <p class="second-score">Second opinion: <b>PQS score ${d.scores.pqs_score}/100</b>, a different formula that puts more weight on
+            how complete and clear the prompt is. When both are low, the prompt really needs more detail.</p></div></div></div>`;
+
+        html += `<div class="box"><h2>The key numbers</h2><p class="sub">Each bar is 0–100%. Green is good, orange is so-so, red needs attention.</p><div class="meters">
+            ${meter("Chance it works first time", firstTry, firstTry >= 0.7 ? "The AI will probably get it right without you having to ask again." : "You'll probably need to send a follow-up message to get what you want.")}
+            ${meter("Clarity", s.clarity, "Is it obvious what you're asking for, with only one way to read it?")}
+            ${meter("Specificity", s.specificity, "Does it describe your situation, or could anyone have sent it?")}
+            ${meter("Completeness", s.completeness, "How many of the useful pieces (goal, background, format…) are included.")}
+        </div></div>`;
+
+        const order = Object.keys(COMPONENTS).sort((a, b) => missingSet.has(b) - missingSet.has(a));
+        html += `<div class="box"><h2>What your prompt includes</h2><p class="sub">An AI gives better answers when a prompt covers these. Red means it's missing.</p>
+            <div class="missing">${order.map((c) => {
+                const miss = missingSet.has(c);
+                const p = (s.missing_detail || []).find((x) => x.component === c);
+                return `<div class="miss ${miss ? "no" : "yes"}"><span class="ico">${miss ? "✕" : "✓"}</span>
+                    <div><b>${esc(COMPONENTS[c][0])}${miss ? " (missing)" : ""}</b><span>${esc(COMPONENTS[c][1])}</span></div>
+                    <em title="How likely it is that this is missing">${p ? pct(p.probability) + " missing" : ""}</em></div>`;
+            }).join("")}</div></div>`;
+
+        if (d.suggestions && d.suggestions.length) {
+            html += `<div class="box"><h2>How to improve it</h2><p class="sub">In order of how much they'd help. The number is roughly how many points each fix could add.</p>
+                <ol class="tips">${d.suggestions.map((t) => `<li><span>${esc(t.text)}</span><span class="gain">+${Math.max(1, Math.round(t.impact * 100))}</span></li>`).join("")}</ol></div>`;
+        } else {
+            html += `<div class="box"><h2>How to improve it</h2><p class="sub" style="margin:0">Nothing important is missing. This prompt is good to go.</p></div>`;
+        }
+
+        if (missingSet.size) {
+            const lines = [$("promptText").value.trim(), "", ...[...missingSet].filter((c) => TEMPLATE[c]).map((c) => TEMPLATE[c])];
+            html += `<div class="box"><h2>A fill-in-the-blanks version</h2><p class="sub">Your prompt plus a line for each missing piece. Replace the ___ parts, then check again.</p>
+                <div class="template" id="template">${lines.map((l) => esc(l).replace(/___/g, '<span class="blank">___</span>')).join("\n")}</div>
+                <div class="row-actions"><button type="button" class="btn btn-ghost btn-sm" id="copyTemplate">Copy</button>
+                <button type="button" class="btn btn-ghost btn-sm" id="useTemplate">Put it in the prompt box</button></div></div>`;
+        }
+
+        if (d.cost_estimates && d.cost_estimates.length) {
+            html += `<div class="box"><h2>What sending it would cost</h2>
+                <p class="sub">Your prompt is about <b>${d.tokens.input.o200k_base}</b> tokens (a token is roughly ¾ of a word). A typical answer would be
+                about <b>${d.tokens.output_p50.toLocaleString()}</b> tokens, sometimes up to ${d.tokens.output_p90.toLocaleString()}. Prices are the AI companies' own.</p>
+                <div class="table-scroll"><table class="cost"><thead><tr><th>AI model</th><th class="r">One request</th><th class="r">1,000 requests</th></tr></thead><tbody>
+                ${d.cost_estimates.map((c) => `<tr><td>${esc(c.name)}<small>${esc(c.provider)}${c.model === d.suggested_model ? " · good fit for this prompt" : ""}</small></td>
+                    <td class="r">${money(c.usd_p50)}<small>up to ${money(c.usd_p90)}</small></td>
+                    <td class="r">${money(c.usd_p50 * 1000)}<small>up to ${money(c.usd_p90 * 1000)}</small></td></tr>`).join("")}
+                </tbody></table></div>
+                <p class="sub" style="margin:.8rem 0 0">For this prompt, ${TIER[d.tier_hint] || "any model works"}. Prices last checked ${esc(d.cost_estimates[0].pricing_verified)}.</p></div>`;
+        }
+
+        const left = headers.get("X-RateLimit-Remaining"), limit = headers.get("X-RateLimit-Limit");
+        const qLeft = headers.get("X-Quota-Remaining"), qLimit = headers.get("X-Quota-Limit"), qPeriod = headers.get("X-Quota-Period");
+        html += `<div class="box"><h2>About this check</h2><p class="sub">Behind-the-scenes details, in case you're curious.</p><div class="facts">
+            <div class="fact"><small>Checked by</small><b>${d.backend.name === "jev" ? "Jev AI judge" : "Simple rules"}</b><span>${esc(d.backend.version)}${d.backend.degraded ? " · fallback" : ""}</span></div>
+            <div class="fact"><small>Kind of task</small><b>${esc((TASK[s.task_type.label] || s.task_type.label).replace(/^an? /, ""))}</b><span>${pct(s.task_type.confidence)} sure</span></div>
+            <div class="fact"><small>How hard to answer</small><b>${esc(COMPLEXITY[s.complexity.label] || s.complexity.label)}</b><span>${esc(TIER[d.tier_hint] || "")}</span></div>
+            <div class="fact"><small>Time taken</small><b>${Math.round(elapsed).toLocaleString()} ms</b><span>round trip from this page</span></div>
+            ${qLeft != null ? `<div class="fact"><small>Checks left ${qPeriod === "month" ? "this month" : "today"}</small><b>${Number(qLeft).toLocaleString()} of ${Number(qLimit).toLocaleString()}</b><span>on your plan</span></div>` : ""}
+            ${left != null ? `<div class="fact"><small>This minute</small><b>${left} of ${limit} left</b><span>checks per minute</span></div>` : ""}
+            </div><p class="sub" style="margin:.9rem 0 0">Reference: <code>${esc(d.id)}</code>${d.stored ? " · this prompt was saved on the server" : " · your prompt was not saved"}</p></div>`;
+
+        html += `<details class="raw"><summary>Show the raw API response (for developers)</summary><pre class="codeblock">${esc(JSON.stringify(d, null, 2))}</pre></details>`;
+        return html;
+    }
+
+    function renderError(status, data, elapsed) {
+        const e = data && data.error ? data.error : null;
+        const [title, steps] = (e && ERRORS[e.type]) || [`The server said no (error ${status})`, ["See the details below."]];
+        return `<div class="notice err"><b>${esc(title)}</b>
+            <ul>${steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>
+            ${e ? `<div class="more">Server message: ${esc(e.message)}</div>` : ""}</div>
+            <details class="raw"><summary>Show the raw API response (for developers)</summary><pre class="codeblock">${esc(JSON.stringify(data, null, 2))}</pre></details>`;
+    }
+
+    // ------------------------------------------------------------ submit
+    $("apiForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const results = $("results");
+        const apiKey = $("apiKey").value.trim().replace(/^\$/, "");
+        const prompt = $("promptText").value.trim();
+        if (!apiKey || !prompt) {
+            results.style.display = "block";
+            results.innerHTML = `<div class="notice err"><b>${!apiKey ? "Paste your API key first." : "Type or paste a prompt to check."}</b></div>`;
+            return;
+        }
+        const payload = { prompt, backend: $("backendSelect").value };
+        const system = $("systemPrompt").value.trim();
+        if (system) payload.system = system;
+        const models = selectedModels();
+        if (models.length) payload.models = models;
+
+        $("submitBtn").disabled = true; $("btnText").textContent = "Checking…"; $("btnLoader").style.display = "block";
+        const t0 = performance.now();
+        try {
+            const response = await fetch(server() + "/v1/score", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+                body: JSON.stringify(payload),
+            });
+            const elapsed = performance.now() - t0;
+            let data = null;
+            try { data = await response.json(); } catch { /* not JSON */ }
+            results.style.display = "block";
+            results.innerHTML = response.ok ? render(data, response.headers, elapsed) : renderError(response.status, data, elapsed);
+            const copy = $("copyTemplate"), use = $("useTemplate");
+            if (copy) copy.onclick = async () => { try { await navigator.clipboard.writeText($("template").innerText); copy.textContent = "Copied"; } catch { copy.textContent = "Select and copy"; } };
+            if (use) use.onclick = () => { $("promptText").value = $("template").innerText; $("promptText").focus(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+            results.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (err) {
+            results.style.display = "block";
+            results.innerHTML = `<div class="notice err"><b>Couldn't reach the PromptLint server.</b>
+                <ul><li>Check the server address: <code>${esc(server())}</code></li>
+                <li>The free server naps when unused. The first check after a nap can take up to a minute, so wait a moment and try again.</li>
+                <li>Check your internet connection.</li></ul>
+                <div class="more">Browser error: ${esc(err)}</div></div>`;
+        } finally {
+            $("submitBtn").disabled = false; $("btnText").textContent = "Check my prompt"; $("btnLoader").style.display = "none";
+        }
+    });
+})();
+</script>
+</body>
+</html>

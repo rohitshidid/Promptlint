@@ -20,7 +20,6 @@ These matter because once it's public, strangers can sign up and every check the
 - [ ] **Make the two output-length numbers agree.** The API's `output_range` top can be lower than `output_p90`, which confuses people. Compute both from the same distribution.
 - [ ] **Run the "first try" accuracy test.** The script is ready (`eval/run_first_try.py`), but the Groq key on this computer is invalid. Needs a working Groq or Anthropic key.
 - [ ] **Get a human to check the test data.** The example prompts and their labels in `eval/data/` were written with an AI's help. Have a person spot-check them (and ideally write a harder set) before quoting the accuracy numbers.
-- [ ] **Bring the tester page into the project.** The friendly tester lives outside this folder (`../promptlint api testing/index.html`). Either add it as `frontend/tester.html` or fold its plain-English explanations into the main analyzer.
 - [ ] **A tiny admin page.** Changing someone's plan or disabling an account currently needs the command line (`python -m app.cli …`).
 
 ## Later
@@ -32,7 +31,7 @@ These matter because once it's public, strangers can sign up and every check the
 
 ## Done (for reference)
 
-- Website: landing page, analyzer (single and compare), account page, API docs, Jev playground.
+- Website: landing page, analyzer (single and compare), account page, API docs, API tester, Jev playground.
 - Public API with sign-up, API keys, daily limits, usage tracking, and a fallback when Jev is down.
 - Two scores (Lint and PQS), eleven checks, cost estimates on seven models, fix-it tips.
 - 128 automated tests; accuracy tests on 240 prompt pairs and 100 labeled prompts.

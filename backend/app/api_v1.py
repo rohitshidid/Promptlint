@@ -287,7 +287,12 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             "database": database,
             "backends": {
                 "default": "jev" if router_.jev_available else "heuristic",
-                "jev": {"configured": router_.jev_available, "model": s.jev_model},
+                "jev": {
+                    "configured": router_.jev_available,
+                    "model": s.jev_model,
+                    # null when the last Jev call worked (or none has run since start-up).
+                    "last_error": router_.last_jev_error,
+                },
                 "heuristic": {"version": HEURISTIC_VERSION},
             },
             "version": request.app.version,

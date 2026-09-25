@@ -102,6 +102,7 @@ python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 | http://localhost:8787/app.html | Analyzer (single and compare modes, Jev/heuristic toggle) |
 | http://localhost:8787/account.html | Sign up, create API keys, see usage |
 | http://localhost:8787/docs.html | API docs with a real example response |
+| http://localhost:8787/tester.html | Try an API key in the browser, with the result explained in plain words |
 | http://localhost:8787/playground/ | Raw Jev API playground |
 | http://localhost:8787/api/docs | OpenAPI (Swagger) |
 

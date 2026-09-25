@@ -97,6 +97,8 @@
   .danger input { flex: 1 1 220px; }
   .btn-danger { background: var(--bad); color: #fff; }
   .btn-danger:hover { background: var(--bad-ink); }
+  .try-box { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+  .try-box > div { flex: 1 1 320px; }
   [hidden] { display: none !important; }
   #signed-in, #signed-out { padding: 0; }
 </style>
@@ -109,6 +111,7 @@
     <div class="nav-links">
       <a class="opt" href="app.html">Analyzer</a>
       <a class="opt" href="docs.html">API docs</a>
+      <a class="opt" href="tester.html">Tester</a>
       <a href="account.html" aria-current="page">Account</a>
       <button class="btn btn-ghost btn-sm" id="logout" hidden>Log out</button>
     </div>
@@ -183,6 +186,14 @@
       </div>
     </div>
 
+    <div class="box try-box" style="margin-top:18px">
+      <div>
+        <h2>Try your key in the browser</h2>
+        <p class="sub">Paste a key and a prompt in the tester to see the full API result explained in plain words. No terminal needed.</p>
+      </div>
+      <a class="btn btn-fill btn-md" href="tester.html">Open the tester <span class="arrow">→</span></a>
+    </div>
+
     <div class="box" style="margin-top:18px">
       <h2>Quick start</h2>
       <p class="sub">Set your key once in the terminal, then run the commands as they are. Full reference in the <a href="docs.html">API docs</a>.</p>
@@ -204,7 +215,7 @@
 <footer>
   <div class="wrap foot-in">
     <span>PromptLint · judgments by TypeSafe Jev, math by plain code</span>
-    <span class="foot-links"><a href="./">Home</a><a href="app.html">Analyzer</a><a href="docs.html">API docs</a><a href="./#privacy">Privacy</a></span>
+    <span class="foot-links"><a href="./">Home</a><a href="app.html">Analyzer</a><a href="docs.html">API docs</a><a href="tester.html">Tester</a><a href="./#privacy">Privacy</a></span>
   </div>
 </footer>
 

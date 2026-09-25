@@ -120,10 +120,11 @@ Jev Ai/
 | `app.html` | The analyzer: paste a prompt, get the report card. Has compare mode and the Jev/heuristic switch. |
 | `account.html` | Sign up, log in, create and revoke API keys, see usage. |
 | `docs.html` | API reference for developers, with a real example response. |
+| `tester.html` | Try an API key in the browser: checks a prompt through `/v1/score` and explains the result in plain words. |
 | `playground/` | A raw Jev playground: send any questions to Jev and see its answers. |
 | `assets/` | Shared styling (`site.css`, `report.css`), the report card drawing (`report.js`), page logic (`app.js`, `landing.js`, `account.js`), the icon, and generated data (`demo-data.js`, `api-example.json`, `eval-summary.json`). |
 
-The friendly **API tester** you use lives outside this folder, in `../promptlint api testing/index.html`. It calls `/v1/score` with your key and explains the answer in plain words (see TODO.md about bringing it in).
+The friendly **API tester** is `frontend/tester.html` (served at `/tester.html`, linked from the account dashboard). It calls `/v1/score` with your key and explains the answer in plain words. Opened straight from disk, it talks to the live server instead.
 
 ### `backend/tests/`: automated checks (128 of them)
 

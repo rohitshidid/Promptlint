@@ -113,6 +113,35 @@ def test_jev_failure_falls_back_on_auto(cfg, tmp_path):
     assert r.status_code == 200 and r.json()["meta"]["degraded"] is True
 
 
+def test_rejected_key_is_reported_by_health_until_jev_recovers(cfg, tmp_path, fake):
+    judge = FakeJudge(JevError(500, "The server's analysis key is misconfigured."))
+    app = create_app(make_settings(tmp_path), judge=judge, config=cfg)
+    with TestClient(app) as c:
+        assert c.get("/v1/health").json()["backends"]["jev"]["last_error"] is None
+        r = c.post("/api/analyze", json={"prompt": "hello"})
+        assert r.json()["meta"]["degraded"] is True
+        err = c.get("/v1/health").json()["backends"]["jev"]["last_error"]
+        assert err["reason"] == "jev_500" and err["status"] == 500
+        judge.answers = fake.answers
+        c.post("/api/analyze", json={"prompt": "a different prompt"})
+        assert c.get("/v1/health").json()["backends"]["jev"]["last_error"] is None
+
+
+@pytest.mark.parametrize(
+    "pasted",
+    [
+        "ts-abc123",
+        " ts-abc123\n",
+        '"ts-abc123"',
+        "'ts-abc123'",
+        "Bearer ts-abc123",
+        "TYPESAFE_API_KEY=ts-abc123",
+    ],
+)
+def test_server_key_paste_mistakes_are_cleaned(tmp_path, pasted):
+    assert make_settings(tmp_path, typesafe_api_key=pasted).typesafe_api_key == "ts-abc123"
+
+
 def test_jev_error_surfaces_when_jev_is_forced(cfg, tmp_path):
     app = create_app(
         make_settings(tmp_path), judge=FakeJudge(JevError(504, "The analysis took too long.")), config=cfg

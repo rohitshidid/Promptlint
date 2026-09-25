@@ -1,9 +1,10 @@
 """Runtime settings, read from the environment (and a .env file at the repo root, if present)."""
 
+import re
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -64,6 +65,17 @@ class Settings(BaseSettings):
 
     config_dir: Path = Field(default=BACKEND_DIR / "config")
     frontend_dir: Path = Field(default=REPO_DIR / "frontend")
+
+    @field_validator("typesafe_api_key", mode="before")
+    @classmethod
+    def _clean_key(cls, v: object) -> object:
+        """Undo common paste mistakes in hosting dashboards: quotes, `Bearer `, or `NAME=` in the value."""
+        if not isinstance(v, str):
+            return v
+        v = v.strip()
+        v = re.sub(r"^TYPESAFE_API_KEY\s*=\s*", "", v)
+        v = v.strip().strip("'\"").strip()
+        return re.sub(r"^Bearer\s+", "", v, flags=re.IGNORECASE).strip()
 
     @property
     def origins(self) -> list[str]:
