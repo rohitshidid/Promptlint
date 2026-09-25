@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jev API Playground</title>
+<style>
+  :root {
+    --bg: #f6f6f3;
+    --panel: #ffffff;
+    --panel-2: #fafaf8;
+    --text: #1b1b19;
+    --muted: #6d6d67;
+    --faint: #9a9a93;
+    --border: #e4e4de;
+    --border-strong: #d2d2ca;
+    --accent: #3d5afe;
+    --accent-hover: #2f4ae0;
+    --accent-soft: #eef0ff;
+    --good: #218a3c;
+    --good-soft: #e7f6ea;
+    --bad: #c92a2a;
+    --bad-soft: #fdecec;
+    --code-bg: #f3f3ef;
+    --shadow: 0 1px 2px rgba(20, 20, 15, .04), 0 4px 16px rgba(20, 20, 15, .04);
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121211;
+      --panel: #1b1b1a;
+      --panel-2: #181817;
+      --text: #ededea;
+      --muted: #a2a29b;
+      --faint: #74746e;
+      --border: #2c2c29;
+      --border-strong: #3a3a36;
+      --accent: #7b8cff;
+      --accent-hover: #93a1ff;
+      --accent-soft: #23284a;
+      --good: #5fd07a;
+      --good-soft: #17301d;
+      --bad: #ff7b7b;
+      --bad-soft: #3a1c1c;
+      --code-bg: #232321;
+      --shadow: none;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14.5px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 1200px; margin: 0 auto; padding: 40px 20px 72px; }
+
+  /* Header */
+  header { margin-bottom: 24px; }
+  .title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  h1 { font-size: 26px; letter-spacing: -0.02em; margin: 0; }
+  .pill {
+    font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 99px;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .lead { color: var(--muted); margin: 6px 0 0; max-width: 70ch; }
+
+  /* Cards */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    min-width: 0;
+  }
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+  }
+  .card-head h2 { font-size: 14px; font-weight: 600; margin: 0; }
+  .card-body { padding: 18px; }
+
+  /* Connection */
+  .conn { margin-bottom: 20px; }
+  .conn-grid {
+    display: grid; gap: 14px;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr);
+  }
+  @media (max-width: 760px) { .conn-grid { grid-template-columns: minmax(0, 1fr); } }
+  .hint { font-size: 12.5px; color: var(--faint); margin: 12px 0 0; }
+  .hint code { font-family: var(--mono); font-size: 12px; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+
+  /* Fields */
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .card-body > .field + .field { margin-top: 16px; }
+  .field > span { font-size: 12.5px; font-weight: 500; color: var(--muted); }
+  input, textarea {
+    width: 100%; min-width: 0;
+    padding: 9px 11px; border-radius: 8px;
+    border: 1px solid var(--border-strong); background: var(--panel-2); color: var(--text);
+    font: inherit; transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, textarea:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+  textarea {
+    font: 12.5px/1.55 var(--mono);
+    resize: vertical; white-space: pre; overflow: auto; tab-size: 2;
+  }
+  .input-wrap { position: relative; }
+  .input-wrap input { padding-right: 60px; }
+  .input-wrap button {
+    position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+    padding: 4px 9px; font-size: 12px;
+  }
+
+  /* Buttons */
+  button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 9px 15px; border-radius: 8px; white-space: nowrap;
+    border: 1px solid var(--border-strong); background: var(--panel); color: var(--text);
+    font: inherit; font-weight: 500; cursor: pointer; transition: background .15s, border-color .15s;
+  }
+  button:hover { background: var(--panel-2); border-color: var(--faint); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  button:disabled { opacity: .65; cursor: progress; }
+  button.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+  button.ghost:hover { background: var(--code-bg); color: var(--text); }
+  .kbd { font-size: 11px; opacity: .75; font-weight: 400; }
+  .spinner {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+    animation: spin .7s linear infinite; display: none;
+  }
+  button.loading .spinner { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Workspace */
+  .workspace {
+    display: grid; gap: 20px; align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  @media (max-width: 900px) { .workspace { grid-template-columns: minmax(0, 1fr); } }
+
+  .segmented {
+    display: flex; gap: 4px; padding: 4px; margin-bottom: 18px;
+    background: var(--code-bg); border-radius: 10px; overflow-x: auto;
+  }
+  .segmented button {
+    flex: 1 0 auto; padding: 7px 12px; font-size: 13px;
+    border: none; background: transparent; color: var(--muted);
+  }
+  .segmented button:hover { background: transparent; color: var(--text); }
+  .segmented button.active { background: var(--panel); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+  .actions {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 14px 18px; border-top: 1px solid var(--border); background: var(--panel-2);
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+  .status { font-size: 13px; color: var(--muted); margin-left: auto; min-width: 0; }
+  .status.ok { color: var(--good); }
+  .status.err { color: var(--bad); }
+
+  /* Answers */
+  .empty {
+    text-align: center; color: var(--faint); padding: 48px 16px;
+    border: 1.5px dashed var(--border-strong); border-radius: 10px;
+  }
+  .empty strong { display: block; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+
+  .answer {
+    border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+    background: var(--panel-2);
+  }
+  .answer + .answer { margin-top: 12px; }
+  .answer-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .answer-head code { font-family: var(--mono); font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+  .tag {
+    font-size: 10.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); flex-shrink: 0;
+  }
+  .question { font-size: 13px; color: var(--muted); margin: 4px 0 12px; }
+  .verdict { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .verdict .big { font-size: 22px; font-weight: 650; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+  .verdict .sub { font-size: 13px; color: var(--muted); }
+  .big.yes { color: var(--good); }
+  .big.no { color: var(--bad); }
+
+  .bar {
+    display: grid; grid-template-columns: minmax(0, 38%) minmax(0, 1fr) 44px;
+    gap: 10px; align-items: center; font-size: 12.5px; margin: 5px 0;
+  }
+  .bar .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+  .bar.top .lbl { color: var(--text); font-weight: 500; }
+  .bar .track { height: 7px; background: var(--code-bg); border-radius: 4px; overflow: hidden; }
+  .bar .fill { display: block; height: 100%; background: var(--accent); opacity: .45; border-radius: 4px; }
+  .bar.top .fill { opacity: 1; }
+  .bar .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .conf { font-size: 12px; color: var(--faint); margin-top: 8px; }
+  .footer-meta { font-size: 12px; color: var(--faint); margin: 14px 2px 0; }
+
+  .error {
+    border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent);
+    background: var(--bad-soft); color: var(--text);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .error strong { color: var(--bad); display: block; margin-bottom: 4px; }
+  .error ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+  .error code { font-family: var(--mono); font-size: 12px; }
+
+  details.raw { margin-top: 16px; }
+  details.raw summary {
+    cursor: pointer; font-size: 13px; color: var(--muted); padding: 4px 0; user-select: none;
+  }
+  details.raw summary:hover { color: var(--text); }
+  pre {
+    margin: 8px 0 0; padding: 14px; border-radius: 8px; background: var(--code-bg);
+    font: 12px/1.55 var(--mono); max-height: 380px; overflow: auto;
+    white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="title-row">
+      <h1>Jev API Playground</h1>
+      <span class="pill">System One</span>
+    </div>
+    <p class="lead">Send some text and a few typed questions to TypeSafe's Jev API, then see the answers it returns. Question types: pick one option (choice), rate on a scale (score) or yes/no (noul).</p>
+  </header>
+
+  <section class="card conn">
+    <div class="card-body">
+      <div class="conn-grid">
+        <label class="field"><span>API key</span>
+          <div class="input-wrap">
+            <input id="apiKey" type="password" placeholder="Paste your TypeSafe API key" autocomplete="off" spellcheck="false">
+            <button type="button" class="ghost" id="toggleKey">Show</button>
+          </div>
+        </label>
+        <label class="field"><span>Endpoint</span>
+          <input id="endpoint" value="/api/systemone" spellcheck="false">
+        </label>
+        <label class="field"><span>Model</span>
+          <input id="model" value="jev-latest" spellcheck="false">
+        </label>
+      </div>
+      <p class="hint" id="keyHint">The key stays in this page's memory. It goes to the local server (<code>node server.js</code>), which passes it on to api.typesafe.ai. Nothing saves it.</p>
+    </div>
+  </section>
+
+  <div class="workspace">
+    <section class="card">
+      <div class="card-head"><h2>Request</h2></div>
+      <div class="card-body">
+        <div class="segmented" id="presets" role="tablist" aria-label="Examples"></div>
+        <label class="field"><span>State: the text to analyze (plain text or JSON)</span>
+          <textarea id="state" rows="8" spellcheck="false"></textarea>
+        </label>
+        <label class="field"><span>Questions (JSON)</span>
+          <textarea id="questions" rows="16" spellcheck="false"></textarea>
+        </label>
+      </div>
+      <div class="actions">
+        <button class="primary" id="run"><span class="spinner"></span><span id="runLabel">Run</span> <span class="kbd">⌘↵</span></button>
+        <button id="curl">Copy as curl</button>
+        <span class="status" id="status" role="status"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Answers</h2></div>
+      <div class="card-body">
+        <div id="answers">
+          <div class="empty"><strong>No answers yet</strong>Pick an example and click Run.</div>
+        </div>
+        <details class="raw">
+          <summary>Raw response</summary>
+          <pre id="raw">Nothing yet.</pre>
+        </details>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+const PRESETS = {
+  "Support triage": {
+    state: {
+      ticket: {
+        subject: "Charged twice this month",
+        messages: [
+          "Hi, I was charged twice for my subscription this month. This is the second time it's happened and I'm getting really fed up. I want my money back for the duplicate charge."
+        ]
+      }
+    },
+    questions: {
+      department: {
+        type: "choice",
+        instructions: "Which team should handle this ticket?",
+        criteria: {
+          billing: "Payment or subscription issues",
+          technical: "Bugs or integration problems",
+          sales: "Pricing or account questions"
+        }
+      },
+      frustration: {
+        type: "score",
+        instructions: "How frustrated does the customer seem?",
+        criteria: ["Calm, just stating facts", "Frustrated but civil", "Very angry or threatening to leave"]
+      },
+      refund_requested: {
+        type: "noul",
+        instructions: "Is the customer explicitly asking for a refund?",
+        criteria: { true: "Clearly asks for money back", false: "No refund request" }
+      }
+    }
+  },
+  "Urgency check": {
+    state: "Help! My payouts have been failing for 3 days and my rent is due tomorrow.",
+    questions: {
+      is_urgent: {
+        type: "noul",
+        instructions: "Does this message convey urgency?",
+        criteria: { true: "Explicitly time-sensitive", false: "No urgency expressed" }
+      }
+    }
+  },
+  "Review sentiment": {
+    state: "The battery life is incredible and the screen is gorgeous, but the speakers are tinny and it gets hot when gaming.",
+    questions: {
+      sentiment: {
+        type: "score",
+        instructions: "Overall sentiment of the review",
+        criteria: ["Very negative", "Negative", "Mixed", "Positive", "Very positive"]
+      },
+      main_topic: {
+        type: "choice",
+        instructions: "What does the review mainly discuss?",
+        criteria: {
+          battery: "Battery life or charging",
+          display: "Screen quality",
+          audio: "Speakers or sound",
+          thermals: "Heat or performance"
+        }
+      }
+    }
+  }
+};
+
+const $ = (id) => document.getElementById(id);
+// Opened straight from disk (file://)? Point at the local server by absolute URL.
+if (location.protocol === "file:") $("endpoint").value = "http://localhost:8787/api/systemone";
+const presetsEl = $("presets");
+const EMPTY = `<div class="empty"><strong>No answers yet</strong>Pick an example and click Run.</div>`;
+
+function loadPreset(name) {
+  const p = PRESETS[name];
+  $("state").value = typeof p.state === "string" ? p.state : JSON.stringify(p.state, null, 2);
+  $("questions").value = JSON.stringify(p.questions, null, 2);
+  [...presetsEl.children].forEach((b) => {
+    const on = b.textContent === name;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", on);
+  });
+  $("answers").innerHTML = EMPTY;
+  $("raw").textContent = "Nothing yet.";
+  setStatus("");
+}
+
+Object.keys(PRESETS).forEach((name) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.role = "tab";
+  b.textContent = name;
+  b.onclick = () => loadPreset(name);
+  presetsEl.appendChild(b);
+});
+loadPreset(Object.keys(PRESETS)[0]);
+
+// Does the server already hold a key (TYPESAFE_API_KEY in .env)? Then the page doesn't need one.
+let serverKey = false;
+fetch(new URL("/api/config", new URL($("endpoint").value, location.href)))
+  .then((r) => r.json())
+  .then((cfg) => {
+    serverKey = Boolean(cfg.serverKey);
+    if (!serverKey) return;
+    $("apiKey").placeholder = "Using the key from .env";
+    $("keyHint").innerHTML = "The server is using <code>TYPESAFE_API_KEY</code> from its <code>.env</code> file, so you don't need to paste a key. A key typed here overrides it for this page.";
+  })
+  .catch(() => { /* older server or not running: keep asking for a key */ });
+
+$("toggleKey").onclick = () => {
+  const k = $("apiKey");
+  const show = k.type === "password";
+  k.type = show ? "text" : "password";
+  $("toggleKey").textContent = show ? "Hide" : "Show";
+};
+
+function buildBody() {
+  const rawState = $("state").value.trim();
+  let state = rawState;
+  if (rawState.startsWith("{") || rawState.startsWith("[")) {
+    try { state = JSON.parse(rawState); } catch { /* send as plain text */ }
+  }
+  let questions;
+  try { questions = JSON.parse($("questions").value); }
+  catch (e) { throw new Error("The questions field isn't valid JSON: " + e.message); }
+  const model = $("model").value.trim();
+  if (!model) throw new Error("Enter a model name, for example jev-latest.");
+  return { model, state, questions };
+}
+
+function setStatus(msg, kind) {
+  $("status").textContent = msg;
+  $("status").className = "status" + (kind ? " " + kind : "");
+}
+
+const pct = (x) => (x * 100).toFixed(0) + "%";
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function bar(label, value, top) {
+  const w = Math.max(0, Math.min(1, Number(value) || 0)) * 100;
+  return `<div class="bar${top ? " top" : ""}"><span class="lbl" title="${esc(label)}">${esc(label)}</span>
+    <span class="track"><span class="fill" style="width:${w}%"></span></span>
+    <span class="num">${pct(value)}</span></div>`;
+}
+
+function renderAnswers(data, questions) {
+  const answers = data && data.answers;
+  if (!answers) {
+    $("answers").innerHTML = `<div class="empty"><strong>No answers in the response</strong>Open Raw response below to see what came back.</div>`;
+    return;
+  }
+  let html = "";
+  for (const [key, a] of Object.entries(answers)) {
+    const q = questions[key] || {};
+    const type = a.type || q.type || (a.noul !== undefined ? "noul" : a.choice !== undefined ? "choice" : a.score !== undefined ? "score" : "?");
+    html += `<div class="answer"><div class="answer-head"><code>${esc(key)}</code><span class="tag">${esc(type)}</span></div>`;
+    html += q.instructions ? `<div class="question">${esc(q.instructions)}</div>` : `<div style="height:10px"></div>`;
+
+    if (type === "noul") {
+      const p = Number(a.noul);
+      const yes = p >= 0.5;
+      const why = q.criteria && q.criteria[String(yes)];
+      html += `<div class="verdict"><span class="big ${yes ? "yes" : "no"}">${yes ? "Yes" : "No"}</span>${why ? `<span class="sub">${esc(why)}</span>` : ""}</div>`;
+      html += bar("Probability of yes", p, true);
+    } else if (type === "choice") {
+      const label = q.criteria && q.criteria[a.choice];
+      html += `<div class="verdict"><span class="big">${esc(a.choice)}</span>${label ? `<span class="sub">${esc(label)}</span>` : ""}</div>`;
+      if (a.probabilities) {
+        Object.entries(a.probabilities).sort((x, y) => y[1] - x[1])
+          .forEach(([k, v]) => { html += bar(k, v, k === a.choice); });
+      }
+    } else if (type === "score") {
+      const labels = a.legend ? Object.values(a.legend) : (Array.isArray(q.criteria) ? q.criteria : []);
+      const idx = Math.round(a.score);
+      const nearest = labels[idx];
+      html += `<div class="verdict"><span class="big">${Number(a.score).toFixed(2)}${labels.length ? `<span class="sub"> / ${labels.length - 1}</span>` : ""}</span>${nearest ? `<span class="sub">${esc(nearest)}</span>` : ""}</div>`;
+      if (a.probabilities) {
+        const probs = Array.isArray(a.probabilities) ? a.probabilities : Object.values(a.probabilities);
+        probs.forEach((v, i) => { html += bar(labels[i] ?? `Level ${i}`, v, i === idx); });
+      }
+    } else {
+      html += `<pre>${esc(JSON.stringify(a, null, 2))}</pre>`;
+    }
+    if (a.confidence !== undefined) html += `<div class="conf">Confidence ${pct(a.confidence)}</div>`;
+    html += `</div>`;
+  }
+  const bits = [];
+  if (data.model) bits.push(esc(data.model));
+  if (data.usage) bits.push(`${data.usage.input_tokens ?? "?"} input / ${data.usage.output_tokens ?? "?"} output tokens`);
+  if (bits.length) html += `<p class="footer-meta">${bits.join(" · ")}</p>`;
+  $("answers").innerHTML = html;
+}
+
+// Turn an error response into something readable (handles FastAPI-style validation errors).
+function renderError(status, data, text) {
+  let title = `Request failed (HTTP ${status})`;
+  let items = [];
+  const d = data && data.detail;
+  if (Array.isArray(d)) {
+    title = "The API rejected the request";
+    items = d.map((e) => `<code>${esc((e.loc || []).filter((x) => x !== "body").join(".") || "request")}</code>: ${esc(e.msg || e.type || "invalid")}`);
+  } else if (d && typeof d === "object" && d.message) {
+    if (d.error_type === "authentication_error") title = "Couldn't authenticate";
+    items = [esc(d.message)];
+  } else if (typeof d === "string") {
+    items = [esc(d)];
+  } else if (data && data.error) {
+    items = [esc(data.error) + (data.detail ? ` (${esc(data.detail)})` : "")];
+  } else if (text) {
+    items = [esc(text.slice(0, 300))];
+  }
+  $("answers").innerHTML = `<div class="error"><strong>${esc(title)}</strong>${items.length ? `<ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul>` : ""}</div>`;
+}
+
+async function run() {
+  const key = $("apiKey").value.trim();
+  if (!key && !serverKey) { setStatus("Paste your API key first.", "err"); $("apiKey").focus(); return; }
+  let body;
+  try { body = buildBody(); } catch (e) { setStatus(e.message, "err"); return; }
+
+  const btn = $("run");
+  btn.disabled = true; btn.classList.add("loading"); $("runLabel").textContent = "Running";
+  setStatus("Calling Jev…");
+  const t0 = performance.now();
+  try {
+    const res = await fetch($("endpoint").value.trim(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(key && { "Authorization": `Bearer ${key}` }) },
+      body: JSON.stringify(body)
+    });
+    const text = await res.text();
+    let data; try { data = JSON.parse(text); } catch { data = null; }
+    $("raw").textContent = data ? JSON.stringify(data, null, 2) : text;
+    const ms = Math.round(performance.now() - t0);
+    if (!res.ok) {
+      setStatus(`HTTP ${res.status} · ${ms} ms`, "err");
+      renderError(res.status, data, text);
+      return;
+    }
+    setStatus(`Done in ${ms} ms`, "ok");
+    renderAnswers(data, body.questions);
+  } catch (e) {
+    setStatus("Network error", "err");
+    $("answers").innerHTML = `<div class="error"><strong>Couldn't reach the local server</strong><ul><li>Start it with <code>node server.js</code>, then reload this page.</li></ul></div>`;
+    $("raw").textContent = String(e);
+  } finally {
+    btn.disabled = false; btn.classList.remove("loading"); $("runLabel").textContent = "Run";
+  }
+}
+
+$("run").onclick = run;
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !$("run").disabled) { e.preventDefault(); run(); }
+});
+
+$("curl").onclick = async () => {
+  let body;
+  try { body = buildBody(); } catch (e) { setStatus(e.message, "err"); return; }
+  const json = JSON.stringify(body).replace(/'/g, "'\\''");
+  const cmd = `curl -s https://api.typesafe.ai/v1/systemone \\\n  -H "Authorization: Bearer $TYPESAFE_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '${json}'`;
+  try { await navigator.clipboard.writeText(cmd); setStatus("Copied. It reads the key from $TYPESAFE_API_KEY.", "ok"); }
+  catch { $("raw").textContent = cmd; document.querySelector("details.raw").open = true; setStatus("Couldn't copy, so the command is in Raw response."); }
+};
+</script>
+</body>
+</html>

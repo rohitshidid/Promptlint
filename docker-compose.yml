@@ -1,0 +1,9 @@
+services:
+  jev-playground:
+    build: .
+    container_name: jev-playground
+    env_file: .env
+    ports:
+      # Bound to 127.0.0.1 so only this machine can reach it (the server holds your API key).
+      - "127.0.0.1:8787:8787"
+    restart: unless-stopped
