@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Account · PromptLint</title>
+<meta name="description" content="Create a free PromptLint API key, manage keys, and see your usage.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/report.css">
+<style>
+  .acct-head { padding: 40px 0 8px; position: relative; }
+  .acct-head::before {
+    content: ""; position: absolute; inset: -200px 0 auto; height: 480px; z-index: -1; pointer-events: none;
+    background: radial-gradient(560px 300px at 30% 10%, rgba(16,185,129,.12), transparent 70%),
+                radial-gradient(420px 260px at 80% 0%, rgba(13,148,164,.08), transparent 70%);
+  }
+  .acct-head-in { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .acct-head h1 { font-size: clamp(2rem, 4.4vw, 2.9rem); }
+  .acct-head p { margin: 8px 0 0; color: var(--ink-soft); font-size: 1.02rem; }
+  main.wrap { padding: 22px 0 90px; }
+
+  .box { background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-sm); padding: 24px; min-width: 0; }
+  .box h2 { font-size: 1.15rem; letter-spacing: -0.015em; }
+  .box .sub { color: var(--ink-soft); font-size: .92rem; margin: 6px 0 0; }
+
+  /* ---- auth */
+  .auth { max-width: 440px; margin: 10px auto 0; }
+  .seg { display: flex; padding: 4px; gap: 4px; background: rgba(22,24,29,.05); border-radius: 999px; margin-bottom: 20px; }
+  .seg button { flex: 1; font: inherit; font-size: .9rem; font-weight: 550; border: 0; background: transparent; color: var(--ink-soft); padding: 9px 12px; border-radius: 999px; cursor: pointer; }
+  .seg button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  label.f { display: block; font-size: .82rem; font-weight: 600; color: var(--ink-soft); margin: 14px 0 6px; }
+  input.t {
+    width: 100%; font: inherit; font-size: .98rem; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--bg-tint); color: var(--ink); transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  input.t:focus { outline: none; border-color: var(--accent-mid); background: #fff; box-shadow: 0 0 0 4px var(--accent-glow); }
+  .hint { font-size: .78rem; color: var(--ink-faint); margin: 6px 0 0; }
+  .auth .btn { width: 100%; margin-top: 20px; }
+  .perks { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 6px; font-size: .86rem; color: var(--ink-soft); }
+  .perks li { display: flex; gap: 8px; align-items: center; }
+  .perks svg { width: 14px; height: 14px; color: var(--good-ink); flex: none; }
+  .msg { margin-top: 14px; font-size: .88rem; border-radius: 12px; padding: 10px 12px; display: none; }
+  .msg.err { display: block; background: var(--bad-soft); color: var(--bad-ink); }
+  .msg.ok { display: block; background: var(--good-soft); color: var(--good-ink); }
+  #captcha { margin-top: 16px; }
+
+  /* ---- dashboard */
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; }
+  @media (max-width: 920px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 820px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .tile { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+  .tile small { display: block; font-size: .74rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
+  .tile b { display: block; font-size: 1.7rem; letter-spacing: -0.03em; margin-top: 6px; line-height: 1.1; }
+  .tile span { display: block; font-size: .8rem; color: var(--ink-faint); margin-top: 4px; }
+  .tile .meter { margin-top: 10px; }
+
+  .new-key { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .new-key input { flex: 1 1 200px; }
+  .reveal-key {
+    margin-top: 16px; border: 1px solid rgba(4,120,87,.3); background: var(--accent-soft); border-radius: 14px; padding: 14px; display: none;
+  }
+  .reveal-key.show { display: block; }
+  .reveal-key p { margin: 0 0 10px; font-size: .86rem; color: var(--ink); }
+  .keyline { display: flex; gap: 8px; align-items: center; }
+  .keyline code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; display: block; padding: 9px 10px; background: #fff; font-size: .8rem; }
+  .key-done { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 12px; font-size: .84rem; color: var(--ink-soft); }
+  table.keys { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: .88rem; }
+  table.keys th { text-align: left; font-size: .72rem; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; padding: 0 6px 8px; border-bottom: 1px solid var(--line); }
+  table.keys td { padding: 10px 6px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+  table.keys code { font-size: .76rem; }
+  table.keys .muted { color: var(--ink-faint); font-size: .8rem; }
+  .table-scroll { overflow-x: auto; }
+  .tag-revoked { font-size: .72rem; color: var(--ink-faint); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+  .linkbtn { font: inherit; font-size: .82rem; color: var(--bad-ink); background: none; border: 0; cursor: pointer; padding: 4px 6px; border-radius: 8px; }
+  .linkbtn:hover { background: var(--bad-soft); }
+
+  .chart { width: 100%; height: 170px; display: block; margin-top: 12px; }
+  .chart .bar { fill: var(--accent-mid); }
+  .chart .bar.deg { fill: #6da7ec; }
+  .chart .grid { stroke: #e1e0d9; stroke-width: 1; }
+  .chart .base { stroke: #c3c2b7; stroke-width: 1; }
+  .chart .lbl { font-size: 10.5px; fill: #898781; font-family: var(--mono); }
+  .chart .hit { fill: transparent; }
+  .legend { display: flex; gap: 14px; font-size: .78rem; color: var(--ink-soft); margin-top: 8px; }
+  .legend span { display: inline-flex; gap: 6px; align-items: center; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  details.data { margin-top: 10px; font-size: .82rem; color: var(--ink-soft); }
+  details.data table { width: 100%; border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  details.data td, details.data th { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line-soft); }
+  details.data td:first-child, details.data th:first-child { text-align: left; }
+
+  .danger { margin-top: 18px; border-color: rgba(208,59,59,.25); }
+  .danger summary { cursor: pointer; font-weight: 600; color: var(--bad-ink); }
+  .danger form { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .danger input { flex: 1 1 220px; }
+  .btn-danger { background: var(--bad); color: #fff; }
+  .btn-danger:hover { background: var(--bad-ink); }
+  [hidden] { display: none !important; }
+  #signed-in, #signed-out { padding: 0; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="nav-brand" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
+    <span class="nav-ver">v1.1</span>
+    <div class="nav-links">
+      <a class="opt" href="app.html">Analyzer</a>
+      <a class="opt" href="docs.html">API docs</a>
+      <a href="account.html" aria-current="page">Account</a>
+      <button class="btn btn-ghost btn-sm" id="logout" hidden>Log out</button>
+    </div>
+  </div>
+</nav>
+
+<header class="acct-head">
+  <div class="wrap acct-head-in">
+    <div>
+      <h1 id="title">Get a free API key</h1>
+      <p id="subtitle">Score prompts from your own code: both scores, every signal, and cost estimates in one JSON reply.</p>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- signed out -->
+  <section id="signed-out" hidden>
+    <div class="box auth">
+      <div class="seg" role="tablist">
+        <button role="tab" id="tab-signup" aria-selected="true">Create account</button>
+        <button role="tab" id="tab-login" aria-selected="false">Log in</button>
+      </div>
+      <form id="auth-form" novalidate>
+        <label class="f" for="email">Email</label>
+        <input class="t" id="email" type="email" autocomplete="email" required>
+        <label class="f" for="password">Password</label>
+        <input class="t" id="password" type="password" autocomplete="new-password" minlength="10" required>
+        <p class="hint" id="pw-hint">At least 10 characters.</p>
+        <div id="captcha"></div>
+        <button class="btn btn-fill btn-md" id="auth-submit" type="submit">Create free account</button>
+        <div class="msg" id="auth-msg" role="alert"></div>
+      </form>
+      <ul class="perks" id="perks">
+        <li><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>1,000 prompts a day, free</li>
+        <li><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Up to 5 keys, revoke any time</li>
+        <li><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Prompts not stored unless you opt in</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- signed in -->
+  <section id="signed-in" hidden>
+    <div class="tiles" id="tiles"></div>
+
+    <div class="grid2">
+      <div class="box">
+        <h2>API keys</h2>
+        <p class="sub">Send a key as <code>Authorization: Bearer pqs_live_…</code>. Keys are stored as hashes, so we can only show a key once.</p>
+        <form class="new-key" id="new-key">
+          <input class="t" id="key-name" maxlength="80" placeholder="Key name, e.g. production" aria-label="Key name">
+          <button class="btn btn-fill btn-md" type="submit">Create key</button>
+        </form>
+        <div class="reveal-key" id="reveal-key" role="status">
+          <p><b>Copy this key now.</b> It won't be shown again.</p>
+          <div class="keyline"><code id="full-key"></code><button class="btn btn-ghost btn-sm" id="copy-key" type="button">Copy</button></div>
+          <div class="key-done">
+            <span>Saved it somewhere safe?</span>
+            <button class="btn btn-fill btn-sm" id="key-done" type="button">Done</button>
+          </div>
+        </div>
+        <div class="msg" id="key-msg" role="alert"></div>
+        <div class="table-scroll"><table class="keys"><thead><tr><th>Name</th><th>Key</th><th>Created</th><th>Last used</th><th></th></tr></thead><tbody id="key-rows"></tbody></table></div>
+      </div>
+
+      <div class="box">
+        <h2>Usage, last 30 days</h2>
+        <p class="sub">Prompts scored per day across all your keys (UTC).</p>
+        <div id="chart"></div>
+        <div class="legend"><span><i style="background:var(--accent-mid)"></i>Scored by Jev</span><span><i style="background:#6da7ec"></i>Heuristic fallback</span></div>
+        <details class="data"><summary>Show as a table</summary><div id="usage-table"></div></details>
+      </div>
+    </div>
+
+    <div class="box" style="margin-top:18px">
+      <h2>Quick start</h2>
+      <p class="sub">Set your key once in the terminal, then run the commands as they are. Full reference in the <a href="docs.html">API docs</a>.</p>
+<pre class="codeblock" id="quickstart" style="margin-top:14px"></pre>
+    </div>
+
+    <details class="box danger">
+      <summary>Delete account</summary>
+      <p class="sub">Deletes your account, every key, your usage history and any prompts you opted to store. This can't be undone.</p>
+      <form id="delete-form">
+        <input class="t" id="delete-password" type="password" autocomplete="current-password" placeholder="Your password" aria-label="Password to confirm">
+        <button class="btn btn-danger btn-md" type="submit">Delete everything</button>
+      </form>
+      <div class="msg" id="delete-msg" role="alert"></div>
+    </details>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <span>PromptLint · judgments by TypeSafe Jev, math by plain code</span>
+    <span class="foot-links"><a href="./">Home</a><a href="app.html">Analyzer</a><a href="docs.html">API docs</a><a href="./#privacy">Privacy</a></span>
+  </div>
+</footer>
+
+<script src="assets/report.js"></script>
+<script src="assets/account.js"></script>
+</body>
+</html>

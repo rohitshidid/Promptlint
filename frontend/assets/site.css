@@ -124,6 +124,7 @@ code {
 .nav-links a { color: var(--ink-soft); font-size: 14px; font-weight: 450; }
 .nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--ink); text-decoration: none; }
 .nav-links .btn { color: #fff; }
+.nav-links .btn-ghost { color: var(--ink); }
 @media (max-width: 860px) { .nav-links a.opt { display: none; } }
 @media (max-width: 520px) { .nav-ver { display: none; } .nav-links { gap: 16px; } }
 

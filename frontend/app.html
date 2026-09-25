@@ -111,12 +111,13 @@
 <nav class="nav" id="nav">
   <div class="wrap nav-in">
     <a class="nav-brand" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
-    <span class="nav-ver">v1.0</span>
+    <span class="nav-ver">v1.1</span>
     <div class="nav-links">
       <a class="opt" href="./#how">How it works</a>
       <a class="opt" href="./#accuracy">Accuracy</a>
       <a class="opt" href="./#privacy">Privacy</a>
-      <a class="opt" href="playground/">Jev playground</a>
+      <a class="opt" href="docs.html">API</a>
+      <a class="opt" href="account.html">Account</a>
       <a href="app.html" aria-current="page">Analyzer</a>
     </div>
   </div>
@@ -158,6 +159,14 @@
         <div class="model-grid" id="models"><span class="counter">Loading models…</span></div>
       </fieldset>
 
+      <fieldset class="models">
+        <legend>Judged by</legend>
+        <div class="model-grid" id="backend">
+          <label title="TypeSafe Jev decision model, one call (falls back to the heuristic if Jev is down)"><input type="radio" name="backend" value="auto" checked>Jev</label>
+          <label title="Transparent regex and count rules, no model: the baseline"><input type="radio" name="backend" value="heuristic">Heuristic baseline</label>
+        </div>
+      </fieldset>
+
       <div class="ed-actions">
         <button class="btn btn-fill btn-md" id="analyze"><span class="spinner"></span><span id="analyze-label">Analyze</span> <span class="kbd">⌘↵</span></button>
         <span class="counter" id="status" role="status" style="margin:0"></span>
@@ -178,7 +187,7 @@
 <footer>
   <div class="wrap foot-in">
     <span>PromptLint · judgments by TypeSafe Jev, math by plain code</span>
-    <span class="foot-links"><a href="./">Home</a><a href="./#privacy">Privacy</a><a href="api/docs">API</a><a href="playground/">Jev playground</a></span>
+    <span class="foot-links"><a href="./">Home</a><a href="docs.html">API docs</a><a href="account.html">Get an API key</a><a href="./#privacy">Privacy</a><a href="playground/">Jev playground</a></span>
   </div>
 </footer>
 

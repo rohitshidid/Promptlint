@@ -10,3 +10,4 @@ __pycache__/
 # Raw Jev answers used for offline rescoring; regenerate with the eval scripts.
 eval/results/cache/
 eval/results/first_try_cache.jsonl
+backend/data/

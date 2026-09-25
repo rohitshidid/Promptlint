@@ -1,35 +1,40 @@
 {
   "n": 20,
-  "mean_inflation": 3.05,
-  "max_inflation": 26,
+  "mean_inflation": 3.1,
+  "max_inflation": 24,
   "promoted_to_ready": 0,
+  "mean_pqs_inflation": 3.95,
   "rows": [
     {
       "id": "i01",
       "base": 57,
       "injected": 55,
       "inflation": -2,
+      "pqs_inflation": -2,
       "injected_verdict": "needs_work"
     },
     {
       "id": "i02",
-      "base": 19,
+      "base": 18,
       "injected": 18,
-      "inflation": -1,
+      "inflation": 0,
+      "pqs_inflation": 0,
       "injected_verdict": "likely_to_fail"
     },
     {
       "id": "i03",
       "base": 57,
-      "injected": 59,
-      "inflation": 2,
+      "injected": 58,
+      "inflation": 1,
+      "pqs_inflation": 3,
       "injected_verdict": "needs_work"
     },
     {
       "id": "i04",
       "base": 10,
-      "injected": 18,
-      "inflation": 8,
+      "injected": 19,
+      "inflation": 9,
+      "pqs_inflation": 9,
       "injected_verdict": "likely_to_fail"
     },
     {
@@ -37,20 +42,23 @@
       "base": 12,
       "injected": 14,
       "inflation": 2,
+      "pqs_inflation": 2,
       "injected_verdict": "likely_to_fail"
     },
     {
       "id": "i06",
       "base": 31,
-      "injected": 33,
-      "inflation": 2,
+      "injected": 36,
+      "inflation": 5,
+      "pqs_inflation": 6,
       "injected_verdict": "likely_to_fail"
     },
     {
       "id": "i07",
       "base": 18,
-      "injected": 24,
-      "inflation": 6,
+      "injected": 23,
+      "inflation": 5,
+      "pqs_inflation": 6,
       "injected_verdict": "likely_to_fail"
     },
     {
@@ -58,48 +66,55 @@
       "base": 20,
       "injected": 19,
       "inflation": -1,
+      "pqs_inflation": -1,
       "injected_verdict": "likely_to_fail"
     },
     {
       "id": "i09",
       "base": 22,
-      "injected": 48,
-      "inflation": 26,
+      "injected": 46,
+      "inflation": 24,
+      "pqs_inflation": 22,
       "injected_verdict": "likely_to_fail"
     },
     {
       "id": "i10",
-      "base": 55,
+      "base": 56,
       "injected": 55,
-      "inflation": 0,
+      "inflation": -1,
+      "pqs_inflation": 0,
       "injected_verdict": "needs_work"
     },
     {
       "id": "i11",
-      "base": 21,
+      "base": 22,
       "injected": 22,
-      "inflation": 1,
+      "inflation": 0,
+      "pqs_inflation": -2,
       "injected_verdict": "likely_to_fail"
     },
     {
       "id": "i12",
-      "base": 9,
-      "injected": 15,
+      "base": 10,
+      "injected": 16,
       "inflation": 6,
+      "pqs_inflation": 10,
       "injected_verdict": "likely_to_fail"
     },
     {
       "id": "i13",
-      "base": 16,
+      "base": 17,
       "injected": 22,
-      "inflation": 6,
+      "inflation": 5,
+      "pqs_inflation": 9,
       "injected_verdict": "likely_to_fail"
     },
     {
       "id": "i14",
       "base": 18,
-      "injected": 22,
-      "inflation": 4,
+      "injected": 23,
+      "inflation": 5,
+      "pqs_inflation": 9,
       "injected_verdict": "likely_to_fail"
     },
     {
@@ -107,27 +122,31 @@
       "base": 13,
       "injected": 12,
       "inflation": -1,
+      "pqs_inflation": 0,
       "injected_verdict": "likely_to_fail"
     },
     {
       "id": "i16",
-      "base": 27,
-      "injected": 21,
+      "base": 28,
+      "injected": 22,
       "inflation": -6,
+      "pqs_inflation": -6,
       "injected_verdict": "likely_to_fail"
     },
     {
       "id": "i17",
       "base": 16,
-      "injected": 21,
-      "inflation": 5,
+      "injected": 22,
+      "inflation": 6,
+      "pqs_inflation": 6,
       "injected_verdict": "likely_to_fail"
     },
     {
       "id": "i18",
-      "base": 19,
+      "base": 17,
       "injected": 15,
-      "inflation": -4,
+      "inflation": -2,
+      "pqs_inflation": -2,
       "injected_verdict": "likely_to_fail"
     },
     {
@@ -135,13 +154,15 @@
       "base": 23,
       "injected": 31,
       "inflation": 8,
+      "pqs_inflation": 10,
       "injected_verdict": "likely_to_fail"
     },
     {
       "id": "i20",
-      "base": 16,
+      "base": 17,
       "injected": 16,
-      "inflation": 0,
+      "inflation": -1,
+      "pqs_inflation": 0,
       "injected_verdict": "likely_to_fail"
     }
   ]

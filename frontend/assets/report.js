@@ -22,8 +22,9 @@
   };
 
   const TASK_LABEL = {
-    coding: "Coding", writing: "Writing", factual: "Factual", analysis: "Analysis",
-    math_reasoning: "Math & reasoning", creative: "Creative", other: "Other",
+    coding: "Coding", writing: "Writing", analysis: "Analysis", math: "Math", factual_qa: "Factual Q&A",
+    brainstorming: "Brainstorming", extraction_transformation: "Extract & transform", conversation: "Conversation",
+    other: "Other",
   };
   const TIER_LABEL = { small: "a small model is enough", mid: "a mid-tier model fits", frontier: "needs a frontier model" };
 
@@ -185,10 +186,19 @@
         <div class="pills">
           <span class="pill" title="Jev confidence ${pct(r.task_type.confidence)}">Task: ${esc(task)}</span>
           <span class="pill accent">${esc(TIER_LABEL[r.tier_hint])}${sug ? " · try " + esc(sug) : ""}</span>
-          ${r.meta.low_confidence ? '<span class="pill warn" title="Average Jev confidence on the scales was below 50%">Low confidence</span>' : ""}
+          ${r.pqs_score != null ? `<span class="pill" title="PQS composite (prompt-quality-scorer.md §9.5): clarity, specificity, completeness and re-ask risk, computed from the same answers">PQS score ${r.pqs_score}</span>` : ""}
+          ${r.meta.low_confidence && r.meta.backend !== "heuristic" ? '<span class="pill warn" title="Average Jev confidence on the scales was below 50%">Low confidence</span>' : ""}
         </div>
       </div>
     </div>`;
+  }
+
+  function backendNotice(r) {
+    if (r.meta.backend !== "heuristic") return "";
+    const why = r.meta.degraded
+      ? "Jev was unavailable, so this report comes from the rule-based fallback."
+      : "You chose the rule-based heuristic backend.";
+    return `<div class="rc-block rc-notice" role="note">${ICON.info}<span><b>Heuristic report.</b> ${why} It's a transparent baseline: expect rougher scores than Jev.</span></div>`;
   }
 
   function renderReport(el, r, opts = {}) {
@@ -198,6 +208,7 @@
     const legend = radarSeries.length > 1
       ? `<div class="legend">${radarSeries.map((s) => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>` : "";
     el.innerHTML = `<div class="rc">
+      ${backendNotice(r)}
       ${summaryBlock(r, opts)}
       <div class="rc-two">${firstTryBlock(r.first_try_success)}${specificityBlock(r.specificity)}</div>
       <div class="rc-dims">
@@ -208,7 +219,7 @@
       <div class="rc-block"><p class="rc-label"><span>Fix-it tips</span>${r.tips.length ? "<span>+points it could recover</span>" : ""}</p>${tipsBlock(r.tips)}</div>
       <div class="rc-meta">
         <span>Judged by <code>${esc(r.meta.jev_model)}</code> in ${int(r.meta.latency_ms)} ms${r.meta.cached ? " (cached)" : ""}</span>
-        <span>1 Jev call · 0 LLM calls</span>
+        <span>${r.meta.backend === "heuristic" ? "0 Jev calls" : "1 Jev call"} · 0 LLM calls</span>
         <span>Prompt hash <code>${esc(r.meta.prompt_hash)}</code> · not stored</span>
       </div>
     </div>`;

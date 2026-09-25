@@ -5,9 +5,10 @@ Two views of every answer:
   signal  — raw, inverted where `invert: true`, so 1 is always good. Only weighted signals.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
-from app.config import WeightConfig
+from app.config import PqsConfig, WeightConfig
 from app.jev_client import JevAnswers
 
 
@@ -77,3 +78,65 @@ def low_confidence(answers: JevAnswers, weights: WeightConfig) -> bool:
 
 def _clamp(x: float) -> float:
     return max(0.0, min(1.0, x))
+
+
+# ---------------------------------------------------------------- PQS composite
+# prompt-quality-scorer.md §9.5, computed from the same Jev answers as the Lint Score.
+
+
+@dataclass(frozen=True)
+class PqsResult:
+    pqs_score: int
+    clarity: float
+    specificity: float
+    completeness: float
+    reiteration_risk: float
+    missing: dict[str, float]  # component → P(missing), every component
+
+
+def missing_probabilities(raw: dict[str, float], pqs: PqsConfig) -> dict[str, float]:
+    from app.config import PQS_COMPONENT_SOURCES
+
+    return {c: _clamp(1.0 - raw[PQS_COMPONENT_SOURCES[c]]) for c in pqs.components}
+
+
+def pqs_score(raw: dict[str, float], task_type: str, pqs: PqsConfig) -> PqsResult:
+    clarity = (raw["task_clear"] + (1.0 - raw["ambiguity"])) / 2
+    specificity = raw["specificity"]
+    missing = missing_probabilities(raw, pqs)
+    cw = pqs.component_weights(task_type)
+    total = sum(cw.values())
+    completeness = 1.0 - (sum(cw[c] * missing[c] for c in cw) / total if total else 0.0)
+    reiteration = 1.0 - raw["first_try_success"]
+    w = pqs.weights
+    value = (
+        w["clarity"] * clarity
+        + w["specificity"] * specificity
+        + w["completeness"] * completeness
+        + w["no_reiteration"] * (1.0 - reiteration)
+    ) / sum(w.values())
+    return PqsResult(
+        pqs_score=round(100 * _clamp(value)),
+        clarity=_clamp(clarity),
+        specificity=_clamp(specificity),
+        completeness=_clamp(completeness),
+        reiteration_risk=_clamp(reiteration),
+        missing=missing,
+    )
+
+
+def output_quantile(level_probs: Sequence[float], ranges: Sequence[tuple[int, int]], q: float) -> int:
+    """Token count where the bucket CDF crosses q, interpolating linearly inside the bucket (PQS §7)."""
+    total = sum(level_probs)
+    if total <= 0:
+        return ranges[-1][1] if q >= 0.5 else ranges[0][0]
+    acc = 0.0
+    for p, (lo, hi) in zip(level_probs, ranges, strict=True):
+        p /= total
+        if p > 0 and acc + p >= q:
+            return round(lo + (hi - lo) * (q - acc) / p)
+        acc += p
+    return ranges[-1][1]
+
+
+COMPLEXITY_LABELS = ("low", "medium", "high")

@@ -143,6 +143,32 @@ def lint(answers: JevAnswers, cfg: AppConfig) -> scoring.ScoreResult:
     return scoring.lint_score(scoring.raw_values(answers), cfg.weights)
 
 
+def pqs(answers: JevAnswers, cfg: AppConfig) -> int:
+    return scoring.pqs_score(
+        scoring.raw_values(answers), answers.choices["task_type"].choice, cfg.pqs
+    ).pqs_score
+
+
+def score_both(answers: JevAnswers, cfg: AppConfig) -> dict[str, int]:
+    return {"lint": lint(answers, cfg).lint_score, "pqs": pqs(answers, cfg)}
+
+
+async def heuristic_all(prompts: list[str]) -> dict[str, JevAnswers]:
+    """The rule-based baseline backend (prompt-quality-scorer.md §10.2): no network, no cache needed."""
+    from app.backends import HeuristicJudge
+
+    h = HeuristicJudge(config().questions)
+    return {p: await h.judge(p) for p in dict.fromkeys(prompts)}
+
+
+async def answers_for(
+    backend: str, prompts: list[str], label: str
+) -> tuple[dict[str, JevAnswers], list[int]]:
+    if backend == "heuristic":
+        return await heuristic_all(prompts), []
+    return await judge_all(prompts, label=label)
+
+
 def auroc(scores: list[float], labels: list[int]) -> float:
     """Mann–Whitney AUROC with tie handling; no sklearn dependency."""
     pos = [s for s, y in zip(scores, labels, strict=True) if y == 1]

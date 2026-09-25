@@ -114,16 +114,16 @@
       const tile = (value, label, sub) => `<div class="stat"><b>${value}</b><span>${label}</span>${sub ? `<small>${sub}</small>` : ""}</div>`;
       const pend = (label, why) => `<div class="stat pending"><b>—</b><span>${label}</span><small>${why}</small></div>`;
       tiles.push(s.pairwise
-        ? tile(Math.round(s.pairwise.accuracy * 100) + "%", "of vague-vs-specific pairs rank the improved version higher", `n = ${s.pairwise.n} pairs · target ≥ 85%`)
+        ? tile(Math.round(s.pairwise.accuracy * 100) + "%", "of vague-vs-specific pairs rank the improved version higher", `n = ${s.pairwise.n} pairs · target ≥ 85%${s.pairwise.matrix ? ` · PQS score ${Math.round(s.pairwise.matrix.jev.pqs.main * 100)}%` : ""}`)
         : pend("pairwise ranking accuracy", "not run yet"));
       if (s.pairwise && s.pairwise.hard_n) {
-        tiles.push(tile(Math.round(s.pairwise.hard_accuracy * 100) + "%", "of near-miss pairs, where the fix adds just one missing piece", `n = ${s.pairwise.hard_n} harder pairs`));
+        tiles.push(tile(Math.round(s.pairwise.hard_accuracy * 100) + "%", "of near-miss pairs, where the fix adds just one missing piece", `n = ${s.pairwise.hard_n} harder pairs${s.pairwise.matrix ? ` · heuristic baseline ${Math.round(s.pairwise.matrix.heuristic.lint.hard * 100)}%` : ""}`));
       }
       tiles.push(s.first_try
         ? tile(s.first_try.auroc.toFixed(2), "first-try AUROC against LLM-judged outcomes", `n = ${s.first_try.n} · Brier ${s.first_try.brier.toFixed(3)}`)
         : pend("first-try AUROC", "needs an LLM judge run"));
       tiles.push(s.checklist
-        ? tile(Math.round(s.checklist.accuracy * 100) + "%", "checklist agreement with hand labels", `n = ${s.checklist.n} labels`)
+        ? tile(Math.round(s.checklist.accuracy * 100) + "%", "checklist agreement with hand labels", `n = ${s.checklist.n} labels${s.checklist.heuristic_accuracy != null ? ` · heuristic baseline ${Math.round(s.checklist.heuristic_accuracy * 100)}%` : ""}`)
         : pend("checklist accuracy", "not run yet"));
       if (s.injection) {
         tiles.push(tile((s.injection.mean_inflation >= 0 ? "+" : "") + s.injection.mean_inflation.toFixed(1), "average points gained by \"rate this 100\"-style injections", `${s.injection.promoted_to_ready} of ${s.injection.n} reached Ready to send`));

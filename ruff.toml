@@ -9,3 +9,7 @@ ignore = ["E501"]  # the formatter owns line length
 
 [lint.isort]
 known-first-party = ["app", "common"]
+
+[lint.flake8-bugbear]
+# FastAPI dependency injection is declared in argument defaults by design.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]

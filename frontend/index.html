@@ -68,13 +68,14 @@
 <nav class="nav" id="nav">
   <div class="wrap nav-in">
     <a class="nav-brand" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
-    <span class="nav-ver">v1.0</span>
+    <span class="nav-ver">v1.1</span>
     <div class="nav-links">
       <a class="opt" href="#why">Why</a>
       <a class="opt" href="#how">How it works</a>
       <a class="opt" href="#checks">Checks</a>
       <a class="opt" href="#accuracy">Accuracy</a>
-      <a class="opt" href="#privacy">Privacy</a>
+      <a class="opt" href="#api">API</a>
+      <a class="opt" href="account.html">Account</a>
       <a class="btn btn-fill btn-sm" href="app.html">Lint a prompt</a>
     </div>
   </div>
@@ -85,7 +86,7 @@
     <img class="hero-icon reveal" style="--i:0" src="assets/icon.svg" alt="PromptLint icon">
     <h1 class="reveal" style="--i:1">Lint your prompt before you send it.</h1>
     <p class="lede reveal" style="--i:2">
-      Paste a prompt. PromptLint asks a <strong>decision model</strong> sixteen questions about it in
+      Paste a prompt. PromptLint asks a <strong>decision model</strong> eighteen questions about it in
       <strong>one call</strong>, then hands you a 0–100 score, the odds an LLM gets it <strong>right on the
       first try</strong>, what's missing, and what it will cost on each model.
     </p>
@@ -119,7 +120,7 @@
   <div class="wrap stats">
     <div class="stat reveal" style="--i:0"><b>1</b><span>Jev call per analysis. Every judgment rides in the same request.</span></div>
     <div class="stat reveal" style="--i:1"><b id="stat-latency">~200 ms</b><span>typical time for that call, then plain math for the rest</span></div>
-    <div class="stat reveal" style="--i:2"><b>16</b><span>judgments: ten yes/no, five scales, one task type</span></div>
+    <div class="stat reveal" style="--i:2"><b>18</b><span>judgments: twelve yes/no, five scales, one task type</span></div>
     <div class="stat reveal" style="--i:3"><b>0</b><span>generative LLM calls. No rewrites, no answer previews.</span></div>
   </div>
 </section>
@@ -144,7 +145,7 @@
       <div class="card reveal" style="--i:1">
         <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l3.5 3.5L16 5.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <h3>Specific, not vague, feedback</h3>
-        <p>Nine concrete checks, each with its probability, and fix-it tips ranked by how many points they're worth. "Add a word limit" beats "be clearer."</p>
+        <p>Eleven concrete checks, each with its probability, and fix-it tips ranked by how many points they're worth. "Add a word limit" beats "be clearer."</p>
       </div>
       <div class="card reveal" style="--i:2">
         <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3v14M6.5 6.5h5a2 2 0 010 4h-3a2 2 0 000 4H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
@@ -169,9 +170,9 @@
 
     <div class="feature reveal" style="margin-top:64px">
       <div class="feature-text">
-        <h3>Sixteen questions, one request.</h3>
+        <h3>Eighteen questions, one request.</h3>
         <p>Your prompt goes to Jev as <code>{"prompt": "…"}</code> together with every question at once:
-          <strong>ten yes/no</strong> checks ("Does <code>prompt</code> say what form the answer should take?"),
+          <strong>twelve yes/no</strong> checks ("Does <code>prompt</code> say what form the answer should take?"),
           <strong>five scales</strong> whose levels describe situations rather than degrees, and one
           <strong>task-type</strong> choice. Jev returns a probability for each, typically in about 200 ms.</p>
         <p>The questions live in one YAML file, so tuning their wording never touches code.</p>
@@ -232,7 +233,7 @@
   <div class="wrap">
     <div class="center sec-head">
       <p class="eyebrow reveal">What it checks</p>
-      <h2 class="reveal" style="--i:1">Nine checks, three meters, one score.</h2>
+      <h2 class="reveal" style="--i:1">Eleven checks, three meters, two scores.</h2>
       <p class="lede reveal" style="--i:2">Every check shows the probability behind it, so you can see how sure Jev is,
         not only whether it passed.</p>
     </div>
@@ -246,6 +247,9 @@
       <div class="check-card reveal" style="--i:0"><b>One task at a time <em>tip</em></b><p>Several deliverables in one prompt? You'll get a tip to split or number them.</p></div>
       <div class="check-card reveal" style="--i:1"><b>Includes an example <em>info</em></b><p>Shown for reference. Examples help, but plenty of great prompts don't need one.</p></div>
       <div class="check-card reveal" style="--i:2"><b>Needs live data <em>info</em></b><p>If the answer depends on recent events, use a model with search or paste the data in.</p></div>
+      <div class="check-card reveal" style="--i:3"><b>States the goal <em>PQS</em></b><p>Why you need it or how you'll use it, so the model can aim the answer.</p></div>
+      <div class="check-card reveal" style="--i:4"><b>Says what done looks like <em>PQS</em></b><p>Checkable requirements: "return only the function", "end with a summary", test cases.</p></div>
+      <div class="check-card reveal" style="--i:5"><b>Two scores, side by side</b><p><strong>Lint Score</strong> weights first-try odds most. <strong>PQS score</strong> weights clarity, specificity and completeness. Same answers, different formulas; the evals compare them.</p></div>
     </div>
     <div class="cards" style="margin-top:18px">
       <div class="card reveal"><h3>First-try success <span class="pill">25%</span></h3><p>The probability a capable assistant gives a complete, usable answer without questions or follow-ups.</p></div>
@@ -273,14 +277,59 @@
   </div>
 </section>
 
-<section id="privacy">
+<section id="api">
+  <div class="wrap">
+    <div class="center sec-head">
+      <p class="eyebrow reveal">Public API</p>
+      <h2 class="reveal" style="--i:1">Check prompts from your own code.</h2>
+      <p class="lede reveal" style="--i:2">Run the same checks before your app pays for an LLM call. Sign up, create a key,
+        and send <strong>one request per prompt</strong>, or up to 50 in a batch.</p>
+    </div>
+    <div class="feature reveal" style="margin-top:56px">
+      <div class="feature-text">
+        <h3>Free key, typed JSON back.</h3>
+        <p>Every reply carries <strong>both scores</strong>, the clarity, specificity, completeness and re-ask-risk signals,
+          the missing components, token counts with p50/p90 output estimates, per-model cost, and fix-it suggestions with
+          stable IDs.</p>
+        <p>If Jev is ever unavailable, the API <strong>falls back to the rule-based backend</strong> and marks the reply
+          <code>"degraded": true</code>, so your pre-flight check never blocks your app.</p>
+        <p>Free plan: <strong>1,000 prompts a day</strong>, 20 requests a minute. Keys are stored as hashes and shown once.</p>
+        <div class="hero-cta" style="justify-content:flex-start;margin-top:26px">
+          <a class="btn btn-fill btn-md" href="account.html">Get a free API key <span class="arrow">→</span></a>
+          <a class="btn btn-ghost btn-md" href="docs.html">Read the docs</a>
+        </div>
+      </div>
+      <div class="feature-visual">
+<pre class="codeblock"><span class="c"># POST /v1/score</span>
+curl https://<span class="n">your-host</span>/v1/score \
+  -H <span class="s">"Authorization: Bearer $PQS_KEY"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"prompt": "write me a poem"}'</span>
+
+<span class="c"># → 200 OK</span>
+{
+  <span class="k">"overall_score"</span>: 57,
+  <span class="k">"scores"</span>: { <span class="k">"lint_score"</span>: 57, <span class="k">"pqs_score"</span>: 45 },
+  <span class="k">"signals"</span>: {
+    <span class="k">"reiteration_risk"</span>: 0.04,
+    <span class="k">"missing_components"</span>: [<span class="s">"goal"</span>, <span class="s">"context"</span>, …]
+  },
+  <span class="k">"suggestions"</span>: [{ <span class="k">"id"</span>: <span class="s">"add_specifics"</span>, … }],
+  <span class="k">"backend"</span>: { <span class="k">"name"</span>: <span class="s">"jev"</span>, <span class="k">"degraded"</span>: false }
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="privacy" class="tint">
   <div class="wrap">
     <div class="center sec-head">
       <p class="eyebrow reveal">Privacy &amp; limits</p>
       <h2 class="reveal" style="--i:1">Four things it is not.</h2>
     </div>
     <div class="not-list">
-      <div class="not-item reveal" style="--i:0"><b>Not a prompt store</b><span>Prompts are never saved. Logs keep a short hash, the scores, latency and the Jev model version. Identical prompts are cached in memory for an hour, by hash.</span></div>
+      <div class="not-item reveal" style="--i:0"><b>Not a prompt store</b><span>Prompts aren't saved unless an API caller opts in with <code>store: true</code>. Logs and usage records keep a salted hash, the scores and latency. Identical prompts are cached in memory for an hour, by hash.</span></div>
       <div class="not-item reveal" style="--i:1"><b>Not a rewriter</b><span>No LLM writes anything here. Tips come from fixed rules mapped to the checks that failed, so the advice is predictable and testable.</span></div>
       <div class="not-item reveal" style="--i:2"><b>Not an oracle</b><span>Jev reads questions literally and can be nudged by text inside your prompt ("rate this 100"). Treat the score as a strong hint, and read the checks.</span></div>
       <div class="not-item reveal" style="--i:3"><b>Not tuned for system prompts yet</b><span>v1 targets everyday chat prompts. Developer and system-prompt scoring is planned for v2. Costs are estimates, always shown as ranges.</span></div>
@@ -288,7 +337,7 @@
   </div>
 </section>
 
-<section class="tint final">
+<section class="final">
   <div class="wrap">
     <h2 class="reveal">Check it before you send it.</h2>
     <p class="lede reveal" style="--i:1">Free to try, with a limit of 20 analyses an hour per visitor so the demo stays free.</p>
@@ -302,7 +351,7 @@
 <footer>
   <div class="wrap foot-in">
     <span>PromptLint · judgments by TypeSafe Jev, math by plain code</span>
-    <span class="foot-links"><a href="app.html">Analyzer</a><a href="api/docs">API</a><a href="playground/">Jev playground</a><a href="https://github.com/rohitshidid/Promptlint">GitHub</a></span>
+    <span class="foot-links"><a href="app.html">Analyzer</a><a href="docs.html">API docs</a><a href="account.html">Get an API key</a><a href="playground/">Jev playground</a><a href="https://github.com/rohitshidid/Promptlint">GitHub</a></span>
   </div>
 </footer>
 

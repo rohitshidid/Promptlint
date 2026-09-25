@@ -10,6 +10,7 @@ class Tip:
     signal: str
     text: str
     impact: float
+    id: str = ""
 
 
 def select_tips(raw: dict[str, float], tips: TipConfig, weights: WeightConfig) -> list[Tip]:
@@ -25,6 +26,8 @@ def select_tips(raw: dict[str, float], tips: TipConfig, weights: WeightConfig) -
         else:
             continue
         weight = rule.weight if rule.weight is not None else weights.weights[rule.signal].weight
-        fired.append(Tip(rule.signal, rule.text, round(weight * shortfall, 4)))
+        fired.append(
+            Tip(rule.signal, rule.text, round(weight * shortfall, 4), rule.id or f"improve_{rule.signal}")
+        )
     fired.sort(key=lambda t: t.impact, reverse=True)
     return fired[: tips.max_tips]

@@ -14,7 +14,7 @@
       },
       "needs_clarification": {
         "type": "noul",
-        "noul": 0.45
+        "noul": 0.48
       },
       "has_constraints": {
         "type": "noul",
@@ -22,7 +22,7 @@
       },
       "has_output_format": {
         "type": "noul",
-        "noul": 0.74
+        "noul": 0.72
       },
       "has_audience": {
         "type": "noul",
@@ -30,7 +30,7 @@
       },
       "has_examples": {
         "type": "noul",
-        "noul": 0.02
+        "noul": 0.03
       },
       "conflicting": {
         "type": "noul",
@@ -43,6 +43,14 @@
       "needs_current_info": {
         "type": "noul",
         "noul": 0.05
+      },
+      "has_goal": {
+        "type": "noul",
+        "noul": 0.02
+      },
+      "has_success_criteria": {
+        "type": "noul",
+        "noul": 0.06
       },
       "specificity": {
         "type": "score",
@@ -71,9 +79,9 @@
           "2": "Two or more readings that would lead to noticeably different answers"
         },
         "probabilities": {
-          "0": 0.48,
-          "1": 0.35,
-          "2": 0.17
+          "0": 0.46,
+          "1": 0.39,
+          "2": 0.15
         }
       },
       "context_given": {
@@ -93,8 +101,8 @@
       },
       "expected_length": {
         "type": "score",
-        "score": 1.21,
-        "confidence": 0.78,
+        "score": 1.19,
+        "confidence": 0.81,
         "legend": {
           "0": "One line or a single fact",
           "1": "One or two short paragraphs",
@@ -103,46 +111,46 @@
         },
         "probabilities": {
           "0": 0.0,
-          "1": 0.78,
-          "2": 0.22,
+          "1": 0.81,
+          "2": 0.19,
           "3": 0.0
         }
       },
       "complexity": {
         "type": "score",
-        "score": 1.42,
-        "confidence": 0.55,
+        "score": 0.67,
+        "confidence": 0.5,
         "legend": {
-          "0": "A fact, definition, or simple lookup",
-          "1": "A short explanation or a routine rewrite or format task",
-          "2": "Multi-step reasoning, non-trivial code, or combining several ideas",
-          "3": "Hard problem: deep debugging, proofs, system design, or subtle trade-offs"
+          "0": "A fact, a definition, a simple lookup, or a routine rewrite or formatting task",
+          "1": "Multi-step reasoning, non-trivial code, or combining several ideas",
+          "2": "A hard problem: deep debugging, proofs, system design, or subtle trade-offs"
         },
         "probabilities": {
-          "0": 0.01,
-          "1": 0.56,
-          "2": 0.43,
-          "3": 0.0
+          "0": 0.33,
+          "1": 0.67,
+          "2": 0.0
         }
       },
       "task_type": {
         "type": "choice",
-        "choice": "creative",
+        "choice": "writing",
         "confidence": 1.0,
         "probabilities": {
           "analysis": 0.0,
-          "writing": 0.0,
+          "writing": 1.0,
+          "brainstorming": 0.0,
+          "conversation": 0.0,
+          "extraction_transformation": 0.0,
+          "factual_qa": 0.0,
           "coding": 0.0,
-          "creative": 1.0,
-          "factual": 0.0,
-          "math_reasoning": 0.0,
+          "math": 0.0,
           "other": 0.0
         }
       }
     },
     "usage": {
-      "input_tokens": 1272,
-      "output_tokens": 324
+      "input_tokens": 1518,
+      "output_tokens": 382
     }
   }
 }

@@ -30,7 +30,7 @@
       },
       "has_examples": {
         "type": "noul",
-        "noul": 0.04
+        "noul": 0.05
       },
       "conflicting": {
         "type": "noul",
@@ -44,10 +44,18 @@
         "type": "noul",
         "noul": 0.02
       },
+      "has_goal": {
+        "type": "noul",
+        "noul": 0.98
+      },
+      "has_success_criteria": {
+        "type": "noul",
+        "noul": 0.97
+      },
       "specificity": {
         "type": "score",
-        "score": 2.98,
-        "confidence": 0.98,
+        "score": 2.97,
+        "confidence": 0.97,
         "legend": {
           "0": "Generic request anyone could send; no details about the user's situation or goal",
           "1": "Names the topic but not the situation, inputs, or goal",
@@ -57,22 +65,22 @@
         "probabilities": {
           "0": 0.0,
           "1": 0.0,
-          "2": 0.02,
-          "3": 0.98
+          "2": 0.03,
+          "3": 0.97
         }
       },
       "ambiguity": {
         "type": "score",
-        "score": 0.48,
-        "confidence": 0.28,
+        "score": 0.47,
+        "confidence": 0.29,
         "legend": {
           "0": "Only one reasonable reading",
           "1": "One main reading, with a minor detail open to interpretation",
           "2": "Two or more readings that would lead to noticeably different answers"
         },
         "probabilities": {
-          "0": 0.53,
-          "1": 0.47,
+          "0": 0.54,
+          "1": 0.46,
           "2": 0.0
         }
       },
@@ -86,15 +94,15 @@
           "2": "Enough background to answer without guessing"
         },
         "probabilities": {
-          "0": 0.03,
-          "1": 0.17,
+          "0": 0.02,
+          "1": 0.18,
           "2": 0.8
         }
       },
       "expected_length": {
         "type": "score",
-        "score": 1.06,
-        "confidence": 0.9,
+        "score": 1.07,
+        "confidence": 0.89,
         "legend": {
           "0": "One line or a single fact",
           "1": "One or two short paragraphs",
@@ -103,46 +111,46 @@
         },
         "probabilities": {
           "0": 0.02,
-          "1": 0.9,
-          "2": 0.08,
+          "1": 0.89,
+          "2": 0.09,
           "3": 0.0
         }
       },
       "complexity": {
         "type": "score",
-        "score": 1.83,
-        "confidence": 0.83,
+        "score": 0.99,
+        "confidence": 0.98,
         "legend": {
-          "0": "A fact, definition, or simple lookup",
-          "1": "A short explanation or a routine rewrite or format task",
-          "2": "Multi-step reasoning, non-trivial code, or combining several ideas",
-          "3": "Hard problem: deep debugging, proofs, system design, or subtle trade-offs"
+          "0": "A fact, a definition, a simple lookup, or a routine rewrite or formatting task",
+          "1": "Multi-step reasoning, non-trivial code, or combining several ideas",
+          "2": "A hard problem: deep debugging, proofs, system design, or subtle trade-offs"
         },
         "probabilities": {
-          "0": 0.0,
-          "1": 0.17,
-          "2": 0.83,
-          "3": 0.0
+          "0": 0.01,
+          "1": 0.99,
+          "2": 0.0
         }
       },
       "task_type": {
         "type": "choice",
-        "choice": "creative",
+        "choice": "writing",
         "confidence": 1.0,
         "probabilities": {
           "analysis": 0.0,
-          "factual": 0.0,
+          "writing": 1.0,
+          "brainstorming": 0.0,
+          "conversation": 0.0,
+          "extraction_transformation": 0.0,
+          "factual_qa": 0.0,
           "coding": 0.0,
-          "writing": 0.0,
-          "other": 0.0,
-          "creative": 1.0,
-          "math_reasoning": 0.0
+          "math": 0.0,
+          "other": 0.0
         }
       }
     },
     "usage": {
-      "input_tokens": 1340,
-      "output_tokens": 324
+      "input_tokens": 1586,
+      "output_tokens": 382
     }
   }
 }

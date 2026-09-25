@@ -3,6 +3,7 @@
 # Each tip fires when its signal crosses the threshold. `value` is what's compared:
 #   noul  -> raw probability
 #   score -> score / top_level (raw, not inverted)
+# `id` is the stable suggestion ID returned by the /v1 API (PQS §11).
 # Tips are ranked by impact = weight × shortfall, where shortfall is how far the signal sits on the
 # wrong side of "perfect" (0–1). The top `max_tips` are shown.
 # `weight` defaults to the signal's scoring weight; informational signals set their own.
@@ -10,35 +11,55 @@
 max_tips: 5
 
 tips:
-  - signal: task_clear
+  - id: state_task
+    signal: task_clear
     below: 0.5
     text: Start with one sentence saying exactly what you want done.
-  - signal: specificity
+  - id: add_specifics
+    signal: specificity
     below: 0.5
     text: 'Add the specifics: your exact situation, the inputs, and what "done" looks like.'
-  - signal: context_given
+  - id: add_context
+    signal: context_given
     below: 0.5
     text: "Give background the model can't guess: who you are, what you've tried, why you need it."
-  - signal: ambiguity
+  - id: resolve_ambiguity
+    signal: ambiguity
     above: 0.5
     text: Your prompt can be read more than one way. Say which interpretation you mean.
-  - signal: has_output_format
+  - id: add_output_format
+    signal: has_output_format
     below: 0.5
     text: "Say what format you want: a bullet list, a table, code only, or a word limit."
-  - signal: has_constraints
+  - id: add_constraints
+    signal: has_constraints
     below: 0.5
     text: Add limits such as length, tone, scope, or tools to use or avoid.
-  - signal: has_audience
+  - id: add_audience
+    signal: has_audience
     below: 0.5
     text: Say who the answer is for (for example, "explain for a beginner").
-  - signal: conflicting
+  - id: fix_conflicts
+    signal: conflicting
     above: 0.5
     text: Some instructions contradict each other. Pick one.
-  - signal: multi_task
+  - id: split_tasks
+    signal: multi_task
     above: 0.6
     weight: 0.06
     text: You're asking for several things. Split them up or number them.
-  - signal: needs_current_info
+  - id: add_current_data
+    signal: needs_current_info
     above: 0.6
     weight: 0.04
     text: This needs up-to-date info. Use a model with web search or paste the data in.
+  - id: add_goal
+    signal: has_goal
+    below: 0.5
+    weight: 0.05
+    text: 'Say why you need it or how you''ll use it, so the model can aim the answer.'
+  - id: add_success_criteria
+    signal: has_success_criteria
+    below: 0.5
+    weight: 0.04
+    text: 'Say what a finished answer must include or do, so you can check it (e.g. "return only the function").'

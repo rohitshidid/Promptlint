@@ -12,12 +12,14 @@ WORKDIR /srv/backend
 
 # Dependencies first so code edits don't reinstall them.
 COPY backend/pyproject.toml ./
-RUN mkdir app && touch app/__init__.py && pip install ".[redis]" && rm -rf app
+RUN mkdir app && touch app/__init__.py && pip install . && rm -rf app
 # Bake the tokenizer in so the container never downloads it at request time.
 RUN python -c "import tiktoken; tiktoken.get_encoding('o200k_base')"
 
 COPY backend/app ./app
 COPY backend/config ./config
+COPY backend/alembic.ini ./
+COPY backend/migrations ./migrations
 COPY frontend /srv/frontend
 
 RUN useradd --create-home --uid 10001 promptlint && chown -R promptlint /srv/tiktoken
@@ -25,7 +27,7 @@ USER promptlint
 
 EXPOSE 8787
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
-  CMD python -c "import urllib.request,os; urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"8787\")}/api/health', timeout=2)"
+  CMD python -c "import urllib.request,os; urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"8787\")}/v1/health', timeout=3)"
 
 # --proxy-headers so per-IP rate limits see the real client behind Render/Fly load balancers.
 CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8787} --proxy-headers --forwarded-allow-ips='*'"]

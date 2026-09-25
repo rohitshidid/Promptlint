@@ -1,17 +1,33 @@
-# Render Blueprint: one Docker web service serving the API and the static site.
-# Deploy: New → Blueprint → pick this repo, then set TYPESAFE_API_KEY in the dashboard.
+# Render Blueprint — free forever as of Sept 2026 (verify current terms before relying on them):
+#   web service: Render FREE instance (750 instance-hours/month covers one service 24/7; sleeps after
+#                15 min idle, ~1 min cold start). Free instances have no persistent disk, so:
+#   database:    Neon FREE Postgres (0.5 GB, scales to zero, never expires). Do NOT use Render's free
+#                Postgres: it is deleted 30 days after creation.
+#   rate limits: in memory (single instance). No Redis needed.
+#
+# Deploy: New → Blueprint → pick this repo. Then in the dashboard set TYPESAFE_API_KEY and DATABASE_URL
+# (paste Neon's connection string as-is; sslmode is handled). Migrations run on startup.
 services:
   - type: web
     name: promptlint
     runtime: docker
+    plan: free
     dockerfilePath: backend/Dockerfile
     dockerContext: .
-    plan: free
-    healthCheckPath: /api/health
+    healthCheckPath: /v1/health
     envVars:
       - key: TYPESAFE_API_KEY
         sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: PROMPT_HASH_SALT
+        generateValue: true
       - key: RATE_LIMIT
         value: 20/hour
       - key: RATE_LIMIT_STORAGE
-        value: memory://   # single instance; use a Render Key Value (Redis) URL if you scale out
+        value: memory://
+      # Optional, free: Cloudflare Turnstile captcha on sign-up
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false

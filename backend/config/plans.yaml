@@ -1,0 +1,23 @@
+# API plans (prompt-quality-scorer.md §12). Quotas count prompts scored (a batch of 10 counts 10).
+# null means no limit of that kind. New sign-ups get `default_plan`; change a user's plan with
+#   python -m app.cli set-plan you@example.com dev
+
+default_plan: free
+max_keys_per_user: 5
+
+plans:
+  free:
+    rpm: 20            # requests per minute, per key
+    daily: 1000        # prompts per UTC day, per account
+    monthly: null
+    batch_max: 10
+  dev:
+    rpm: 120
+    daily: null
+    monthly: 50000     # prompts per calendar month (UTC), per account
+    batch_max: 50
+  pro:
+    rpm: 600
+    daily: null
+    monthly: null
+    batch_max: 50

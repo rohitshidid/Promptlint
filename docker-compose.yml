@@ -1,3 +1,5 @@
+# Local stack that mirrors the free production setup: the app + Postgres (Neon in production).
+# No Redis: a single instance keeps rate-limit counters in memory, and quotas live in Postgres.
 services:
   promptlint:
     build:
@@ -6,22 +8,30 @@ services:
     container_name: promptlint
     env_file: .env
     environment:
-      # Shared rate-limit counters, as in production.
-      RATE_LIMIT_STORAGE: redis://redis:6379/0
+      DATABASE_URL: postgresql://promptlint:promptlint@db:5432/promptlint
+      COOKIE_SECURE: "false"   # local http; production (https) sets Secure automatically
     ports:
       # Bound to 127.0.0.1 so only this machine can reach it (the server holds your API key).
       - "127.0.0.1:8787:8787"
     depends_on:
-      redis:
+      db:
         condition: service_healthy
     restart: unless-stopped
 
-  redis:
-    image: redis:7-alpine
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: promptlint
+      POSTGRES_PASSWORD: promptlint
+      POSTGRES_DB: promptlint
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 2s
-      retries: 10
+      test: ["CMD-SHELL", "pg_isready -U promptlint"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
+
+volumes:
+  pgdata:

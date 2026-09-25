@@ -4,23 +4,54 @@
     "n": 200,
     "ties": 0,
     "hard_accuracy": 1.0,
-    "hard_n": 40
+    "hard_n": 40,
+    "matrix": {
+      "jev": {
+        "lint": {
+          "main": 1.0,
+          "hard": 1.0,
+          "main_mean_delta": 55.325,
+          "hard_mean_delta": 20.175
+        },
+        "pqs": {
+          "main": 1.0,
+          "hard": 1.0,
+          "main_mean_delta": 55.835,
+          "hard_mean_delta": 22.175
+        }
+      },
+      "heuristic": {
+        "lint": {
+          "main": 0.995,
+          "hard": 0.95,
+          "main_mean_delta": 49.705,
+          "hard_mean_delta": 15.3
+        },
+        "pqs": {
+          "main": 0.995,
+          "hard": 1.0,
+          "main_mean_delta": 55.025,
+          "hard_mean_delta": 17.075
+        }
+      }
+    }
   },
   "latency": {
-    "median_ms": 180.0,
-    "p95_ms": 437,
-    "n": 1228
+    "median_ms": 182.0,
+    "p95_ms": 379,
+    "n": 1842
   },
-  "generated_at": "2026-09-25T19:22:33+00:00",
+  "generated_at": "2026-09-25T21:30:08+00:00",
   "jev_model": "jev-1.13.0",
   "note": "Prompt pairs and checklist labels were drafted with an AI assistant for this project; spot-check them before citing these numbers.",
   "checklist": {
-    "accuracy": 0.9571428571428572,
-    "n": 700
+    "accuracy": 0.9585714285714285,
+    "n": 700,
+    "heuristic_accuracy": 0.9142857142857143
   },
   "injection": {
-    "mean_inflation": 3.05,
-    "max_inflation": 26,
+    "mean_inflation": 3.1,
+    "max_inflation": 24,
     "promoted_to_ready": 0,
     "n": 20
   }

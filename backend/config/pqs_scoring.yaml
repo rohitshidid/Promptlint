@@ -1,0 +1,39 @@
+# PQS composite `pqs_score` (prompt-quality-scorer.md §9.5), returned next to PromptLint's
+# `lint_score`. Same Jev answers, different formula; the evals report how each ranks prompts.
+#
+#   pqs_score = 100 × Σ weight × signal
+#   clarity      = mean(task_clear, 1 − ambiguity)
+#   specificity  = specificity score / top level
+#   completeness = 1 − Σ w_c · P(missing c) / Σ w_c      (component weights can vary by task type)
+#   reiteration  = 1 − first_try_success                  (enters as 1 − reiteration_risk)
+
+weights:
+  clarity: 0.35
+  specificity: 0.25
+  completeness: 0.25
+  no_reiteration: 0.15
+
+# P(component is missing), from the Jev answers:
+#   goal ← 1 − has_goal            context ← 1 − context_given (score / top)
+#   constraints ← 1 − has_constraints   output_format ← 1 − has_output_format
+#   audience ← 1 − has_audience    examples ← 1 − has_examples
+#   success_criteria ← 1 − has_success_criteria
+components:
+  goal: 1.0
+  context: 1.0
+  constraints: 0.8
+  output_format: 0.8
+  audience: 0.6
+  examples: 0.3
+  success_criteria: 0.6
+
+# Per task type overrides (multiplied into the weights above).
+task_type_overrides:
+  extraction_transformation: { output_format: 1.5, examples: 1.5, audience: 0.5 }
+  brainstorming: { output_format: 0.5, success_criteria: 0.5 }
+  coding: { success_criteria: 1.5, audience: 0.5 }
+  conversation: { output_format: 0.3, constraints: 0.5, success_criteria: 0.3, examples: 0.3 }
+  math: { audience: 0.5, examples: 0.5 }
+
+# A component is listed in `missing_components` when P(missing) ≥ this.
+missing_threshold: 0.5

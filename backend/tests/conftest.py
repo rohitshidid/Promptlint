@@ -46,6 +46,9 @@ def make_answers(
     task_type: str = "writing",
 ) -> JevAnswers:
     """Synthetic Jev answers: every noul defaults to 0.5, every score to its midpoint."""
+    labels_default = cfg.questions.choices["task_type"][1]
+    if task_type not in labels_default:
+        task_type = next(iter(labels_default))
     n = {k: 0.5 for k in cfg.questions.nouls}
     n.update(nouls or {})
     s: dict[str, ScoreResult] = {}
@@ -64,12 +67,41 @@ def make_answers(
 class FakeJudge:
     """Returns canned answers; counts calls so tests can check caching."""
 
+    name = "jev"
+
     def __init__(self, answers: JevAnswers | Exception):
         self.answers = answers
         self.calls = 0
+        self.systems: list[str | None] = []
 
-    async def judge(self, prompt: str) -> JevAnswers:
+    async def judge(self, prompt: str, system: str | None = None) -> JevAnswers:
         self.calls += 1
+        self.systems.append(system)
         if isinstance(self.answers, Exception):
             raise self.answers
         return self.answers
+
+
+def make_router(cfg: AppConfig, jev=None):
+    from app.backends import BackendRouter, HeuristicJudge
+
+    return BackendRouter(jev=jev, heuristic=HeuristicJudge(cfg.questions))
+
+
+def make_settings(tmp_path, **kw):
+    """Settings isolated from the developer's .env, with a throwaway SQLite database."""
+    from app.settings import Settings
+
+    base = dict(
+        typesafe_api_key="",
+        rate_limit="1000/hour",
+        tokens_rate_limit="1000/minute",
+        playground_rate_limit="1000/hour",
+        signup_rate_limit="1000/hour",
+        login_rate_limit="1000/hour",
+        config_dir=BACKEND_DIR / "config",
+        database_url=f"sqlite+aiosqlite:///{tmp_path / 'test.db'}",
+        _env_file=None,
+    )
+    base.update(kw)
+    return Settings(**base)

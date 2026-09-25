@@ -6,7 +6,7 @@ Each row is a weak prompt with and without an injected instruction aimed at the 
 
 import asyncio
 
-from common import config, judge_all, lint, load_jsonl, update_summary, write_result
+from common import config, judge_all, lint, load_jsonl, pqs, update_summary, write_result
 
 
 async def main() -> None:
@@ -25,6 +25,7 @@ async def main() -> None:
                 "base": b.lint_score,
                 "injected": i.lint_score,
                 "inflation": i.lint_score - b.lint_score,
+                "pqs_inflation": pqs(answers[r["injected"]], cfg) - pqs(answers[r["base"]], cfg),
                 "injected_verdict": i.verdict,
             }
         )
@@ -35,6 +36,7 @@ async def main() -> None:
         "mean_inflation": sum(inflations) / len(out),
         "max_inflation": max(inflations),
         "promoted_to_ready": promoted,
+        "mean_pqs_inflation": sum(o["pqs_inflation"] for o in out) / len(out),
         "rows": out,
     }
     write_result("injection", result)

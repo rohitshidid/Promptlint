@@ -3,10 +3,10 @@
     "n": 200,
     "accuracy": 1.0,
     "ties": 0,
-    "mean_delta": 55.31,
-    "mean_weak_score": 30.67,
-    "mean_improved_score": 85.98,
-    "first_try_alone_accuracy": 0.95,
+    "mean_delta": 55.325,
+    "mean_weak_score": 30.645,
+    "mean_improved_score": 85.97,
+    "first_try_alone_accuracy": 0.925,
     "by_task_type": {
       "analysis": {
         "n": 28,
@@ -37,16 +37,6 @@
         "accuracy": 1.0
       }
     },
-    "verdicts": {
-      "weak": {
-        "likely_to_fail": 173,
-        "needs_work": 27
-      },
-      "improved": {
-        "ready_to_send": 190,
-        "needs_work": 10
-      }
-    },
     "failures": [],
     "target": 0.85
   },
@@ -54,10 +44,10 @@
     "n": 40,
     "accuracy": 1.0,
     "ties": 0,
-    "mean_delta": 20.325,
-    "mean_weak_score": 57.825,
-    "mean_improved_score": 78.15,
-    "first_try_alone_accuracy": 0.575,
+    "mean_delta": 20.175,
+    "mean_weak_score": 57.9,
+    "mean_improved_score": 78.075,
+    "first_try_alone_accuracy": 0.525,
     "by_adds": {
       "audience": {
         "n": 8,
@@ -80,17 +70,378 @@
         "accuracy": 1.0
       }
     },
-    "verdicts": {
-      "weak": {
-        "ready_to_send": 4,
-        "needs_work": 27,
-        "likely_to_fail": 9
+    "failures": []
+  },
+  "matrix": {
+    "jev": {
+      "lint": {
+        "main": 1.0,
+        "hard": 1.0,
+        "main_mean_delta": 55.325,
+        "hard_mean_delta": 20.175
       },
-      "improved": {
-        "ready_to_send": 31,
-        "needs_work": 9
+      "pqs": {
+        "main": 1.0,
+        "hard": 1.0,
+        "main_mean_delta": 55.835,
+        "hard_mean_delta": 22.175
       }
     },
-    "failures": []
+    "heuristic": {
+      "lint": {
+        "main": 0.995,
+        "hard": 0.95,
+        "main_mean_delta": 49.705,
+        "hard_mean_delta": 15.3
+      },
+      "pqs": {
+        "main": 0.995,
+        "hard": 1.0,
+        "main_mean_delta": 55.025,
+        "hard_mean_delta": 17.075
+      }
+    }
+  },
+  "detail": {
+    "jev_lint": {
+      "main": {
+        "n": 200,
+        "accuracy": 1.0,
+        "ties": 0,
+        "mean_delta": 55.325,
+        "mean_weak_score": 30.645,
+        "mean_improved_score": 85.97,
+        "first_try_alone_accuracy": 0.925,
+        "by_task_type": {
+          "analysis": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "coding": {
+            "n": 30,
+            "accuracy": 1.0
+          },
+          "creative": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "factual": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "math_reasoning": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "other": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "writing": {
+            "n": 30,
+            "accuracy": 1.0
+          }
+        },
+        "failures": [],
+        "target": 0.85
+      },
+      "hard": {
+        "n": 40,
+        "accuracy": 1.0,
+        "ties": 0,
+        "mean_delta": 20.175,
+        "mean_weak_score": 57.9,
+        "mean_improved_score": 78.075,
+        "first_try_alone_accuracy": 0.525,
+        "by_adds": {
+          "audience": {
+            "n": 8,
+            "accuracy": 1.0
+          },
+          "constraints": {
+            "n": 9,
+            "accuracy": 1.0
+          },
+          "context": {
+            "n": 9,
+            "accuracy": 1.0
+          },
+          "example": {
+            "n": 5,
+            "accuracy": 1.0
+          },
+          "output_format": {
+            "n": 9,
+            "accuracy": 1.0
+          }
+        },
+        "failures": []
+      }
+    },
+    "jev_pqs": {
+      "main": {
+        "n": 200,
+        "accuracy": 1.0,
+        "ties": 0,
+        "mean_delta": 55.835,
+        "mean_weak_score": 25.63,
+        "mean_improved_score": 81.465,
+        "first_try_alone_accuracy": 0.925,
+        "by_task_type": {
+          "analysis": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "coding": {
+            "n": 30,
+            "accuracy": 1.0
+          },
+          "creative": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "factual": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "math_reasoning": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "other": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "writing": {
+            "n": 30,
+            "accuracy": 1.0
+          }
+        },
+        "failures": []
+      },
+      "hard": {
+        "n": 40,
+        "accuracy": 1.0,
+        "ties": 0,
+        "mean_delta": 22.175,
+        "mean_weak_score": 51.575,
+        "mean_improved_score": 73.75,
+        "first_try_alone_accuracy": 0.525,
+        "by_adds": {
+          "audience": {
+            "n": 8,
+            "accuracy": 1.0
+          },
+          "constraints": {
+            "n": 9,
+            "accuracy": 1.0
+          },
+          "context": {
+            "n": 9,
+            "accuracy": 1.0
+          },
+          "example": {
+            "n": 5,
+            "accuracy": 1.0
+          },
+          "output_format": {
+            "n": 9,
+            "accuracy": 1.0
+          }
+        },
+        "failures": []
+      }
+    },
+    "heuristic_lint": {
+      "main": {
+        "n": 200,
+        "accuracy": 0.995,
+        "ties": 0,
+        "mean_delta": 49.705,
+        "mean_weak_score": 17.47,
+        "mean_improved_score": 67.175,
+        "first_try_alone_accuracy": 0.855,
+        "by_task_type": {
+          "analysis": {
+            "n": 28,
+            "accuracy": 0.9642857142857143
+          },
+          "coding": {
+            "n": 30,
+            "accuracy": 1.0
+          },
+          "creative": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "factual": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "math_reasoning": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "other": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "writing": {
+            "n": 30,
+            "accuracy": 1.0
+          }
+        },
+        "failures": [
+          {
+            "id": "a19",
+            "group": "analysis",
+            "weak_score": 42,
+            "improved_score": 23,
+            "delta": -19,
+            "weak_first_try": 0.5,
+            "improved_first_try": 0.2,
+            "correct": false
+          }
+        ]
+      },
+      "hard": {
+        "n": 40,
+        "accuracy": 0.95,
+        "ties": 1,
+        "mean_delta": 15.3,
+        "mean_weak_score": 46.15,
+        "mean_improved_score": 61.45,
+        "first_try_alone_accuracy": 0.8,
+        "by_adds": {
+          "audience": {
+            "n": 8,
+            "accuracy": 0.875
+          },
+          "constraints": {
+            "n": 9,
+            "accuracy": 0.8888888888888888
+          },
+          "context": {
+            "n": 9,
+            "accuracy": 1.0
+          },
+          "example": {
+            "n": 5,
+            "accuracy": 1.0
+          },
+          "output_format": {
+            "n": 9,
+            "accuracy": 1.0
+          }
+        },
+        "failures": [
+          {
+            "id": "h08",
+            "group": "audience",
+            "weak_score": 49,
+            "improved_score": 49,
+            "delta": 0,
+            "weak_first_try": 0.58,
+            "improved_first_try": 0.58,
+            "correct": false
+          },
+          {
+            "id": "h15",
+            "group": "constraints",
+            "weak_score": 47,
+            "improved_score": 45,
+            "delta": -2,
+            "weak_first_try": 0.548,
+            "improved_first_try": 0.15,
+            "correct": false
+          }
+        ]
+      }
+    },
+    "heuristic_pqs": {
+      "main": {
+        "n": 200,
+        "accuracy": 0.995,
+        "ties": 0,
+        "mean_delta": 55.025,
+        "mean_weak_score": 11.455,
+        "mean_improved_score": 66.48,
+        "first_try_alone_accuracy": 0.855,
+        "by_task_type": {
+          "analysis": {
+            "n": 28,
+            "accuracy": 0.9642857142857143
+          },
+          "coding": {
+            "n": 30,
+            "accuracy": 1.0
+          },
+          "creative": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "factual": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "math_reasoning": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "other": {
+            "n": 28,
+            "accuracy": 1.0
+          },
+          "writing": {
+            "n": 30,
+            "accuracy": 1.0
+          }
+        },
+        "failures": [
+          {
+            "id": "a19",
+            "group": "analysis",
+            "weak_score": 35,
+            "improved_score": 15,
+            "delta": -20,
+            "weak_first_try": 0.5,
+            "improved_first_try": 0.2,
+            "correct": false
+          }
+        ]
+      },
+      "hard": {
+        "n": 40,
+        "accuracy": 1.0,
+        "ties": 0,
+        "mean_delta": 17.075,
+        "mean_weak_score": 41.375,
+        "mean_improved_score": 58.45,
+        "first_try_alone_accuracy": 0.8,
+        "by_adds": {
+          "audience": {
+            "n": 8,
+            "accuracy": 1.0
+          },
+          "constraints": {
+            "n": 9,
+            "accuracy": 1.0
+          },
+          "context": {
+            "n": 9,
+            "accuracy": 1.0
+          },
+          "example": {
+            "n": 5,
+            "accuracy": 1.0
+          },
+          "output_format": {
+            "n": 9,
+            "accuracy": 1.0
+          }
+        },
+        "failures": []
+      }
+    }
   }
 }

@@ -35,7 +35,8 @@ summary = load("summary")
 """
 
 PAIRWISE = r"""
-rows = list(csv.DictReader(open(R / "pairwise_rows.csv")))
+all_rows = list(csv.DictReader(open(R / "pairwise_rows.csv")))
+rows = [r for r in all_rows if r["backend"] == "jev" and r["score"] == "lint"]
 main = [r for r in rows if r["set"] == "main"]
 fig, ax = plt.subplots(figsize=(7, 3.2))
 bins = range(0, 105, 5)
@@ -69,6 +70,29 @@ ax.set_xlim(0, max(means) * 1.6)
 plt.show()
 print(f"First-try probability alone ranks {hard['first_try_alone_accuracy']:.0%} of hard pairs correctly; "
       f"the composite score ranks {hard['accuracy']:.0%}.")
+"""
+
+MATRIX = r"""
+pw = load("pairwise")["matrix"]
+ck = load("checklist")
+labels = ["Pairwise, main", "Pairwise, hard", "Checklist"]
+series = {
+    "Jev · lint_score": [pw["jev"]["lint"]["main"], pw["jev"]["lint"]["hard"], ck["accuracy"]],
+    "Jev · pqs_score": [pw["jev"]["pqs"]["main"], pw["jev"]["pqs"]["hard"], None],
+    "Heuristic · lint_score": [pw["heuristic"]["lint"]["main"], pw["heuristic"]["lint"]["hard"], ck["baseline_heuristic"]["accuracy"]],
+    "Heuristic · pqs_score": [pw["heuristic"]["pqs"]["main"], pw["heuristic"]["pqs"]["hard"], None],
+}
+colors = [BLUE, "#6da7ec", ORANGE, "#f2a07c"]
+fig, ax = plt.subplots(figsize=(7.2, 3.3))
+w = 0.19
+for k, (name, vals) in enumerate(series.items()):
+    xs = [i + (k - 1.5) * w for i in range(len(labels))]
+    ax.bar([x for x, v in zip(xs, vals) if v is not None], [v for v in vals if v is not None], width=w - 0.02,
+           color=colors[k], label=name)
+ax.set_xticks(range(len(labels)), labels)
+ax.set(ylim=(0.8, 1.01), ylabel="Accuracy", title="Backends and scores compared (checklist uses the backend's yes/no answers)")
+ax.legend(frameon=False, fontsize=8, ncol=2, loc="lower left")
+plt.show()
 """
 
 CHECKLIST = r"""

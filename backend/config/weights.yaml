@@ -36,8 +36,8 @@ specificity_labels:
   - { below: 0.75, label: Fairly specific }
   - { below: 1.01, label: Specific }
 
-# Model-tier hint from the expected `complexity` score (0–3).
+# Model-tier hint from the expected `complexity` score (0–2: low / medium / high).
 tier_hint:
-  - { below: 1.0, tier: small }      # a small model is enough
-  - { below: 2.0, tier: mid }
-  - { below: 3.01, tier: frontier }  # needs a frontier model
+  - { below: 0.5, tier: small }      # a small model is enough
+  - { below: 1.5, tier: mid }
+  - { below: 2.01, tier: frontier }  # needs a frontier model

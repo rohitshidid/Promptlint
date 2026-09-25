@@ -85,6 +85,7 @@ class PriceConfig:
 class TipRule:
     signal: str
     text: str
+    id: str = ""
     above: float | None = None
     below: float | None = None
     weight: float | None = None
@@ -96,12 +97,57 @@ class TipConfig:
     tips: tuple[TipRule, ...]
 
 
+# Component → (source signal, how to turn it into P(missing)). "noul": 1 − p; "score": 1 − score/top.
+PQS_COMPONENT_SOURCES: dict[str, str] = {
+    "goal": "has_goal",
+    "context": "context_given",
+    "constraints": "has_constraints",
+    "output_format": "has_output_format",
+    "audience": "has_audience",
+    "examples": "has_examples",
+    "success_criteria": "has_success_criteria",
+}
+
+
+@dataclass(frozen=True)
+class PqsConfig:
+    weights: dict[str, float]  # clarity, specificity, completeness, no_reiteration
+    components: dict[str, float]
+    task_type_overrides: dict[str, dict[str, float]]
+    missing_threshold: float
+
+    def component_weights(self, task_type: str) -> dict[str, float]:
+        over = self.task_type_overrides.get(task_type, {})
+        return {c: w * over.get(c, 1.0) for c, w in self.components.items()}
+
+
+@dataclass(frozen=True)
+class Plan:
+    name: str
+    rpm: int
+    daily: int | None
+    monthly: int | None
+    batch_max: int
+
+
+@dataclass(frozen=True)
+class PlanConfig:
+    default_plan: str
+    max_keys_per_user: int
+    plans: dict[str, Plan]
+
+    def get(self, name: str) -> Plan:
+        return self.plans.get(name) or self.plans[self.default_plan]
+
+
 @dataclass(frozen=True)
 class AppConfig:
     questions: QuestionConfig
     weights: WeightConfig
     prices: PriceConfig
     tips: TipConfig
+    pqs: PqsConfig
+    plans: PlanConfig
     score_tops: dict[str, int] = field(default_factory=dict)
 
 
@@ -150,6 +196,28 @@ def load_tips(path: Path) -> TipConfig:
     return TipConfig(max_tips=int(raw.get("max_tips", 5)), tips=tuple(TipRule(**t) for t in raw["tips"]))
 
 
+def load_pqs(path: Path) -> PqsConfig:
+    raw = _load(path)
+    return PqsConfig(
+        weights={k: float(v) for k, v in raw["weights"].items()},
+        components={k: float(v) for k, v in raw["components"].items()},
+        task_type_overrides={
+            t: {c: float(m) for c, m in over.items()}
+            for t, over in (raw.get("task_type_overrides") or {}).items()
+        },
+        missing_threshold=float(raw.get("missing_threshold", 0.5)),
+    )
+
+
+def load_plans(path: Path) -> PlanConfig:
+    raw = _load(path)
+    return PlanConfig(
+        default_plan=raw["default_plan"],
+        max_keys_per_user=int(raw.get("max_keys_per_user", 5)),
+        plans={name: Plan(name=name, **p) for name, p in raw["plans"].items()},
+    )
+
+
 def load_config(config_dir: Path) -> AppConfig:
     questions = load_questions(config_dir / "questions.yaml")
     cfg = AppConfig(
@@ -157,6 +225,8 @@ def load_config(config_dir: Path) -> AppConfig:
         weights=load_weights(config_dir / "weights.yaml"),
         prices=load_prices(config_dir / "prices.yaml"),
         tips=load_tips(config_dir / "tips.yaml"),
+        pqs=load_pqs(config_dir / "pqs_scoring.yaml"),
+        plans=load_plans(config_dir / "plans.yaml"),
         score_tops={k: q.top for k, q in questions.scores.items()},
     )
     _validate(cfg)
@@ -184,3 +254,19 @@ def _validate(cfg: AppConfig) -> None:
         cfg.prices.output_ranges
     ):
         raise ValueError("prices.yaml output_ranges must have one range per expected_length level")
+    if set(cfg.pqs.weights) != {"clarity", "specificity", "completeness", "no_reiteration"}:
+        raise ValueError(
+            "pqs_scoring.yaml weights must be clarity, specificity, completeness, no_reiteration"
+        )
+    for comp in cfg.pqs.components:
+        source = PQS_COMPONENT_SOURCES.get(comp)
+        if source is None or source not in known:
+            raise ValueError(f"pqs_scoring.yaml component {comp!r} has no matching Jev question")
+    task_types = set(cfg.questions.choices.get("task_type", ("", {}))[1])
+    for t in cfg.pqs.task_type_overrides:
+        if t not in task_types:
+            raise ValueError(f"pqs_scoring.yaml override for unknown task type {t!r}")
+    if cfg.plans.default_plan not in cfg.plans.plans:
+        raise ValueError("plans.yaml default_plan is not a defined plan")
+    if cfg.score_tops.get("complexity") != len(cfg.weights.tier_hint) - 1:
+        raise ValueError("weights.yaml tier_hint needs one entry per complexity level")

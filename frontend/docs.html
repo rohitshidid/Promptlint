@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API docs · PromptLint</title>
+<meta name="description" content="PromptLint public API: score prompts, batch, pricing, usage. Authentication, limits, errors and response fields.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+  .doc-head { padding: 40px 0 12px; position: relative; }
+  .doc-head::before {
+    content: ""; position: absolute; inset: -200px 0 auto; height: 480px; z-index: -1; pointer-events: none;
+    background: radial-gradient(560px 300px at 30% 10%, rgba(16,185,129,.12), transparent 70%);
+  }
+  .doc-head h1 { font-size: clamp(2rem, 4.4vw, 2.9rem); }
+  .doc-head p { margin: 10px 0 0; color: var(--ink-soft); font-size: 1.05rem; max-width: 62ch; }
+  .doc { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 44px; padding: 26px 0 90px; }
+  @media (max-width: 900px) { .doc { grid-template-columns: minmax(0, 1fr); } .toc { display: none; } }
+  .toc { position: sticky; top: 76px; align-self: start; font-size: .88rem; }
+  .toc a { display: block; color: var(--ink-soft); padding: 4px 0; }
+  .toc a:hover { color: var(--ink); text-decoration: none; }
+  .toc b { display: block; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); margin: 14px 0 4px; }
+  article { min-width: 0; font-size: 1rem; }
+  article section { padding: 0 0 40px; }
+  article h2 { font-size: 1.6rem; letter-spacing: -0.025em; padding-top: 8px; scroll-margin-top: 80px; }
+  article h3 { font-size: 1.05rem; margin: 26px 0 0; scroll-margin-top: 80px; }
+  article p, article li { color: var(--ink-soft); line-height: 1.65; }
+  article p strong, article li strong { color: var(--ink); }
+  article ul { padding-left: 20px; }
+  .endpoint { display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: .9rem; background: var(--bg-tint);
+              border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin: 12px 0 4px; overflow-x: auto; max-width: 100%; }
+  .method { font-weight: 700; font-size: .75rem; padding: 2px 8px; border-radius: 6px; color: #fff; background: var(--accent); }
+  .method.get { background: #2a78d6; }
+  .method.del { background: var(--bad); }
+  .auth-tag { font-family: var(--sans); font-size: .74rem; color: var(--ink-faint); }
+  table.ref { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: .9rem; }
+  table.ref th { text-align: left; font-size: .72rem; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; padding: 0 8px 8px; border-bottom: 1px solid var(--line); }
+  table.ref td { padding: 9px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; color: var(--ink-soft); }
+  table.ref td:first-child { white-space: nowrap; }
+  table.ref code { white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  pre.codeblock { margin: 14px 0; max-height: 520px; overflow: auto; }
+  .note { border-left: 3px solid var(--accent-mid); background: var(--accent-soft); border-radius: 0 12px 12px 0; padding: 12px 16px; margin: 16px 0; font-size: .92rem; color: var(--ink-soft); }
+  .note b { color: var(--ink); }
+  .tabs { display: flex; gap: 4px; margin-top: 14px; }
+  .tabs button { font: inherit; font-size: .8rem; border: 1px solid var(--line); background: #fff; color: var(--ink-soft); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .tabs + pre.codeblock { margin-top: 8px; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="nav-brand" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
+    <span class="nav-ver">API v1</span>
+    <div class="nav-links">
+      <a class="opt" href="app.html">Analyzer</a>
+      <a href="docs.html" aria-current="page">API docs</a>
+      <a class="btn btn-fill btn-sm" href="account.html">Get a free key</a>
+    </div>
+  </div>
+</nav>
+
+<header class="doc-head">
+  <div class="wrap">
+    <h1>API reference</h1>
+    <p>Score a prompt before your app sends it to an LLM. One request returns both scores, every signal, token and cost
+      estimates, and fix-it suggestions. No LLM runs on our side: judgments come from one TypeSafe Jev call.</p>
+  </div>
+</header>
+
+<div class="wrap doc">
+  <nav class="toc" aria-label="On this page">
+    <b>Start</b>
+    <a href="#quickstart">Quick start</a>
+    <a href="#auth">Authentication</a>
+    <a href="#limits">Limits &amp; quotas</a>
+    <b>Endpoints</b>
+    <a href="#score">POST /v1/score</a>
+    <a href="#batch">POST /v1/score/batch</a>
+    <a href="#pricing">GET /v1/pricing</a>
+    <a href="#usage">GET /v1/usage</a>
+    <a href="#health">GET /v1/health</a>
+    <b>Reference</b>
+    <a href="#fields">Response fields</a>
+    <a href="#scores">The two scores</a>
+    <a href="#backends">Backends &amp; fallback</a>
+    <a href="#errors">Errors</a>
+    <a href="#privacy">Privacy</a>
+  </nav>
+
+  <article>
+    <section id="quickstart">
+      <h2>Quick start</h2>
+      <ol>
+        <li><a href="account.html">Create a free account</a> and make a key. It starts with <code>pqs_live_</code> and is shown once.</li>
+        <li>Save it in a variable, <code>export PQS_KEY=pqs_live_…</code> (no <code>$</code> in front of the key itself), then send a prompt:</li>
+      </ol>
+      <div class="tabs" role="tablist" aria-label="Language">
+        <button role="tab" aria-selected="true" data-lang="curl">curl</button>
+        <button role="tab" aria-selected="false" data-lang="python">Python</button>
+        <button role="tab" aria-selected="false" data-lang="js">JavaScript</button>
+      </div>
+<pre class="codeblock" id="snippet"></pre>
+      <p>The response below is <strong>real</strong>: it's what this API returned for <code>"write me a poem"</code>,
+        replayed from a recorded Jev answer.</p>
+<pre class="codeblock" id="example">Loading example…</pre>
+    </section>
+
+    <section id="auth">
+      <h2>Authentication</h2>
+      <p>Send your key in the <code>Authorization</code> header: <code>Authorization: Bearer pqs_live_…</code>.
+        Keys are stored only as a SHA-256 hash, so a lost key can't be recovered: revoke it and create another on your
+        <a href="account.html">account page</a>. You can have up to 5 active keys.</p>
+      <p>Every response carries an <code>X-Request-Id</code> header; include it if you report a problem.</p>
+    </section>
+
+    <section id="limits">
+      <h2>Limits &amp; quotas</h2>
+      <div class="scroll"><table class="ref">
+        <thead><tr><th>Plan</th><th>Requests / min (per key)</th><th>Prompts (per account)</th><th>Batch size</th></tr></thead>
+        <tbody>
+          <tr><td>free</td><td>20</td><td>1,000 per day</td><td>10</td></tr>
+          <tr><td>dev</td><td>120</td><td>50,000 per month</td><td>50</td></tr>
+          <tr><td>pro</td><td>600</td><td>no quota</td><td>50</td></tr>
+        </tbody>
+      </table></div>
+      <p>New accounts are on <strong>free</strong>. A batch counts one request against the per-minute limit and one
+        prompt per item against the quota. Days and months are UTC.</p>
+      <div class="scroll"><table class="ref">
+        <thead><tr><th>Header</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>X-RateLimit-Limit</code></td><td>Requests allowed per minute for this key</td></tr>
+          <tr><td><code>X-RateLimit-Remaining</code></td><td>Requests left in the current window</td></tr>
+          <tr><td><code>X-RateLimit-Reset</code></td><td>Unix time when the window frees up</td></tr>
+          <tr><td><code>X-Quota-Limit</code>, <code>X-Quota-Remaining</code>, <code>X-Quota-Period</code></td><td>Your daily or monthly prompt quota, after this request</td></tr>
+          <tr><td><code>Retry-After</code></td><td>Seconds to wait, on 429 responses</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="score">
+      <h2>Score a prompt</h2>
+      <div class="endpoint"><span class="method">POST</span>/v1/score <span class="auth-tag">API key</span></div>
+      <div class="scroll"><table class="ref">
+        <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>prompt</code></td><td>string, required</td><td>The prompt about to be sent, 1–32,000 characters.</td></tr>
+          <tr><td><code>system</code></td><td>string</td><td>Optional system prompt. Used as context; the checks are about <code>prompt</code>.</td></tr>
+          <tr><td><code>models</code></td><td>string[]</td><td>Model IDs from <a href="#pricing">/v1/pricing</a> for cost estimates. Defaults to three popular models.</td></tr>
+          <tr><td><code>backend</code></td><td><code>auto</code> | <code>jev</code> | <code>heuristic</code></td><td><code>auto</code> (default) uses Jev and falls back to the heuristic. <code>jev</code> returns 503 instead of falling back.</td></tr>
+          <tr><td><code>options.include_suggestions</code></td><td>bool, default true</td><td>Include fix-it suggestions.</td></tr>
+          <tr><td><code>options.include_confidence</code></td><td>bool, default true</td><td>Include probabilities and per-signal confidence.</td></tr>
+          <tr><td><code>options.store</code></td><td>bool, default false</td><td>Opt in to storing the prompt text (kept 90 days) to help improve scoring.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="batch">
+      <h2>Score many prompts</h2>
+      <div class="endpoint"><span class="method">POST</span>/v1/score/batch <span class="auth-tag">API key</span></div>
+      <p>Up to 10 items on free, 50 on paid plans. Items are scored concurrently; one bad item doesn't fail the batch.</p>
+<pre class="codeblock">{
+  <span class="k">"items"</span>: [
+    { <span class="k">"id"</span>: <span class="s">"ticket-1"</span>, <span class="k">"prompt"</span>: <span class="s">"fix my code"</span> },
+    { <span class="k">"id"</span>: <span class="s">"ticket-2"</span>, <span class="k">"prompt"</span>: <span class="s">"Summarize this email in one sentence: …"</span>, <span class="k">"system"</span>: <span class="s">"You are a support agent."</span> }
+  ],
+  <span class="k">"models"</span>: [<span class="s">"gpt-6-luna"</span>],
+  <span class="k">"options"</span>: { <span class="k">"include_confidence"</span>: false }
+}
+<span class="c">// → { "id": "bat_…", "scored": 2, "failed": 0,
+//      "results": [{ "index": 0, "id": "ticket-1", "result": { …same as /v1/score… } }, …] }
+// A failed item has "error": { "type", "message" } instead of "result".</span></pre>
+    </section>
+
+    <section id="pricing">
+      <h2>Pricing table</h2>
+      <div class="endpoint"><span class="method get">GET</span>/v1/pricing <span class="auth-tag">public</span></div>
+      <p>The models you can pass in <code>models</code>, their per-million-token prices and the date they were last
+        verified against each provider's official pricing page.</p>
+      <div class="scroll"><table class="ref" id="pricing-table"><tbody><tr><td>Loading…</td></tr></tbody></table></div>
+    </section>
+
+    <section id="usage">
+      <h2>Usage</h2>
+      <div class="endpoint"><span class="method get">GET</span>/v1/usage?days=30 <span class="auth-tag">API key or signed-in session</span></div>
+      <p>Requests, prompts and fallback counts per UTC day (up to 90 days), plus prompts used today and this month.
+        With a key, usage is for that key; signed in on the website, it's for your whole account.</p>
+    </section>
+
+    <section id="health">
+      <h2>Health</h2>
+      <div class="endpoint"><span class="method get">GET</span>/v1/health <span class="auth-tag">public</span></div>
+      <p>Database status, whether Jev is configured, the pinned Jev model and the heuristic version.</p>
+    </section>
+
+    <section id="fields">
+      <h2>Response fields</h2>
+      <div class="scroll"><table class="ref">
+        <thead><tr><th>Field</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>overall_score</code></td><td>0–100. Same as <code>scores.lint_score</code>.</td></tr>
+          <tr><td><code>scores.lint_score</code>, <code>scores.pqs_score</code></td><td>The two composites. See <a href="#scores">the two scores</a>.</td></tr>
+          <tr><td><code>scores.verdict</code></td><td><code>ready_to_send</code> (≥ 75), <code>needs_work</code> (50–74), <code>likely_to_fail</code> (&lt; 50), from the Lint Score.</td></tr>
+          <tr><td><code>signals.clarity</code></td><td>0–1, mean of "task is clear" and "one reasonable reading".</td></tr>
+          <tr><td><code>signals.specificity</code></td><td>0–1, from generic ("anyone could send this") to specific.</td></tr>
+          <tr><td><code>signals.completeness</code></td><td>0–1, one minus the weighted chance each component is missing.</td></tr>
+          <tr><td><code>signals.reiteration_risk</code></td><td>0–1, chance the user will have to re-ask (1 − first-try success).</td></tr>
+          <tr><td><code>signals.task_type</code></td><td><code>coding</code>, <code>writing</code>, <code>analysis</code>, <code>math</code>, <code>factual_qa</code>, <code>brainstorming</code>, <code>extraction_transformation</code>, <code>conversation</code>, <code>other</code>.</td></tr>
+          <tr><td><code>signals.complexity</code></td><td><code>low</code> / <code>medium</code> / <code>high</code> with probabilities; drives <code>tier_hint</code>.</td></tr>
+          <tr><td><code>signals.missing_components</code></td><td>Components with P(missing) ≥ 0.5, most likely first: <code>goal</code>, <code>context</code>, <code>constraints</code>, <code>output_format</code>, <code>audience</code>, <code>examples</code>, <code>success_criteria</code>.</td></tr>
+          <tr><td><code>checks</code></td><td>The eleven checklist items with pass/fail and probability.</td></tr>
+          <tr><td><code>tokens</code></td><td>Input tokens per tokenizer/model (<code>input_exact</code> says which are exact) and output estimates <code>output_p50</code>, <code>output_p90</code>.</td></tr>
+          <tr><td><code>cost_estimates</code></td><td>Per model: <code>usd_p50</code>, <code>usd_p90</code> and the full <code>usd_low</code>–<code>usd_high</code> range, with <code>pricing_verified</code>.</td></tr>
+          <tr><td><code>suggestions</code></td><td>Up to five <code>{id, text, impact}</code> from a fixed template library; <code>id</code> is stable (e.g. <code>add_output_format</code>).</td></tr>
+          <tr><td><code>tier_hint</code>, <code>suggested_model</code></td><td><code>small</code> / <code>mid</code> / <code>frontier</code>, and the cheapest priced model at that tier.</td></tr>
+          <tr><td><code>backend</code></td><td><code>{name, version, degraded, fallback_reason}</code>.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="scores">
+      <h2>The two scores</h2>
+      <p><strong>lint_score</strong> (PromptLint): first-try success 25%, task clarity 15%, specificity 15%, context 10%,
+        ambiguity 10%, needs-clarification 8%, conflicts 5%, format 5%, constraints 4%, audience 3%. Contradictions cap it
+        at 60 and an unclear task caps it at 40.</p>
+      <p><strong>pqs_score</strong> (Prompt Quality Scorer design): 35% clarity + 25% specificity + 25% completeness + 15% ×
+        (1 − reiteration risk), with component weights that shift by task type (format matters more for extraction than
+        for brainstorming).</p>
+      <p>Both come from the same answers. Their ranking accuracy is published on the <a href="./#accuracy">home page</a>.</p>
+    </section>
+
+    <section id="backends">
+      <h2>Backends &amp; fallback</h2>
+      <p><strong>jev</strong>: TypeSafe Jev, one call with all eighteen questions (pinned model version).
+        <strong>heuristic</strong>: transparent regex-and-count rules with no model, the baseline.</p>
+      <div class="note"><b>Your pre-flight check never blocks your app.</b> With the default <code>backend: "auto"</code>,
+        if Jev is slow or down the API answers from the heuristic and sets <code>backend.degraded: true</code> with a
+        <code>fallback_reason</code>. Treat degraded scores as rougher.</div>
+    </section>
+
+    <section id="errors">
+      <h2>Errors</h2>
+<pre class="codeblock">{ <span class="k">"error"</span>: { <span class="k">"type"</span>: <span class="s">"rate_limit_exceeded"</span>, <span class="k">"message"</span>: <span class="s">"Your plan allows 20 requests per minute. Retry in 12s."</span>, <span class="k">"request_id"</span>: <span class="s">"req_…"</span> } }</pre>
+      <div class="scroll"><table class="ref">
+        <thead><tr><th>Status</th><th>type</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td>400</td><td><code>invalid_request</code>, <code>unknown_model</code>, <code>batch_too_large</code></td><td>Bad input</td></tr>
+          <tr><td>401</td><td><code>missing_api_key</code>, <code>invalid_api_key</code></td><td>No key, a malformed key, or a revoked key</td></tr>
+          <tr><td>403</td><td><code>account_disabled</code></td><td>The account was disabled</td></tr>
+          <tr><td>413</td><td><code>prompt_too_long</code></td><td><code>prompt</code> or <code>system</code> over 32,000 characters</td></tr>
+          <tr><td>429</td><td><code>rate_limit_exceeded</code>, <code>quota_exceeded</code></td><td>Per-minute limit or daily/monthly quota; see <code>Retry-After</code></td></tr>
+          <tr><td>503</td><td><code>backend_unavailable</code></td><td>Only with <code>backend: "jev"</code> when Jev is down</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="privacy">
+      <h2>Privacy</h2>
+      <ul>
+        <li>Prompt text is <strong>not stored</strong> unless you send <code>options.store: true</code> (then kept 90 days).</li>
+        <li>Each scored prompt leaves a salted hash, its length, the backend, both scores and latency (kept 90 days).</li>
+        <li>Prompts are sent to TypeSafe Jev for the judgment. Use <code>backend: "heuristic"</code> to keep a prompt entirely on this server.</li>
+        <li>Deleting your account removes your keys, usage history, events and any stored prompts.</li>
+      </ul>
+    </section>
+  </article>
+</div>
+
+<footer>
+  <div class="wrap foot-in">
+    <span>PromptLint · judgments by TypeSafe Jev, math by plain code</span>
+    <span class="foot-links"><a href="./">Home</a><a href="app.html">Analyzer</a><a href="account.html">Account</a><a href="api/docs">OpenAPI</a></span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  document.documentElement.classList.remove("no-js");
+  const nav = document.getElementById("nav");
+  const onScroll = () => nav.classList.toggle("stuck", window.scrollY > 4);
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const host = location.origin;
+  const SNIPPETS = {
+    curl: `curl ${host}/v1/score \\
+  -H "Authorization: Bearer $PQS_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"prompt": "write me a poem", "models": ["claude-sonnet-5", "gpt-6-luna"]}'`,
+    python: `import os, httpx
+
+r = httpx.post(
+    "${host}/v1/score",
+    headers={"Authorization": f"Bearer {os.environ['PQS_KEY']}"},
+    json={"prompt": "write me a poem", "models": ["claude-sonnet-5"]},
+    timeout=15,
+)
+r.raise_for_status()
+report = r.json()
+if report["scores"]["verdict"] != "ready_to_send":
+    print("Ask the user for:", ", ".join(report["signals"]["missing_components"]))`,
+    js: `const r = await fetch("${host}/v1/score", {
+  method: "POST",
+  headers: { Authorization: \`Bearer \${process.env.PQS_KEY}\`, "Content-Type": "application/json" },
+  body: JSON.stringify({ prompt: "write me a poem", models: ["claude-sonnet-5"] }),
+});
+const report = await r.json();
+console.log(report.scores, report.suggestions.map((s) => s.text));`,
+  };
+  function show(lang) {
+    document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.lang === lang));
+    document.getElementById("snippet").textContent = SNIPPETS[lang];
+  }
+  document.querySelector(".tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) show(b.dataset.lang); });
+  show("curl");
+
+  fetch("assets/api-example.json").then((r) => r.json()).then((d) => {
+    const resp = { ...d.response };
+    delete resp.checks;  // long; described in the table below
+    const json = JSON.stringify(resp, null, 2).replace(/"cost_estimates": \[[\s\S]*?\n  \]/, (m) => m);
+    document.getElementById("example").innerHTML = '<span class="c">// POST /v1/score {"prompt": "write me a poem"} → 200 (checks omitted here)</span>\n' + esc(json);
+  }).catch(() => { document.getElementById("example").textContent = "Example unavailable."; });
+
+  fetch("v1/pricing").then((r) => r.json()).then((p) => {
+    document.getElementById("pricing-table").innerHTML =
+      `<thead><tr><th>id</th><th>Model</th><th>Input / 1M</th><th>Output / 1M</th><th>Tier</th></tr></thead><tbody>${
+        p.models.map((m) => `<tr><td><code>${esc(m.id)}</code></td><td>${esc(m.name)}${m.note ? `<br><small>${esc(m.note)}</small>` : ""}</td><td>$${m.input.toFixed(2)}</td><td>$${m.output.toFixed(2)}</td><td>${esc(m.tier)}</td></tr>`).join("")
+      }</tbody><caption style="caption-side:bottom;text-align:left;font-size:.8rem;color:var(--ink-faint);padding-top:8px">Last verified ${esc(p.last_verified)}</caption>`;
+  }).catch(() => {});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+{
+  "request": {
+    "prompt": "write me a poem"
+  },
+  "response": {
+    "id": "scr_example0000000000000000",
+    "overall_score": 57,
+    "scores": {
+      "lint_score": 57,
+      "pqs_score": 45,
+      "verdict": "needs_work"
+    },
+    "signals": {
+      "clarity": 0.7825,
+      "specificity": 0.0,
+      "completeness": 0.1355,
+      "reiteration_risk": 0.04,
+      "first_try_success": 0.96,
+      "task_type": {
+        "label": "writing",
+        "confidence": 1.0
+      },
+      "complexity": {
+        "label": "medium",
+        "confidence": 0.5
+      },
+      "missing_components": [
+        "context",
+        "goal",
+        "audience",
+        "examples",
+        "constraints",
+        "success_criteria"
+      ]
+    },
+    "checks": [
+      {
+        "id": "task_clear",
+        "label": "Task is clear",
+        "passed": true,
+        "probability": 0.91,
+        "informational": false,
+        "detail": "States what to do"
+      },
+      {
+        "id": "context_given",
+        "label": "Enough context",
+        "passed": false,
+        "probability": 0.0,
+        "informational": false,
+        "detail": "Missing background the model can't guess"
+      },
+      {
+        "id": "has_goal",
+        "label": "States the goal",
+        "passed": false,
+        "probability": 0.02,
+        "informational": true,
+        "detail": "Doesn't say why or how it'll be used"
+      },
+      {
+        "id": "has_constraints",
+        "label": "Sets constraints",
+        "passed": false,
+        "probability": 0.04,
+        "informational": false,
+        "detail": "No limits on length, tone, or scope"
+      },
+      {
+        "id": "has_output_format",
+        "label": "Says the output format",
+        "passed": true,
+        "probability": 0.72,
+        "informational": false,
+        "detail": "Says what form the answer takes"
+      },
+      {
+        "id": "has_audience",
+        "label": "Names the audience",
+        "passed": false,
+        "probability": 0.03,
+        "informational": false,
+        "detail": "Doesn't say who it's for"
+      },
+      {
+        "id": "has_success_criteria",
+        "label": "Says what done looks like",
+        "passed": false,
+        "probability": 0.06,
+        "informational": true,
+        "detail": "No way to check the answer is done"
+      },
+      {
+        "id": "has_examples",
+        "label": "Includes an example",
+        "passed": false,
+        "probability": 0.03,
+        "informational": true,
+        "detail": "No example (optional)"
+      },
+      {
+        "id": "conflicting",
+        "label": "No conflicting instructions",
+        "passed": true,
+        "probability": 0.01,
+        "informational": false,
+        "detail": "Instructions are consistent"
+      },
+      {
+        "id": "multi_task",
+        "label": "One task at a time",
+        "passed": true,
+        "probability": 0.03,
+        "informational": false,
+        "detail": "Asks for one deliverable"
+      },
+      {
+        "id": "needs_current_info",
+        "label": "Doesn't need live data",
+        "passed": true,
+        "probability": 0.05,
+        "informational": true,
+        "detail": "Doesn't depend on recent info"
+      }
+    ],
+    "tokens": {
+      "input": {
+        "o200k_base": 4,
+        "claude-sonnet-5": 4,
+        "gpt-6-luna": 4,
+        "gemini-3.8-flash": 4
+      },
+      "input_exact": {
+        "o200k_base": true,
+        "claude-sonnet-5": false,
+        "gpt-6-luna": false,
+        "gemini-3.8-flash": false
+      },
+      "output_p50": 208,
+      "output_p90": 584,
+      "output_range": [
+        106,
+        414
+      ]
+    },
+    "cost_estimates": [
+      {
+        "model": "claude-sonnet-5",
+        "name": "Claude Sonnet 5",
+        "provider": "Anthropic",
+        "input_tokens": 4,
+        "input_exact": false,
+        "usd_p50": 0.002088,
+        "usd_p90": 0.005848,
+        "usd_low": 0.001068,
+        "usd_high": 0.004148,
+        "pricing_verified": "2026-09-25"
+      },
+      {
+        "model": "gpt-6-luna",
+        "name": "GPT-6 Luna",
+        "provider": "OpenAI",
+        "input_tokens": 4,
+        "input_exact": false,
+        "usd_p50": 0.0001044,
+        "usd_p90": 0.00029239999999999995,
+        "usd_low": 5.34e-05,
+        "usd_high": 0.0002074,
+        "pricing_verified": "2026-09-25"
+      },
+      {
+        "model": "gemini-3.8-flash",
+        "name": "Gemini 3.8 Flash",
+        "provider": "Google",
+        "input_tokens": 4,
+        "input_exact": false,
+        "usd_p50": 0.000783,
+        "usd_p90": 0.002193,
+        "usd_low": 0.0004005,
+        "usd_high": 0.0015555,
+        "pricing_verified": "2026-09-25",
+        "note": "Introductory price until Dec 31, 2026"
+      }
+    ],
+    "suggestions": [
+      {
+        "id": "add_specifics",
+        "text": "Add the specifics: your exact situation, the inputs, and what \"done\" looks like.",
+        "impact": 0.15
+      },
+      {
+        "id": "add_context",
+        "text": "Give background the model can't guess: who you are, what you've tried, why you need it.",
+        "impact": 0.1
+      },
+      {
+        "id": "add_goal",
+        "text": "Say why you need it or how you'll use it, so the model can aim the answer.",
+        "impact": 0.049
+      },
+      {
+        "id": "add_constraints",
+        "text": "Add limits such as length, tone, scope, or tools to use or avoid.",
+        "impact": 0.0384
+      },
+      {
+        "id": "add_success_criteria",
+        "text": "Say what a finished answer must include or do, so you can check it (e.g. \"return only the function\").",
+        "impact": 0.0376
+      }
+    ],
+    "tier_hint": "mid",
+    "suggested_model": "gemini-3.8-flash",
+    "backend": {
+      "name": "jev",
+      "version": "jev-1.13.0",
+      "degraded": false
+    },
+    "stored": false,
+    "cached": false,
+    "latency_ms": 11
+  }
+}

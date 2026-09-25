@@ -9,7 +9,7 @@ import pytest
 from app import scoring
 from app.analyze import Analyzer
 from app.tokens import TokenCounter
-from tests.conftest import fixture_judge, load_fixture
+from tests.conftest import fixture_judge, load_fixture, make_router
 
 NAMES = ["weak", "strong", "conflicting"]
 
@@ -58,14 +58,17 @@ async def test_conflicting_prompt_fails(cfg):
 
 async def test_full_report_from_a_real_response(cfg):
     fx = load_fixture("strong")
-    analyzer = Analyzer(judge=fixture_judge(cfg, "strong"), counter=TokenCounter(), config=cfg)
-    report = await analyzer.analyze(fx["prompt"])
+    analyzer = Analyzer(
+        router=make_router(cfg, fixture_judge(cfg, "strong")), counter=TokenCounter(), config=cfg
+    )
+    report = analyzer.web_report(await analyzer.analyze(fx["prompt"]))
     assert 0 <= report.lint_score <= 100
     assert report.meta.jev_model == fx["response"]["model"]
     lo, hi = report.tokens.output_range
     assert 0 < lo < hi
     assert all(c.low_usd < c.high_usd for c in report.costs)
-    assert len(report.checks) == 9
+    assert len(report.checks) == 11
+    assert report.meta.backend == "jev" and not report.meta.degraded
     assert [d.id for d in report.dimensions] == [
         "task_clear",
         "specificity",

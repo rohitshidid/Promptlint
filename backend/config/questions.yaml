@@ -58,6 +58,23 @@ nouls:
     instructions: >-
       Does a correct answer to `prompt` depend on recent events, live data, or information
       that changes over time?
+  # PQS missing components (prompt-quality-scorer.md §3).
+  has_goal:
+    instructions: >-
+      Does `prompt` say why the user wants this, or what they will use the answer for?
+    criteria:
+      true: >-
+        The prompt states a purpose or end use, such as "so I can pitch it to investors",
+        "for my Year 10 class", or "because the build keeps failing".
+      false: The prompt only states the task, with no purpose or end use.
+  has_success_criteria:
+    instructions: >-
+      Does `prompt` say what a good or finished answer must achieve, so the user could check it?
+    criteria:
+      true: >-
+        The prompt gives checkable requirements for the result, such as test cases, expected
+        output, "must compile", "return only the function", or "end with a two-line summary".
+      false: The prompt gives no way to tell whether the answer is complete or correct.
 
 scores:
   specificity:
@@ -86,22 +103,23 @@ scores:
       - One or two short paragraphs
       - About a page, or a medium code snippet
       - A long document, many sections, or a large program
-  complexity:
+  complexity:  # low / medium / high (PQS §3); also drives the model-tier hint
     instructions: How much reasoning does a good answer to `prompt` require?
     criteria:
-      - A fact, definition, or simple lookup
-      - A short explanation or a routine rewrite or format task
+      - A fact, a definition, a simple lookup, or a routine rewrite or formatting task
       - Multi-step reasoning, non-trivial code, or combining several ideas
-      - "Hard problem: deep debugging, proofs, system design, or subtle trade-offs"
+      - "A hard problem: deep debugging, proofs, system design, or subtle trade-offs"
 
 choices:
-  task_type:
+  task_type:  # PQS's nine task types (prompt-quality-scorer.md §3)
     instructions: What kind of task is `prompt`?
     criteria:
       coding: Write, fix, explain, or review code
-      writing: Write or edit prose such as an email, essay, post, or document
-      factual: Look up or state facts
-      analysis: Analyze, compare, evaluate, or summarize information
-      math_reasoning: Solve a math problem or a logic puzzle
-      creative: Fiction, poetry, jokes, brainstorming, or other imaginative work
+      writing: Write or edit prose, including emails, essays, posts, stories, and poems
+      analysis: Analyze, compare, evaluate, or critique something
+      math: Solve a math problem, a calculation, or a logic puzzle
+      factual_qa: Answer a factual question or explain a concept
+      brainstorming: Generate ideas, names, options, or plans
+      extraction_transformation: Extract, summarize, classify, translate, reformat, or convert given input
+      conversation: Chat, greetings, opinions, or personal talk with no concrete deliverable
       other: Anything else

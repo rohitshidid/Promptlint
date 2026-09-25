@@ -46,6 +46,7 @@
     updateCounter("a"); updateCounter("b");
   }
   const selectedModels = () => [...document.querySelectorAll("#models input:checked")].map((i) => i.value);
+  const selectedBackend = () => document.querySelector("#backend input:checked")?.value || "auto";
 
   /* ------------------------------------------------------- live counter */
   // Instant local estimate (chars / 4), refined by the server's tiktoken count after a short pause.
@@ -122,7 +123,7 @@
   async function analyzeOne(prompt, models) {
     let res;
     try {
-      res = await fetch("api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, models }) });
+      res = await fetch("api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, models, backend: selectedBackend() }) });
     } catch {
       throw { message: "Couldn't reach the PromptLint server.", detail: "Check your connection, or start the backend (see the README)." };
     }

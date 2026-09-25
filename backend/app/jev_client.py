@@ -69,7 +69,11 @@ class JevError(Exception):
 
 
 class Judge(Protocol):
-    async def judge(self, prompt: str) -> JevAnswers: ...
+    """A scoring backend (PQS §5): turns a prompt into the same typed answers Jev returns."""
+
+    name: str
+
+    async def judge(self, prompt: str, system: str | None = None) -> JevAnswers: ...
 
 
 def parse_response(resp: SystemOneResponse, cfg: QuestionConfig, latency_ms: int) -> JevAnswers:
@@ -112,6 +116,8 @@ def parse_response(resp: SystemOneResponse, cfg: QuestionConfig, latency_ms: int
 class JevJudge:
     """Production judge backed by the TypeSafe SDK."""
 
+    name = "jev"
+
     def __init__(
         self,
         *,
@@ -143,11 +149,13 @@ class JevJudge:
             ),
         )
 
-    async def judge(self, prompt: str) -> JevAnswers:
+    async def judge(self, prompt: str, system: str | None = None) -> JevAnswers:
+        # The system prompt rides along as context; every question still asks about `prompt`.
+        state = {"prompt": prompt} if not system else {"prompt": prompt, "system": system}
         start = time.perf_counter()
         try:
             resp = await asyncio.wait_for(
-                self._client.system_one(state={"prompt": prompt}, questions=self._questions),
+                self._client.system_one(state=state, questions=self._questions),
                 timeout=self._deadline_s,
             )
         except (TimeoutError, TypeSafeAPITimeoutError) as e:

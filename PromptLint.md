@@ -2,7 +2,9 @@
 
 > Lint your prompt before you send it.
 
-PromptLint is a web app where a user pastes a prompt, picks a target model, and instantly gets a report card: how good the prompt is, whether an LLM is likely to get it right on the first try, how generic or specific it is, what's missing, and how many tokens and dollars it will cost.
+PromptLint is a web app **and a public API** where a user (or an app) sends a prompt and instantly gets a report card: how good the prompt is, whether an LLM is likely to get it right on the first try, how generic or specific it is, what's missing, and how many tokens and dollars it will cost.
+
+> **v1.1 update (Sept 2026):** PromptLint now also implements the API side of the *Prompt Quality Scorer* design (`prompt-quality-scorer.md`, Phase 0–1): a public `/v1` API with self-serve accounts and hashed API keys, plans and quotas, usage metering, a pluggable backend layer with a heuristic baseline and automatic fallback, PQS's response shape and `pqs_score` alongside the Lint Score, and a free-forever hosting plan. See §20–§21. PQS Phase 2 (training an own model) is not part of this project.
 
 **Core principle:** PromptLint never calls a generative LLM in the product. All judgments come from **one call to TypeSafe's Jev** (a System One decision model), and all math (tokens, cost, scoring) is deterministic code.
 
@@ -19,6 +21,11 @@ PromptLint is a web app where a user pastes a prompt, picks a target model, and 
 | v1 audience | Everyday chat prompts (ChatGPT / Claude style). Developer / system-prompt mode is v2. |
 | v1 deployment | Portfolio demo with a public URL, rate-limited |
 | LLM usage allowed | Only in the offline evaluation script, never in the app |
+| Public API (v1.1) | `/v1` endpoints from the PQS design, self-serve sign-up (email + password), keys stored as hashes |
+| Scores (v1.1) | Both: `lint_score` (this plan, §7) and `pqs_score` (PQS §9.5), side by side; `overall_score` = `lint_score` |
+| Backends (v1.1) | Pluggable: `jev` (default) and a rule-based `heuristic` baseline; `auto` falls back to the heuristic when Jev fails |
+| Database (v1.1) | SQLite for local dev and tests; Postgres in production (Neon free tier); Alembic migrations |
+| Hosting (v1.1) | Free forever as of Sept 2026: Render free web service + Neon free Postgres, no Redis (§21) |
 
 ---
 
@@ -31,26 +38,32 @@ PromptLint is a web app where a user pastes a prompt, picks a target model, and 
 5. **Tokens and cost:** exact input tokens, an estimated output-token range, and a cost range for each selected model.
 6. **Fix-it tips:** 2–5 concrete suggestions generated from the failed checks.
 7. **Model-tier hint:** "a small model is enough" vs "needs a frontier model" (reuses the Cost-aware LLM Router logic).
+8. **Compare mode** (pulled forward from v1.1): two versions side by side with the score delta.
+9. **Public API** (v1.1): `/v1/score`, `/v1/score/batch`, `/v1/pricing`, `/v1/usage`, `/v1/health`, with accounts, keys, quotas and a dashboard (§20).
+10. **Backend toggle** (v1.1): choose Jev or the heuristic baseline in the analyzer; every report says which backend answered.
 
 ---
 
 ## 3. Architecture
 
 ```
-┌──────────────────────┐        POST /api/analyze        ┌─────────────────────────────┐
-│ Frontend (Next.js)   │ ──────────────────────────────▶ │ Backend (FastAPI)           │
-│ - prompt editor      │                                 │                             │
-│ - model picker       │ ◀────────────────────────────── │ 1. validate + size limits   │
-│ - report card UI     │        JSON report              │ 2. Jev: ONE call, all Qs    │──▶ TypeSafe API
-└──────────────────────┘                                 │ 3. token counter            │
-                                                         │ 4. cost engine (price table)│
-                                                         │ 5. scorer (weights config)  │
-                                                         │ 6. tip generator (rules)    │
-                                                         │ 7. rate limiter + logging   │
-                                                         └─────────────────────────────┘
+┌────────────────────────┐  /api/analyze (per-IP)   ┌────────────────────────────────────┐
+│ Static site            │ ───────────────────────▶ │ FastAPI                            │
+│  landing · analyzer    │                          │  auth (key / session) · rate limit │
+│  account · API docs    │                          │  · quota · validate · meter        │
+└────────────────────────┘                          │                                    │
+┌────────────────────────┐  /v1/* (Bearer key)      │  Backend router                    │
+│ Your app               │ ───────────────────────▶ │   jev ── ONE call, all Qs ─────────┼──▶ TypeSafe API
+└────────────────────────┘                          │   heuristic (baseline / fallback)  │
+                                                    │  token counter · cost engine       │
+                                                    │  lint_score + pqs_score · tips     │
+                                                    └──────────────┬─────────────────────┘
+                                                                   │ keys, sessions, usage,
+                                                                   ▼ event metadata (no prompts)
+                                                          Postgres (Neon free) / SQLite (dev)
 ```
 
-The request path is one Jev call (about 100–500 ms) plus local computation. There's no second model hop.
+The request path is one Jev call (about 100–500 ms; median 182 ms measured) plus local computation. There's no second model hop. If Jev fails, `auto` mode answers from the heuristic instead, marked `degraded`.
 
 ---
 
@@ -62,11 +75,12 @@ The request path is one Jev call (about 100–500 ms) plus local computation. Th
 | Jev client | `typesafe-sdk` (`TypeSafeClient` / `AsyncTypeSafeClient`) | Official SDK with built-in retries |
 | Tokenizers | `tiktoken` (OpenAI); provider token-count endpoints (Anthropic, Gemini); char/4 fallback | Exact where possible, labeled "approx." otherwise |
 | Config | YAML files (questions, weights, prices, tips) | Tune without code changes |
-| Rate limiting | `slowapi` (+ Redis in prod) | Protects the Jev key and budget |
-| Frontend | Next.js + Tailwind | Fast to build, deploys to Vercel |
-| Charts | Recharts | Score gauge, radar of dimensions |
+| Rate limiting | `slowapi` per IP (website, sign-up, login) + `limits` per API key; in memory | Protects the Jev key and budget; one free instance needs no Redis |
+| Accounts & keys (v1.1) | SQLAlchemy 2 (async) + Alembic; stdlib `scrypt` passwords, SHA-256 key hashes | No extra auth service, works on SQLite and Postgres |
+| Frontend | Plain HTML/CSS/JS served by FastAPI (was: Next.js + Tailwind) | Matches the portfolio sites' design exactly; one deploy, no build step |
+| Charts | Hand-written SVG (was: Recharts) | No framework needed |
 | Testing | pytest, httpx, recorded Jev fixtures | Deterministic CI |
-| Deploy | Vercel (frontend), Render / Fly.io / AWS App Runner (backend), Docker | Cheap, simple |
+| Deploy | One Docker image on Render's free tier + Neon free Postgres (was: Vercel + backend host) | Free forever as of Sept 2026 (§21) |
 
 ---
 
@@ -141,6 +155,10 @@ Question-writing rules we follow:
 | `conflicting` | Does `prompt` contain instructions that contradict each other? |
 | `multi_task` | Does `prompt` ask for more than one distinct deliverable? |
 | `needs_current_info` | Does a correct answer to `prompt` depend on recent events, live data, or information that changes over time? |
+| `has_goal` (v1.1, PQS) | Does `prompt` say why the user wants this, or what they will use the answer for? |
+| `has_success_criteria` (v1.1, PQS) | Does `prompt` say what a good or finished answer must achieve, so the user could check it? |
+
+*v2 wording:* `has_constraints` and `multi_task` now carry explicit yes/no criteria. v1 counted an audience or format as a "constraint" and a list of items as "several tasks"; the criteria raised their precision from 59% → 76% and 53% → 83% (held-out checklist agreement 93.1% → 96.6%).
 
 ### 6.2 Scores (position on a described scale)
 
@@ -166,16 +184,15 @@ Question-writing rules we follow:
 2. About a page, or a medium code snippet
 3. A long document, many sections, or a large program
 
-**`complexity`** (model-tier hint): How much reasoning does a good answer to `prompt` require?
-0. A fact, definition, or simple lookup
-1. A short explanation or a routine rewrite or format task
-2. Multi-step reasoning, non-trivial code, or combining several ideas
-3. Hard problem: deep debugging, proofs, system design, or subtle trade-offs
+**`complexity`** (model-tier hint; v1.1: three levels to match PQS's `low` / `medium` / `high`): How much reasoning does a good answer to `prompt` require?
+0. A fact, a definition, a simple lookup, or a routine rewrite or formatting task
+1. Multi-step reasoning, non-trivial code, or combining several ideas
+2. A hard problem: deep debugging, proofs, system design, or subtle trade-offs
 
 ### 6.3 Choice
 
-**`task_type`**: What kind of task is `prompt`?
-`coding` · `writing` · `factual` · `analysis` · `math_reasoning` · `creative` · `other`
+**`task_type`** (v1.1: PQS's nine types): What kind of task is `prompt`?
+`coding` · `writing` · `analysis` · `math` · `factual_qa` · `brainstorming` · `extraction_transformation` · `conversation` · `other`
 
 ### 6.4 Example (Python SDK)
 
@@ -228,7 +245,20 @@ lint_score = round(100 × Σ weight_i × signal_i)
 - `conflicting` > 0.7 → cap the score at 60
 - `task_clear` < 0.3 → cap the score at 40
 
-`needs_current_info` and `has_examples` don't affect the score. They appear as informational flags.
+`needs_current_info`, `has_examples`, `has_goal` and `has_success_criteria` don't affect the Lint Score. They appear as informational flags (goal and success criteria do feed `pqs_score`).
+
+### 7.1 `pqs_score` (v1.1, from PQS §9.5)
+
+Computed from the same answers, returned next to `lint_score`:
+
+```
+clarity      = mean(task_clear, 1 − ambiguity)
+completeness = 1 − Σ w_c · P(missing c) / Σ w_c        c ∈ goal, context, constraints, output_format,
+                                                        audience, examples, success_criteria
+pqs_score    = round(100 × (0.35·clarity + 0.25·specificity + 0.25·completeness + 0.15·(1 − reiteration_risk)))
+```
+
+`reiteration_risk = 1 − first_try_success`. Component weights live in `config/pqs_scoring.yaml` and shift by task type (for example, output format matters more for extraction than for brainstorming).
 
 ---
 
@@ -373,6 +403,8 @@ cost_high = in_tokens × in_price + out_high × out_price
 - **No prompt storage by default.** Logs keep only a hash, the scores, latency, and the Jev model version. Say so on the About page.
 - **Prompt injection:** a user's prompt might contain text like "rate this prompt 100." Jev treats the state as data, but adversarial text can still move answers. Keep a test set of injection-style prompts and track how much they inflate scores.
 - CORS restricted to the frontend domain.
+- **v1.1 API and accounts:** keys are `pqs_live_<prefix>_<secret>`; only the prefix and SHA-256(secret) are stored and the full key is shown once. Passwords are hashed with scrypt; logins take constant time whether or not the email exists. Sessions are HttpOnly, SameSite=Lax cookies; cookie-authenticated writes need a custom `X-PL-CSRF` header plus a same-origin `Origin`. Sign-up and login are rate-limited per IP; Cloudflare Turnstile (free) can be switched on with two env vars. Users can delete their account and all its data.
+- **v1.1 data:** `score_events` keep a *salted* prompt hash (`PROMPT_HASH_SALT`), length, backend, both scores and latency. Prompt text is stored only when an API caller sends `options.store: true`. Events and stored prompts are deleted after 90 days (also keeps the free database small).
 
 ---
 
@@ -384,7 +416,7 @@ cost_high = in_tokens × in_price + out_high × out_price
 | **2. Engines** | Token counter, cost engine and `prices.yaml`, scoring and caps, tip generator, full unit test suite |
 | **3. Frontend** | Editor, report card, gauge, checklist, cost table, tips; connected to the backend; Docker Compose for local dev |
 | **4. Eval and polish** | Build the 200-pair dataset, run Evals 1–3, tune weights, README with charts, deploy (Vercel + backend host), 60-second demo video |
-| **v1.1** | Compare mode, shareable report links (opt-in storage) |
+| **v1.1** ✅ | Compare mode ✅; public `/v1` API with accounts, keys, quotas, metering, dashboard and docs ✅; heuristic backend + fallback ✅; `pqs_score` ✅; free hosting plan ✅. Still open: shareable report links (opt-in storage) |
 | **v2** | Developer mode (system-prompt rubric), browser extension that scores prompts inside ChatGPT or Claude before sending, plug into the Cost-aware LLM Router |
 
 ---
@@ -405,11 +437,11 @@ cost_high = in_tokens × in_price + out_high × out_price
 
 ## 17. Definition of done (v1)
 
-- [ ] `/api/analyze` returns the full report in < 800 ms p95
-- [ ] All unit and API tests pass in CI
-- [ ] Pairwise eval ≥ 85%, first-try AUROC reported with a calibration plot
-- [ ] Deployed at a public URL with rate limiting
-- [ ] README: problem, demo GIF, architecture diagram, eval results, limitations
+- [x] `/api/analyze` returns the full report in < 800 ms p95 (Jev p95 379 ms across eval runs)
+- [x] All unit and API tests pass in CI (124 tests)
+- [ ] Pairwise eval ≥ 85% ✅ (100%), first-try AUROC reported with a calibration plot ❌ (script ready, needs a working LLM key)
+- [ ] Deployed at a public URL with rate limiting (config ready: `render.yaml` + Neon, §21)
+- [ ] README: problem, demo GIF, architecture diagram, eval results, limitations (done except the GIF: screenshots instead)
 - [ ] 60-second demo video: weak prompt → tips → improved prompt → higher score
 
 ---
@@ -423,5 +455,60 @@ cost_high = in_tokens × in_price + out_high × out_price
 ## 19. Open questions
 
 1. Final name check (GitHub and domain availability for "PromptLint").
-2. Which ~6 models go in the cost table.
-3. Whether to add opt-in prompt storage for shareable report links in v1.1.
+2. ~~Which ~6 models go in the cost table.~~ Resolved: seven (three Claude, OpenAI and Google flagship + small).
+3. Whether to add opt-in prompt storage for shareable report links in v1.1. (API-side opt-in storage exists: `options.store`.)
+4. Paid plans: `dev` and `pro` exist in `plans.yaml` but are assigned by hand (`python -m app.cli set-plan`). Billing (Stripe) is not built.
+5. Email verification and password reset need an email provider. Not built; decide on a free-tier provider before opening sign-ups widely.
+
+---
+
+## 20. Public API (v1.1, from the Prompt Quality Scorer design)
+
+Everything under `/v1` follows `prompt-quality-scorer.md` §11–12, adapted where noted.
+
+| Endpoint | Auth | Purpose |
+|---|---|---|
+| `POST /v1/score` | API key | Score one prompt (`prompt`, optional `system`, `models`, `backend`, `options`) |
+| `POST /v1/score/batch` | API key | Up to 10 (free) or 50 prompts; per-item errors don't fail the batch |
+| `GET /v1/pricing` | public | Price table with `last_verified` |
+| `GET /v1/usage` | key or session | Requests, prompts and fallbacks per UTC day; used today / this month |
+| `GET /v1/health` | public | Database, backends, pinned Jev model |
+| `POST /v1/account/signup` · `login` · `logout` · `delete`, `GET /v1/account/me` | session | Self-serve accounts |
+| `GET/POST /v1/keys`, `DELETE /v1/keys/{id}` | session | Create (shown once), list, revoke; max 5 active |
+
+**Response** (PQS shape): `id`, `overall_score` (= `lint_score`), `scores {lint_score, pqs_score, verdict}`, `signals {clarity, specificity, completeness, reiteration_risk, first_try_success, task_type, complexity, missing_components, missing_detail}`, `checks`, `tokens {input, input_exact, output_p50, output_p90, output_range}`, `cost_estimates[] {usd_p50, usd_p90, usd_low, usd_high, pricing_verified}`, `suggestions[] {id, text, impact}`, `confidence`, `tier_hint`, `suggested_model`, `backend {name, version, degraded, fallback_reason}`, `latency_ms`.
+Output p50/p90 come from the `expected_length` bucket CDF, interpolated inside the bucket (PQS §7).
+
+**Errors:** `{"error": {"type", "message", "request_id"}}` with 400 / 401 / 403 / 413 / 429 / 503. Every response has `X-Request-Id`; scoring responses have `X-RateLimit-Limit|Remaining|Reset` and `X-Quota-Limit|Remaining|Period`.
+
+**Plans** (`config/plans.yaml`): free 20 req/min per key, 1,000 prompts/day per account, batch 10 · dev 120/min, 50,000/month, batch 50 · pro 600/min, no quota. Quotas are counted in the database, so restarts don't reset them.
+
+**Backends** (PQS §5): `jev` and `heuristic` implement one `Judge` interface returning the same typed answers. `backend: "auto"` (default) = Jev with automatic heuristic fallback on timeout, rate limit, 5xx or missing key (`degraded: true`); `"jev"` returns 503 instead; `"heuristic"` never calls Jev (prompt stays on the server).
+
+**Baseline results** (PQS §10.2, same data):
+
+| | Pairwise main (200) | Pairwise hard (40) | Checklist (700 labels) |
+|---|---|---|---|
+| Jev · lint_score | 100% | 100% | 95.9% |
+| Jev · pqs_score | 100% | 100% | – |
+| Heuristic · lint_score | 99.5% | 95.0% | 91.4% |
+| Heuristic · pqs_score | 99.5% | 100% | – |
+
+The pairs are too easy to separate the backends; the checklist does (the heuristic's recall on audience is 47% vs Jev's 95%). A harder, human-labeled gold set (PQS §8.3c) is the next step before any backend claims.
+
+**Not adopted from PQS:** Phase 2 (own ModernBERT model, data pipeline, human gold set, ONNX), shadow mode, `/v1/keys` via an admin-only dashboard (keys are self-serve instead), Stripe billing, Sentry, and per-tokenizer counts beyond `o200k_base` + per-model counts.
+
+---
+
+## 21. Free hosting (checked Sept 2026)
+
+| Piece | Service | Free-tier facts |
+|---|---|---|
+| App (API + static site) | Render free web service, Docker | 750 instance-hours/month (one service runs all month); sleeps after 15 min idle, ~1 min cold start; no persistent disk |
+| Database | Neon free Postgres | 0.5 GB storage, 100 compute-hours/month, scales to zero; hitting a limit suspends compute but never deletes data |
+| Rate limits | In process memory | No Redis: one instance. Render's free Key Value loses data on restart anyway |
+| Captcha (optional) | Cloudflare Turnstile | Free |
+| CI | GitHub Actions | Free for public repos |
+
+Avoided: Render free Postgres (deleted 30 days after creation), Fly.io (no free tier), SQLite on Render (disk wiped on deploy).
+Keeping it inside the free limits: metadata-only tables, 90-day retention with a daily prune, and quotas per account. **Not free:** TypeSafe Jev itself is usage-billed; `backend: "heuristic"` runs at zero Jev cost if ever needed. Free tiers change — re-check before relying on them.

@@ -8,22 +8,8 @@ from fastapi.testclient import TestClient
 
 from app.jev_client import JevError, JevJudge
 from app.main import create_app
-from app.settings import BACKEND_DIR, Settings
 from app.tokens import TokenCounter
-from tests.conftest import FakeJudge, load_fixture, make_answers
-
-
-def settings(**kw) -> Settings:
-    base = dict(
-        typesafe_api_key="",
-        rate_limit="1000/hour",
-        tokens_rate_limit="1000/minute",
-        playground_rate_limit="1000/hour",
-        config_dir=BACKEND_DIR / "config",
-        _env_file=None,
-    )
-    base.update(kw)
-    return Settings(**base)
+from tests.conftest import FakeJudge, load_fixture, make_answers, make_settings
 
 
 @pytest.fixture
@@ -32,8 +18,8 @@ def fake(cfg):
 
 
 @pytest.fixture
-def client(fake, cfg):
-    app = create_app(settings(), judge=fake, counter=TokenCounter(), config=cfg)
+def client(fake, cfg, tmp_path):
+    app = create_app(make_settings(tmp_path), judge=fake, counter=TokenCounter(), config=cfg)
     with TestClient(app) as c:
         yield c
 
@@ -110,22 +96,40 @@ def test_unknown_model_is_rejected(client):
     assert r.status_code == 422 and "gpt-99" in r.json()["error"]
 
 
-def test_missing_key_returns_503(cfg):
-    app = create_app(settings(), config=cfg)
+def test_missing_key_falls_back_to_heuristic(cfg, tmp_path):
+    app = create_app(make_settings(tmp_path), config=cfg)
     with TestClient(app) as c:
         r = c.post("/api/analyze", json={"prompt": "hello"})
-    assert r.status_code == 503
+    assert r.status_code == 200
+    assert r.json()["meta"]["backend"] == "heuristic" and r.json()["meta"]["degraded"] is True
 
 
-def test_jev_error_is_passed_through_as_friendly_message(cfg):
-    app = create_app(settings(), judge=FakeJudge(JevError(504, "The analysis took too long.")), config=cfg)
+def test_jev_failure_falls_back_on_auto(cfg, tmp_path):
+    app = create_app(
+        make_settings(tmp_path), judge=FakeJudge(JevError(504, "The analysis took too long.")), config=cfg
+    )
     with TestClient(app) as c:
         r = c.post("/api/analyze", json={"prompt": "hello"})
+    assert r.status_code == 200 and r.json()["meta"]["degraded"] is True
+
+
+def test_jev_error_surfaces_when_jev_is_forced(cfg, tmp_path):
+    app = create_app(
+        make_settings(tmp_path), judge=FakeJudge(JevError(504, "The analysis took too long.")), config=cfg
+    )
+    with TestClient(app) as c:
+        r = c.post("/api/analyze", json={"prompt": "hello", "backend": "jev"})
     assert r.status_code == 504 and r.json()["error"] == "The analysis took too long."
 
 
-def test_rate_limit_returns_429(fake, cfg):
-    app = create_app(settings(rate_limit="2/hour"), judge=fake, config=cfg)
+def test_heuristic_toggle_skips_jev(client, fake):
+    r = client.post("/api/analyze", json={"prompt": "hello there", "backend": "heuristic"})
+    assert r.status_code == 200 and r.json()["meta"]["backend"] == "heuristic"
+    assert r.json()["meta"]["degraded"] is False and fake.calls == 0
+
+
+def test_rate_limit_returns_429(fake, cfg, tmp_path):
+    app = create_app(make_settings(tmp_path, rate_limit="2/hour"), judge=fake, config=cfg)
     with TestClient(app) as c:
         codes = [c.post("/api/analyze", json={"prompt": f"p{i}"}).status_code for i in range(3)]
     assert codes == [200, 200, 429]
@@ -142,8 +146,8 @@ def test_static_site_and_playground_are_served(client):
     assert client.get("/playground/").status_code == 200
 
 
-def test_playground_blocks_foreign_origins_when_using_server_key(fake, cfg):
-    app = create_app(settings(typesafe_api_key="server-key"), judge=fake, config=cfg)
+def test_playground_blocks_foreign_origins_when_using_server_key(fake, cfg, tmp_path):
+    app = create_app(make_settings(tmp_path, typesafe_api_key="server-key"), judge=fake, config=cfg)
     with TestClient(app) as c:
         r = c.post("/api/systemone", headers={"Origin": "https://evil.example"}, content=b"{}")
     assert r.status_code == 403

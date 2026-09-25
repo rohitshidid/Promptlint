@@ -40,6 +40,25 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     token_count_timeout_s: float = 1.5
 
+    # Public API (/v1) and accounts
+    # SQLite for local dev; in production a free Neon Postgres URL (postgresql://...; sslmode is handled).
+    database_url: str = f"sqlite+aiosqlite:///{BACKEND_DIR / 'data' / 'promptlint.db'}"
+    auto_migrate: bool = True  # run Alembic migrations at startup
+    v1_max_prompt_chars: int = 32_000  # PQS §11
+    v1_max_system_chars: int = 32_000
+    # HMAC key for prompt hashes stored in score_events. Set a long random value in production.
+    prompt_hash_salt: str = "dev-only-salt-change-me"
+    session_days: int = 14
+    cookie_secure: bool | None = None  # None: Secure when the request is https
+    signup_rate_limit: str = "5/hour"
+    login_rate_limit: str = "10/15minutes"
+    # Optional Cloudflare Turnstile (free) on sign-up. Leave empty to disable.
+    turnstile_site_key: str = ""
+    turnstile_secret_key: str = ""
+    # Keeps the free Neon tier (0.5 GB) comfortable: older rows are deleted daily.
+    event_retention_days: int = 90
+    stored_prompt_retention_days: int = 90
+
     # CORS: comma-separated origins. Empty means same-origin only (the default deploy).
     allowed_origins: str = ""
 

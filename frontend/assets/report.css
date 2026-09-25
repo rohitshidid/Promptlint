@@ -162,3 +162,9 @@
 .delta .chg.up { background: var(--good-soft); color: var(--good-ink); }
 .delta .chg.down { background: var(--bad-soft); color: var(--bad-ink); }
 .delta .chg.same { background: var(--bg-tint); color: var(--ink-soft); }
+
+/* ------------------------------------------------------ backend notice */
+.rc-notice { display: grid; grid-template-columns: 20px 1fr; gap: 10px; align-items: start;
+             background: #eef4fd; border-color: rgba(42,120,214,.25); font-size: .88rem; color: var(--ink-soft); }
+.rc-notice svg { width: 18px; height: 18px; color: #1c5cab; margin-top: 1px; }
+.rc-notice b { color: var(--ink); }

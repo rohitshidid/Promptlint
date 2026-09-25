@@ -6,7 +6,7 @@ A check "fires" when Jev's probability is ≥ 0.5, matching how the app shows pa
 
 import asyncio
 
-from common import judge_all, load_jsonl, update_summary, write_result
+from common import answers_for, load_jsonl, update_summary, write_result
 
 CHECKS = [
     "has_output_format",
@@ -19,10 +19,7 @@ CHECKS = [
 ]
 
 
-async def main() -> None:
-    rows = load_jsonl("checklist_labels.jsonl")
-    answers, latencies = await judge_all([r["prompt"] for r in rows], label="checklist")
-
+def evaluate(rows: list[dict], answers) -> dict:
     per_check = {}
     total = agree = 0
     disagreements = []
@@ -58,22 +55,44 @@ async def main() -> None:
         }
         total += n
         agree += tp + tn
-
-    result = {
+    return {
         "n_prompts": len(rows),
         "n_labels": total,
         "accuracy": agree / total,
         "per_check": per_check,
         "disagreements": disagreements,
     }
-    write_result("checklist", result)
-    update_summary("checklist", {"accuracy": result["accuracy"], "n": total}, latencies=latencies)
 
-    print(f"\nChecklist agreement: {agree}/{total} = {agree / total:.1%}")
-    print(f"{'check':20s} {'acc':>6s} {'prec':>6s} {'recall':>7s}  positives")
-    for c, m in per_check.items():
-        fmt = lambda x: "  n/a" if x is None else f"{x:6.0%}"  # noqa: E731
-        print(f"{c:20s} {m['accuracy']:6.0%} {fmt(m['precision'])} {fmt(m['recall']):>7s}  {m['positives']}")
+
+async def main() -> None:
+    rows = load_jsonl("checklist_labels.jsonl")
+    results, latencies = {}, []
+    for backend in ("jev", "heuristic"):
+        answers, lat = await answers_for(backend, [r["prompt"] for r in rows], "checklist")
+        latencies += lat
+        results[backend] = evaluate(rows, answers)
+
+    jev, heur = results["jev"], results["heuristic"]
+    write_result("checklist", {**jev, "baseline_heuristic": heur})
+    update_summary(
+        "checklist",
+        {"accuracy": jev["accuracy"], "n": jev["n_labels"], "heuristic_accuracy": heur["accuracy"]},
+        latencies=latencies,
+    )
+
+    fmt = lambda x: "  n/a" if x is None else f"{x:6.0%}"  # noqa: E731
+    print(
+        f"\nChecklist agreement: Jev {jev['accuracy']:.1%} · heuristic baseline {heur['accuracy']:.1%} ({jev['n_labels']} labels)"
+    )
+    print(
+        f"{'check':20s} {'jev acc':>8s} {'prec':>6s} {'recall':>7s} | {'heur acc':>8s} {'prec':>6s} {'recall':>7s}"
+    )
+    for c in CHECKS:
+        j, h = jev["per_check"][c], heur["per_check"][c]
+        print(
+            f"{c:20s} {j['accuracy']:8.0%} {fmt(j['precision'])} {fmt(j['recall']):>7s} | "
+            f"{h['accuracy']:8.0%} {fmt(h['precision'])} {fmt(h['recall']):>7s}"
+        )
 
 
 if __name__ == "__main__":
