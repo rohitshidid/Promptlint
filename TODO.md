@@ -22,7 +22,7 @@ These matter because once it's public, strangers can sign up and every check the
 - [ ] **Get a human to check the test data.** The example prompts and their labels in `eval/data/` were written with an AI's help. Have a person spot-check them (and ideally write a harder set) before quoting the accuracy numbers.
 - [ ] **Bring the tester page into the project.** The friendly tester lives outside this folder (`../promptlint api testing/index.html`). Either add it as `frontend/tester.html` or fold its plain-English explanations into the main analyzer.
 - [ ] **A tiny admin page.** Changing someone's plan or disabling an account currently needs the command line (`python -m app.cli …`).
-- [ ] **Keep the free server awake (optional).** Render's free server sleeps after 15 minutes without visitors, so the next visit waits about a minute. A free uptime pinger (every 10 minutes) avoids that and still fits the free hours.
+- [ ] **Switch on the keep-awake pinger after deploying.** It's already built (`.github/workflows/keep-awake.yml`, pings every 10 minutes for free). It just needs your site's address: `gh variable set PROMPTLINT_URL --body "https://<your-app>.onrender.com"`. Check it under GitHub → Actions → "Keep awake". If the repo gets no commits for 60 days, GitHub pauses scheduled runs, so re-enable it there.
 
 ## Later
 

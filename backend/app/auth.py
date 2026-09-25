@@ -66,7 +66,9 @@ async def require_api_key(request: Request, db: AsyncSession = Depends(get_db)) 
         )
     parsed = parse_api_key(token)
     if parsed is None:
-        raise ApiError(401, "invalid_api_key", "That API key is malformed. Keys look like pqs_live_<8 chars>_<secret>.")
+        raise ApiError(
+            401, "invalid_api_key", "That API key is malformed. Keys look like pqs_live_<8 chars>_<secret>."
+        )
     prefix, secret = parsed
     row = (
         await db.execute(

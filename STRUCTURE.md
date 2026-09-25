@@ -75,6 +75,7 @@ Jev Ai/
 │
 ├── docker-compose.yml    Run the server + a database on your computer with Docker
 ├── render.yaml           Settings for free hosting on Render
+├── .github/workflows/    GitHub robots: ci.yml (tests on every push), keep-awake.yml (pings the site)
 ├── .env.example          List of secret settings (copy to .env and fill in)
 └── ruff.toml             Code-style rules
 ```
@@ -173,6 +174,7 @@ Kept in `.env` on your computer and in Render's dashboard online, never in the c
 - **On your computer:** `cd backend && .venv/bin/uvicorn app.main:app --port 8787`, then open http://localhost:8787.
 - **With Docker** (server + real database): `docker compose up -d --build`.
 - **Online, free:** Render runs the Docker container, Neon holds the database. The steps are in the README under "Deploy (free)".
+- **Keeping it awake:** `.github/workflows/keep-awake.yml` is a free GitHub robot that visits `/api/health` every 10 minutes, so the free server never falls asleep and visitors don't wait. It uses that page on purpose because it doesn't touch the database, which can stay asleep and save its free hours.
 
 ## Words you'll see
 

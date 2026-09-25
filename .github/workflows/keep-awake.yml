@@ -1,0 +1,45 @@
+# Keeps the free Render server awake so visitors don't wait ~1 minute for a cold start.
+#
+# Render's free web service sleeps after 15 minutes without traffic. This pings it every 10 minutes.
+# One service running all month uses ~744 of Render's 750 free instance-hours, so it stays free.
+#
+# It pings /api/health, which does NOT touch the database. Pinging /v1/health would also wake the
+# Neon database every time and use up Neon's free compute hours (100/month), after which Neon pauses it.
+#
+# Setup (once, after deploying): tell the workflow your site's address, e.g.
+#   gh variable set PROMPTLINT_URL --body "https://promptlint-xxxx.onrender.com"
+# or GitHub → repo → Settings → Secrets and variables → Actions → Variables → New: PROMPTLINT_URL.
+# Until it's set, the workflow does nothing.
+#
+# Notes: GitHub may start scheduled runs a few minutes late when busy, and it pauses schedules in
+# repos with no commits for 60 days (re-enable under Actions). Scheduled runs are free on public repos;
+# private repos use a little of the free monthly Actions minutes (~1 minute per day of runs).
+name: Keep awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping /api/health
+        env:
+          URL: ${{ vars.PROMPTLINT_URL }}
+        run: |
+          if [ -z "$URL" ]; then
+            echo "::notice::PROMPTLINT_URL is not set yet; nothing to ping. See the comments at the top of this file."
+            exit 0
+          fi
+          # A sleeping server can take ~60 s to wake up, so allow up to 90 s and retry twice.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 90 --retry 2 --retry-delay 5 "${URL%/}/api/health") || true
+          echo "GET ${URL%/}/api/health -> HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::warning::PromptLint did not answer with 200 (got $code)."
+            exit 1
+          fi
