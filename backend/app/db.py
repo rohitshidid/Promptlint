@@ -105,6 +105,8 @@ class ScoreEvent(Base):
     task_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
     routed_model: Mapped[str | None] = mapped_column(String(200), nullable=True)
     routed_provider: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # the best of your connected models, when the best fit (routed_model) isn't one you have a key for
+    connected_model: Mapped[str | None] = mapped_column(String(200), nullable=True)
     baseline_model: Mapped[str | None] = mapped_column(String(200), nullable=True)
     est_cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)  # the pick, p50
     est_baseline_usd: Mapped[float | None] = mapped_column(Float, nullable=True)  # baseline, p50

@@ -6,8 +6,8 @@
 <title>Account · PromptLint</title>
 <meta name="description" content="Create a free PromptLint API key, manage keys, and see your usage.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.2">
-<link rel="stylesheet" href="assets/report.css?v=1.2.2">
+<link rel="stylesheet" href="assets/site.css?v=1.2.4">
+<link rel="stylesheet" href="assets/report.css?v=1.2.4">
 <style>
   .acct-head { padding: 40px 0 8px; position: relative; }
   .acct-head::before {
@@ -111,6 +111,9 @@
   .kc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chipx { display: inline-flex; align-items: baseline; gap: 5px; max-width: 100%; font-size: .8rem; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; color: var(--ink-soft); background: #fff; overflow-wrap: anywhere; }
   .chipx i { font-style: normal; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+  .chipx.nc { border-style: dashed; flex-wrap: wrap; row-gap: 0; }
+  .chipx.nc em { font-style: normal; font-size: .72rem; color: var(--warn-ink); flex-basis: 100%; }
+  .nc-tag { color: var(--warn-ink); }
   .chipx.sent { background: var(--accent-soft); border-color: rgba(4,120,87,.25); color: var(--accent); }
   .kc-foot { margin: 0; font-size: .78rem; color: var(--ink-faint); }
   table.keys { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: .88rem; }
@@ -313,7 +316,7 @@
   </div>
 </footer>
 
-<script src="assets/report.js?v=1.2.2"></script>
-<script src="assets/account.js?v=1.2.2"></script>
+<script src="assets/report.js?v=1.2.4"></script>
+<script src="assets/account.js?v=1.2.4"></script>
 </body>
 </html>

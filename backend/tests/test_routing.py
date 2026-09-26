@@ -304,7 +304,35 @@ def test_route_with_a_per_request_key_calls_the_model(client, fakes):
     assert ex["executed"] is True and ex["model_used"] in {"gpt-6-astra", "gpt-6-luna"}
     assert ex["output"] == "api.openai.com says hi" and ex["input_tokens"] == 10 and ex["cost_usd"] > 0
     assert fakes.requests[0].headers["Authorization"] == "Bearer sk-test-123"
-    assert any("have keys for" in w for w in d["routing"]["warnings"])  # Sonnet had no key
+    nc = d["routing"]["not_connected"]  # Sonnet was the best fit but had no key
+    assert nc["model"]["id"] == "claude-sonnet-5" and nc["model"]["connected"] is False
+    assert nc["instead"]["id"] == ex["model_used"] and "was used instead" in nc["note"]
+    assert d["routing"]["recommended"]["connected"] is True
+
+
+def test_score_says_when_the_best_fit_is_not_connected(client):
+    h = account(client)
+    # no connections at all: plain recommendation, no connection labels
+    d = client.post("/v1/score", json={"prompt": "x"}, headers=h).json()
+    assert "not_connected" not in d["routing"] and "connected" not in d["routing"]["recommended"]
+    # connect only Gemini: Sonnet is still the best fit, Gemini Flash would be used instead
+    r = client.post("/v1/providers", json={"provider": "gemini", "api_key": "g-key-123456"}, headers=CSRF)
+    assert r.status_code == 201, r.text
+    d = client.post("/v1/score", json={"prompt": "x"}, headers=h).json()
+    rt = d["routing"]
+    assert rt["recommended"]["id"] == "claude-sonnet-5" and rt["recommended"]["connected"] is False
+    nc = rt["not_connected"]
+    assert nc["instead"]["id"] == "gemini-3.8-flash" and nc["instead"]["connected"] is True
+    assert "haven't connected Anthropic" in nc["note"] and "would be used instead" in nc["note"]
+    flags = {m["id"]: m["connected"] for m in rt["alternatives"]}
+    assert flags["gemini-3.1-pro-preview"] is True and flags["gpt-6-luna"] is False
+    # the stats show the pick and what would have been used
+    u = client.get("/v1/usage/routing").json()
+    [key] = u["keys"]
+    sonnet = next(x for x in key["recommended"] if x["model"] == "claude-sonnet-5")
+    assert sonnet["not_connected"] == 1 and sonnet["instead"] == [
+        {"model": "gemini-3.8-flash", "name": "Gemini 3.8 Flash", "count": 1}
+    ]
 
 
 def test_route_falls_back_when_the_first_model_fails(client, fakes):
@@ -542,7 +570,13 @@ def test_routing_usage_per_key_and_model(client, fakes):
     assert key["sent_to"] == [
         {"model": "claude-sonnet-5", "name": "Claude Sonnet 5", "calls": 1, "spent_usd": t["spent_usd"]}
     ]
-    assert key["recommended"][0] == {"model": "claude-sonnet-5", "name": "Claude Sonnet 5", "count": 2}
+    assert key["recommended"][0] == {
+        "model": "claude-sonnet-5",
+        "name": "Claude Sonnet 5",
+        "count": 2,
+        "not_connected": 0,
+        "instead": [],
+    }
     sonnet = next(m for m in u["models"] if m["model"] == "claude-sonnet-5")
     assert sonnet["recommended"] == 2 and sonnet["sent"] == 1
 

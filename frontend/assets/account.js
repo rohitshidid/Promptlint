@@ -225,13 +225,17 @@
       <div><small>Failed calls</small><b>${fmt(t.failed)}</b></div>
       <div><small>"Clarify first"</small><b>${fmt(t.clarify_first)}</b></div>
     </div>`;
-    const top = Math.max(...u.models.map((m) => Math.max(m.recommended, m.sent)), 1);
-    html += `<h3>By model</h3><p class="sub" style="margin:0 0 6px">Dark = sent to your LLM, light = recommended only.</p>
+    const top = Math.max(...u.models.map((m) => Math.max(m.recommended + (m.used_instead || 0), m.sent)), 1);
+    html += `<h3>By model</h3><p class="sub" style="margin:0 0 6px">Dark = sent to your LLM, light = recommended only. "Not connected" means it was the best fit, but you have no key for it, so your best connected model was used instead.</p>
       ${u.models.map((m) => {
-        const recOnly = Math.max(0, m.recommended - m.sent);
+        const recOnly = Math.max(0, m.recommended + (m.used_instead || 0) - m.sent);
         return `<div class="mbar"><span class="nm" title="${esc(m.name)}">${esc(m.name)}</span>
           <div class="track" title="${fmt(m.recommended)} recommended · ${fmt(m.sent)} sent"><i class="sent" style="width:${(m.sent / top) * 100}%"></i><i class="rec" style="width:${(recOnly / top) * 100}%"></i></div>
-          <em>${fmt(m.recommended)} picked · ${fmt(m.sent)} sent${m.spent_usd ? ` · ${usd(m.spent_usd)}` : ""}</em></div>`;
+          <em>${[
+            m.recommended ? `${fmt(m.recommended)} picked${m.not_connected ? ` <span class="nc-tag" title="Best fit for these prompts, but you haven't connected this provider, so another model was used">(${m.not_connected === m.recommended ? "" : fmt(m.not_connected) + " "}not connected)</span>` : ""}` : "",
+            m.used_instead ? `${fmt(m.used_instead)} used instead` : "",
+            `${fmt(m.sent)} sent${m.spent_usd ? ` · ${usd(m.spent_usd)}` : ""}`,
+          ].filter(Boolean).join(" · ")}</em></div>`;
       }).join("")}
       <details class="data"><summary>Show as a table</summary><div class="table-scroll"><table class="keys"><thead><tr><th>Model</th><th>Picked</th><th>Sent</th><th>Tokens in / out</th><th>Spent</th></tr></thead><tbody>
         ${u.models.map((m) => `<tr><td>${esc(m.name)}<br><span class="muted">${esc(m.provider || "")}</span></td><td>${fmt(m.recommended)}</td><td>${fmt(m.sent)}</td>
@@ -251,7 +255,9 @@
           <div><small>Spent</small><b>${usd(k.spent_usd)}</b></div>
           <div class="save"><small>Saved</small><b>${usd(k.saved_usd)}</b><span>est. ${usd(k.est_saved_usd)}</span></div>
         </div>
-        ${chips(k.recommended.slice(0, 6).map((x) => `<span class="chipx">${esc(x.name)}<i>×${fmt(x.count)}</i></span>`), "Router picked")}
+        ${chips(k.recommended.slice(0, 6).map((x) => x.not_connected
+          ? `<span class="chipx nc" title="Best fit, but you haven't connected this provider">${esc(x.name)}<i>×${fmt(x.count)}</i><em>not connected${x.instead.length ? ` → ${x.instead.map((y) => esc(y.name)).join(", ")} instead` : ""}</em></span>`
+          : `<span class="chipx">${esc(x.name)}<i>×${fmt(x.count)}</i></span>`), "Router picked")}
         ${chips(k.sent_to.map((x) => `<span class="chipx sent">${esc(x.name)}<i>×${fmt(x.calls)}</i></span>`), "Sent to")}
         ${k.providers_used.length ? `<p class="kc-foot">Providers used: ${esc(k.providers_used.join(", "))}</p>` : ""}
       </article>`;

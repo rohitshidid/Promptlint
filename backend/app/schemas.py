@@ -67,6 +67,17 @@ class RoutedModel(BaseModel):
     est_cost_usd_p50: float
     est_cost_usd_p90: float
     task_fit: float | None = Field(None, description="0–1: how well the model suits this task type")
+    connected: bool | None = Field(
+        None, description="Whether you have a key for this model (only set once you've connected any)"
+    )
+
+
+class NotConnected(BaseModel):
+    """The best fit is a model you haven't connected; `instead` is the best of the ones you have."""
+
+    model: RoutedModel
+    instead: RoutedModel | None
+    note: str
 
 
 class Routing(BaseModel):
@@ -83,6 +94,7 @@ class Routing(BaseModel):
     savings_usd: float
     savings_percent: float
     alternatives: list[RoutedModel]
+    not_connected: NotConnected | None = None
     warnings: list[str] = []
 
 

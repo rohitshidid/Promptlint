@@ -59,9 +59,12 @@ from app.schemas import (
     BatchResponse,
     BatchResult,
     Execution,
+    NotConnected,
     ProviderKeyIn,
+    RoutedModel,
     RouteRequest,
     RouteResponse,
+    Routing,
     RoutingOptions,
     ScoreRequest,
     ScoreResponse,
@@ -168,6 +171,7 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
         store: bool,
         decision: model_router.RouteDecision | None = None,
         executed: dict | None = None,
+        used: model_router.RouteDecision | None = None,
     ) -> None:
         s = request.app.state.settings
         event = ScoreEvent(
@@ -180,7 +184,7 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             lint_score=a.lint.lint_score,
             pqs_score=a.pqs.pqs_score,
             latency_ms=a.elapsed_ms,
-            **_routing_fields(decision),
+            **_routing_fields(decision, used),
             **(executed or {}),
         )
         db.add(event)
@@ -189,21 +193,77 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             db.add(StoredPrompt(event_id=event.id, prompt=prompt, system=system))
 
     # ------------------------------------------------------------ routing helpers
-    def _routing_fields(d: model_router.RouteDecision | None) -> dict:
-        """What the router picked, for the per-key routing stats on the account page."""
+    def _routing_fields(
+        d: model_router.RouteDecision | None, used: model_router.RouteDecision | None = None
+    ) -> dict:
+        """What the router picked, for the per-key routing stats on the account page.
+
+        `d` is the best fit over every candidate; `used` is the decision among the models you have keys
+        for (when that differs). Expected cost and baseline come from the model that would really be used.
+        """
         if d is None or d.chosen is None:
             return {}
+        u = used if used is not None and used.chosen is not None else d
         c = d.chosen.candidate
         return {
             "strategy": d.strategy,
             "task_type": d.task_type,
             "routed_model": c.id,
             "routed_provider": c.provider,
-            "baseline_model": d.baseline.candidate.id if d.baseline else None,
-            "est_cost_usd": d.chosen.cost_p50,
-            "est_baseline_usd": d.baseline.cost_p50 if d.baseline else None,
+            "connected_model": u.chosen.candidate.id if u.chosen.candidate.id != c.id else None,
+            "baseline_model": u.baseline.candidate.id if u.baseline else None,
+            "est_cost_usd": u.chosen.cost_p50,
+            "est_baseline_usd": u.baseline.cost_p50 if u.baseline else None,
             "clarify_first": d.action == "clarify_first",
         }
+
+    def _connected_ids(candidates, saved: list[ProviderKey], provider_keys: dict | None = None) -> set[str]:
+        """Candidates you could actually call: a saved or per-request key, or your own endpoint."""
+        adapters = {r.provider for r in saved if r.provider != "openai_compatible" and r.encrypted_key}
+        adapters |= set(provider_keys or {})
+        return {
+            c.id
+            for c in candidates
+            if c.inline_key
+            or c.source == "connected"
+            or (c.adapter == "openai_compatible" and c.source == "custom" and c.base_url)
+            or c.adapter in adapters
+        }
+
+    def _not_connected_note(pick: RoutedModel, instead: RoutedModel | None, used: bool) -> str:
+        who = "your own endpoint" if pick.provider == "Custom endpoint" else pick.provider
+        if instead is None:
+            return f"{pick.name} is the best fit for this prompt, but you haven't connected {who}."
+        verb = "was used instead" if used else "would be used instead"
+        return (
+            f"{pick.name} is the best fit for this prompt, but you haven't connected {who}, "
+            f"so {instead.name} (the best of your connected models) {verb}."
+        )
+
+    def _mark_connected(routing: Routing, conn: set[str]) -> None:
+        for m in (routing.recommended, routing.fallback, routing.baseline, *routing.alternatives):
+            if m is not None:
+                m.connected = m.id in conn
+
+    def _with_connections(request: Request, a: Analysis, opts: RoutingOptions, candidates, decision, conn):
+        """The routing for the response, plus the decision among connected models (None if not needed)."""
+        analyzer = request.app.state.analyzer
+        routing = analyzer.routing_out(decision)
+        if not conn:
+            return routing, None
+        _mark_connected(routing, conn)
+        if decision.chosen is None or decision.chosen.candidate.id in conn:
+            return routing, None
+        used = _decide(request, a, opts, [c for c in candidates if c.id in conn])
+        instead = analyzer._routed(used.chosen)
+        if instead is not None:
+            instead.connected = True
+        routing.not_connected = NotConnected(
+            model=routing.recommended,
+            instead=instead,
+            note=_not_connected_note(routing.recommended, instead, used=False),
+        )
+        return routing, used
 
     def _vault(request: Request) -> KeyVault | None:
         secret = request.app.state.settings.effective_provider_key_secret
@@ -263,13 +323,14 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
     ):
         _rate_limit(request, response, ctx)
         _check_input(request, body.prompt, body.system, body.models)
-        connected = _connected_candidates(await _saved_providers(db, ctx.user.id))
-        candidates = _candidates(request, body.routing, connected)
+        saved = await _saved_providers(db, ctx.user.id)
+        candidates = _candidates(request, body.routing, _connected_candidates(saved))
+        conn = _connected_ids(candidates, saved)
         await _quota(db, response, ctx, 1)
         a = await _analyze(request, body.prompt, body.system, body.models, body.backend)
         decision = _decide(request, a, body.routing, candidates)
-        routing = request.app.state.analyzer.routing_out(decision)
-        await _record(db, request, ctx, a, body.prompt, body.system, body.options.store, decision)
+        routing, used = _with_connections(request, a, body.routing, candidates, decision, conn)
+        await _record(db, request, ctx, a, body.prompt, body.system, body.options.store, decision, used=used)
         await record_usage(
             db, key_id=ctx.key.id, user_id=ctx.user.id, prompts=1, degraded=int(a.judged.degraded)
         )
@@ -299,8 +360,9 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             )
         _rate_limit(request, response, ctx)
         _check_input(request, "", None, body.models)
-        connected = _connected_candidates(await _saved_providers(db, ctx.user.id))
-        candidates = _candidates(request, body.routing, connected)
+        saved = await _saved_providers(db, ctx.user.id)
+        candidates = _candidates(request, body.routing, _connected_candidates(saved))
+        conn = _connected_ids(candidates, saved)
         await _quota(db, response, ctx, len(body.items))
         sem = asyncio.Semaphore(8)
         rid = _rid(request)
@@ -329,7 +391,10 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             scored += 1
             degraded += int(a.judged.degraded)
             decision = _decide(request, a, body.routing, candidates)
-            await _record(db, request, ctx, a, item.prompt, item.system, body.options.store, decision)
+            routing, used = _with_connections(request, a, body.routing, candidates, decision, conn)
+            await _record(
+                db, request, ctx, a, item.prompt, item.system, body.options.store, decision, used=used
+            )
             results.append(
                 BatchResult(
                     index=i,
@@ -340,7 +405,7 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                         include_suggestions=body.options.include_suggestions,
                         include_confidence=body.options.include_confidence,
                         stored=body.options.store,
-                        routing=request.app.state.analyzer.routing_out(decision),
+                        routing=routing,
                     ),
                 )
             )
@@ -371,10 +436,12 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
         saved = await _saved_providers(db, ctx.user.id)
         connected = _connected_candidates(saved)
         candidates = _candidates(request, body.routing, connected)
+        conn = _connected_ids(candidates, saved, body.provider_keys)
         await _quota(db, response, ctx, 1)
         a = await _analyze(request, body.prompt, body.system, body.models, body.backend)
-        decision = _decide(request, a, body.routing, candidates)
-        routing = request.app.state.analyzer.routing_out(decision)
+        best = _decide(request, a, body.routing, candidates)  # best fit over every candidate
+        routing, used = _with_connections(request, a, body.routing, candidates, best, conn)
+        decision = used or best  # what would really be called
 
         execution = Execution(executed=False)
         called = False  # did we actually try any model?
@@ -431,12 +498,24 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                 )
             else:
                 if len(executable) < len(candidates):
+                    analyzer = request.app.state.analyzer
                     decision = _decide(request, a, body.routing, executable)
-                    routing = request.app.state.analyzer.routing_out(decision)
-                    routing.warnings.append(
-                        f"Routed among the {len(executable)} model(s) you have keys for "
-                        f"(out of {len(candidates)} candidates)."
-                    )
+                    used = decision
+                    routing = analyzer.routing_out(decision)
+                    _mark_connected(routing, {c.id for c in executable})
+                    if best.chosen and best.chosen.candidate.id != decision.chosen.candidate.id:
+                        pick = analyzer._routed(best.chosen)
+                        pick.connected = False
+                        routing.not_connected = NotConnected(
+                            model=pick,
+                            instead=routing.recommended,
+                            note=_not_connected_note(pick, routing.recommended, used=True),
+                        )
+                    else:
+                        routing.warnings.append(
+                            f"Routed among the {len(executable)} model(s) you have keys for "
+                            f"(out of {len(candidates)} candidates)."
+                        )
                 order = [decision.chosen] + [
                     r for r in decision.ranked if r is not decision.chosen and r.capable
                 ]
@@ -508,7 +587,9 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                     executed["exec_baseline_usd"] = decision.baseline.candidate.cost(
                         execution.input_tokens, execution.output_tokens
                     )
-        await _record(db, request, ctx, a, body.prompt, body.system, body.options.store, decision, executed)
+        await _record(
+            db, request, ctx, a, body.prompt, body.system, body.options.store, best, executed, used=used
+        )
         await record_usage(
             db, key_id=ctx.key.id, user_id=ctx.user.id, prompts=1, degraded=int(a.judged.degraded)
         )
@@ -767,6 +848,7 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                     E.key_id,
                     E.routed_model,
                     E.routed_provider,
+                    E.connected_model,
                     E.executed_model,
                     E.executed_provider,
                     func.count(),
@@ -781,7 +863,14 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                     func.sum(E.exec_output_tokens),
                 )
                 .where(*where)
-                .group_by(E.key_id, E.routed_model, E.routed_provider, E.executed_model, E.executed_provider)
+                .group_by(
+                    E.key_id,
+                    E.routed_model,
+                    E.routed_provider,
+                    E.connected_model,
+                    E.executed_model,
+                    E.executed_provider,
+                )
             )
         ).all()
         base_rows = (
@@ -801,7 +890,24 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
         per_key = {k: blank() | {"recommended": {}, "sent_to": {}, "providers": set()} for k in key_ids}
         per_model: dict[str, dict] = {}
         total = blank()
-        for kid, rmodel, rprov, xmodel, xprov, n, n_ok, n_fail, n_clar, ec, eb, xc, xb, ti, to in rows:
+        for (
+            kid,
+            rmodel,
+            rprov,
+            cmodel,
+            xmodel,
+            xprov,
+            n,
+            n_ok,
+            n_fail,
+            n_clar,
+            ec,
+            eb,
+            xc,
+            xb,
+            ti,
+            to,
+        ) in rows:
             for bucket in (per_key[kid], total):
                 bucket["checks"] += n
                 bucket["clarify_first"] += n_clar or 0
@@ -814,13 +920,25 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                 bucket["input_tokens"] += ti or 0
                 bucket["output_tokens"] += to or 0
             k = per_key[kid]
-            k["recommended"][rmodel] = k["recommended"].get(rmodel, 0) + n
+            rec = k["recommended"].setdefault(rmodel, {"count": 0, "not_connected": 0, "instead": {}})
+            rec["count"] += n
+            if cmodel:  # best fit wasn't connected; cmodel is what would be / was used instead
+                rec["not_connected"] += n
+                rec["instead"][cmodel] = rec["instead"].get(cmodel, 0) + n
             pm = per_model.setdefault(
                 rmodel,
                 {"model": rmodel, "name": name(rmodel), "provider": rprov, "recommended": 0, "sent": 0,
                  "spent_usd": 0.0, "input_tokens": 0, "output_tokens": 0},
             )  # fmt: skip
             pm["recommended"] += n
+            if cmodel:
+                pm["not_connected"] = pm.get("not_connected", 0) + n
+                cm = per_model.setdefault(
+                    cmodel,
+                    {"model": cmodel, "name": name(cmodel), "provider": None, "recommended": 0, "sent": 0,
+                     "spent_usd": 0.0, "input_tokens": 0, "output_tokens": 0},
+                )  # fmt: skip
+                cm["used_instead"] = cm.get("used_instead", 0) + n
             if xmodel:
                 k["providers"].add(xprov)
                 sent = k["sent_to"].setdefault(xmodel, {"calls": 0, "spent_usd": 0.0})
@@ -849,7 +967,19 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                 continue
             entry = _key_out(k) | finish({x: b[x] for x in blank()})
             entry["recommended"] = sorted(
-                ({"model": m, "name": name(m), "count": c} for m, c in b["recommended"].items()),
+                (
+                    {
+                        "model": m,
+                        "name": name(m),
+                        "count": r["count"],
+                        "not_connected": r["not_connected"],
+                        "instead": sorted(
+                            ({"model": im, "name": name(im), "count": ic} for im, ic in r["instead"].items()),
+                            key=lambda x: -x["count"],
+                        ),
+                    }
+                    for m, r in b["recommended"].items()
+                ),
                 key=lambda x: -x["count"],
             )
             entry["sent_to"] = sorted(
@@ -867,8 +997,11 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                 key=lambda x: -x["checks"],
             ),
             "models": sorted(
-                ({**m, "spent_usd": round(m["spent_usd"], 6)} for m in per_model.values()),
-                key=lambda x: (-x["sent"], -x["recommended"]),
+                (
+                    {"not_connected": 0, "used_instead": 0, **m, "spent_usd": round(m["spent_usd"], 6)}
+                    for m in per_model.values()
+                ),
+                key=lambda x: (-x["sent"], -(x["recommended"] + x["used_instead"])),
             ),
             "keys": keys_out,
         }

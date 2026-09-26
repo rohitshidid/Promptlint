@@ -139,6 +139,12 @@
   table.cost tr.pick td { background: var(--accent-soft); }
   table.cost .tag { display: inline-block; font-size: .7rem; font-weight: 650; border-radius: 999px; padding: 1px 8px; margin-left: 6px; background: var(--bg-tint); color: var(--ink-soft); }
   table.cost tr.pick .tag { background: var(--accent); color: #fff; }
+  .nc-note { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--warn-soft); color: var(--warn-ink); font-size: .92rem; line-height: 1.55; border: 1px solid rgba(250,178,25,.45); }
+  .nc-note b { color: var(--ink); }
+  .nc-note .nc-alt { display: block; margin-top: 4px; color: var(--ink-soft); }
+  .nc-note a { display: inline-block; margin-top: 6px; font-weight: 600; }
+  table.cost .tag.nc { background: var(--warn-soft); color: var(--warn-ink); }
+  table.cost .tag.used { background: var(--good-soft); color: var(--good-ink); }
   .answer { background: var(--bg-tint); border: 1px solid var(--line-soft); border-radius: 12px; padding: 14px 16px; white-space: pre-wrap; line-height: 1.6; font-size: .95rem; max-height: 520px; overflow: auto; }
   .attempts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .attempts span { font-size: .78rem; font-family: var(--mono); border-radius: 999px; padding: 3px 10px; background: var(--good-soft); color: var(--good-ink); }
@@ -486,10 +492,13 @@
         const saves = rt.baseline && rt.baseline.id !== r.id && rt.savings_usd > 0;
         html += `<div class="box"><h2>Which AI to send it to</h2>
             <p class="sub">PromptLint picks the model for each prompt, so easy prompts don't go to expensive models.</p>
-            <div class="route-card"><div><small>Recommended</small><b>${esc(r.name)}</b>
+            <div class="route-card"><div><small>${r.connected === false ? "Best fit (not connected)" : "Recommended"}</small><b>${esc(r.name)}</b>
                 <span>${esc(PROVIDER[r.provider] || r.provider)} · ${esc(r.tier)} model · about ${money(r.est_cost_usd_p50)} per request</span></div>
                 ${saves ? `<span class="save">${pctText(rt.savings_percent)} cheaper than ${esc(rt.baseline.name)}</span>`
                     : `<span class="save none">${rt.baseline && rt.baseline.id === r.id ? "Same as your comparison model" : "No savings here"}</span>`}</div>
+            ${rt.not_connected ? `<div class="nc-note"><b>${esc(rt.not_connected.model.name)} isn't connected.</b> ${esc(rt.not_connected.note.replace(/^[^,]*, but /, "It's the best fit, but "))}
+                ${rt.not_connected.instead ? `<span class="nc-alt">Your best connected model: <b>${esc(rt.not_connected.instead.name)}</b> · about ${money(rt.not_connected.instead.est_cost_usd_p50)} per request</span>` : ""}
+                <a href="${esc(server())}/account.html#providers-box">Connect ${esc(PROVIDER[rt.not_connected.model.provider] || rt.not_connected.model.provider)} →</a></div>` : ""}
             <p class="why">${esc(rt.reason)}${rt.fallback ? ` If it fails, try <b>${esc(rt.fallback.name)}</b>.` : ""}</p>
             ${saves ? `<p class="why">Sending 1,000 prompts like this one would cost about <b>${money(r.est_cost_usd_p50 * 1000)}</b> instead of <b>${money((r.est_cost_usd_p50 + rt.savings_usd) * 1000)}</b>.</p>` : ""}
             ${(rt.warnings || []).map((w) => `<p class="hint">⚠ ${esc(w)}</p>`).join("")}`;
@@ -497,7 +506,7 @@
             const rows = [r, ...rt.alternatives.filter((m) => m.id !== r.id)];
             html += `<h2 style="margin-top:20px;font-size:1rem">All the models we compared</h2>
                 <div class="table-scroll"><table class="cost" style="margin-top:8px"><thead><tr><th>AI model</th><th>Good enough?</th><th class="r">One request</th></tr></thead><tbody>
-                ${rows.map((m, k) => `<tr class="${k === 0 ? "pick" : ""}"><td>${esc(m.name)}${k === 0 ? '<span class="tag">pick</span>' : rt.fallback && m.id === rt.fallback.id ? '<span class="tag">backup</span>' : ""}
+                ${rows.map((m, k) => `<tr class="${k === 0 ? "pick" : ""}"><td>${esc(m.name)}${k === 0 ? '<span class="tag">pick</span>' : rt.fallback && m.id === rt.fallback.id ? '<span class="tag">backup</span>' : ""}${rt.not_connected && rt.not_connected.instead && m.id === rt.not_connected.instead.id ? '<span class="tag used">used instead</span>' : ""}${m.connected === false ? '<span class="tag nc">not connected</span>' : ""}
                     <small>${esc(PROVIDER[m.provider] || m.provider)} · ${esc(m.tier)}${m.source !== "catalog" ? " · yours" : ""}</small></td>
                     <td>${m.capable ? "Yes" : "Probably not"}</td>
                     <td class="r">${money(m.est_cost_usd_p50)}<small>up to ${money(m.est_cost_usd_p90)}</small></td></tr>`).join("")}
