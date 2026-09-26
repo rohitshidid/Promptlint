@@ -135,21 +135,26 @@
     }).join("")}</ul>`;
   }
 
+  // The model the router recommends (falls back to the older tier-only suggestion).
+  const pickId = (r) => (r.routing && r.routing.recommended ? r.routing.recommended.id : r.suggested_model);
+
   function costTable(report, modelNames) {
     const [olo, ohi] = report.tokens.output_range;
+    const pick = pickId(report);
     const rows = report.costs.map((c) => {
-      const sug = c.model === report.suggested_model;
+      const sug = c.model === pick;
       const tokens = c.input_exact ? int(c.input_tokens)
         : `<span class="approx" title="Approximate: no exact tokenizer available for this model here">≈ ${int(c.input_tokens)}</span>`;
       return `<tr class="${sug ? "suggested" : ""}">
-        <td class="model"><b>${esc(c.name)}${sug ? '<span class="tier-tag">Suggested</span>' : ""}</b><small>${esc(c.provider)} · ${esc(c.tier)}${c.note ? " · " + esc(c.note) : ""}</small></td>
+        <td class="model"><b>${esc(c.name)}${sug ? '<span class="tier-tag">Recommended</span>' : ""}</b><small>${esc(c.provider)} · ${esc(c.tier)}${c.note ? " · " + esc(c.note) : ""}</small></td>
         <td class="r">${tokens}</td>
         <td class="r">${usdRange(c.low_usd, c.high_usd)}</td>
         <td class="r">${usdRange(c.low_usd * 1000, c.high_usd * 1000)}</td>
       </tr>`;
     }).join("");
-    const sugName = report.suggested_model && !report.costs.some((c) => c.model === report.suggested_model)
-      ? ` Suggested for this prompt: <b>${esc(modelNames?.[report.suggested_model] || report.suggested_model)}</b> (not selected).` : "";
+    const pickName = report.routing && report.routing.recommended ? report.routing.recommended.name : (modelNames?.[pick] || pick);
+    const sugName = pick && !report.costs.some((c) => c.model === pick)
+      ? ` Recommended for this prompt: <b>${esc(pickName)}</b> (not in this table).` : "";
     return `<div class="table-scroll"><table class="costs">
       <thead><tr><th>Model</th><th class="r">Input tokens</th><th class="r">Per request</th><th class="r">Per 1,000</th></tr></thead>
       <tbody>${rows}</tbody></table></div>
@@ -201,7 +206,9 @@
 
   function summaryBlock(r, { modelNames } = {}) {
     const { task, v, lead } = headline(r);
-    const sug = r.suggested_model ? (modelNames?.[r.suggested_model] || r.costs.find((c) => c.model === r.suggested_model)?.name || r.suggested_model) : null;
+    const rec = r.routing && r.routing.recommended;
+    const sug = rec ? rec.name : r.suggested_model ? (modelNames?.[r.suggested_model] || r.costs.find((c) => c.model === r.suggested_model)?.name || r.suggested_model) : null;
+    const tierKey = (r.routing && r.routing.required_tier) || r.tier_hint;
     return `<div class="rc-block rc-summary">
       <div class="gauge-wrap">${gaugeSVG(r.lint_score, r.verdict)}<div class="gauge-num">${r.lint_score}<small>/100</small></div></div>
       <div>
@@ -209,7 +216,7 @@
         <p class="rc-headline"><strong>${esc(lead)}</strong> ${r.meta.caps_applied.length ? `Capped from ${r.meta.uncapped_score} because ${r.meta.caps_applied.includes("conflicting") ? "instructions conflict" : "the task is unclear"}.` : ""}</p>
         <div class="pills">
           <span class="pill" title="Jev confidence ${pct(r.task_type.confidence)}">Task: ${esc(task)}</span>
-          <span class="pill accent">${esc(TIER_LABEL[r.tier_hint])}${sug ? " · try " + esc(sug) : ""}</span>
+          <span class="pill accent">${esc(TIER_LABEL[tierKey] || "")}${sug ? " · send to " + esc(sug) : ""}</span>
           ${r.pqs_score != null ? `<span class="pill" title="PQS composite (prompt-quality-scorer.md §9.5): clarity, specificity, completeness and re-ask risk, computed from the same answers">PQS score ${r.pqs_score}</span>` : ""}
           ${r.meta.low_confidence && r.meta.backend !== "heuristic" ? '<span class="pill warn" title="Average Jev confidence on the scales was below 50%">Low confidence</span>' : ""}
         </div>
@@ -237,7 +244,7 @@
       <div class="rc-two">${firstTryBlock(r.first_try_success)}${specificityBlock(r.specificity)}</div>
       <div class="rc-dims">
         <div class="rc-block"><p class="rc-label"><span>Dimensions</span></p>${radarSVG(dims, radarSeries)}${legend}</div>
-        <div class="rc-block"><p class="rc-label"><span>Checklist</span><span>hover for probability</span></p>${checklist(r.checks)}</div>
+        <div class="rc-block"><p class="rc-label"><span>Checklist</span><span class="hover-hint">hover or tap for probability</span></p>${checklist(r.checks)}</div>
       </div>
       ${opts.hideRouting ? "" : routingBlock(r)}
       ${opts.hideCosts ? "" : `<div class="rc-block"><p class="rc-label"><span>Tokens &amp; cost</span><span>${r.tokens.input_exact ? "" : "≈ approx."}</span></p>${costTable(r, opts.modelNames)}</div>`}

@@ -11,8 +11,9 @@
 .rc-label span + span { letter-spacing: 0; text-transform: none; font-weight: 500; }
 
 /* ---------------------------------------------------------------- summary */
-.rc-summary { display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: center; }
-@media (max-width: 560px) { .rc-summary { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
+.rc-summary { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 22px; align-items: center; }
+.rc-summary > div { min-width: 0; }
+@media (max-width: 560px) { .rc-summary { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; } }
 .gauge { width: 176px; height: 112px; display: block; }
 .gauge-wrap { position: relative; width: 176px; }
 .gauge-num {
@@ -36,6 +37,7 @@
   font-size: .76rem; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line);
   color: var(--ink-soft); background: #fff; white-space: nowrap;
 }
+.pills .pill { max-width: 100%; white-space: normal; text-align: center; }
 .pill.warn { border-color: rgba(250,178,25,.55); background: var(--warn-soft); color: var(--warn-ink); }
 .pill.accent { border-color: rgba(4,120,87,.25); background: var(--accent-soft); color: var(--accent); }
 

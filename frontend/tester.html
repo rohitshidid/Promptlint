@@ -6,7 +6,7 @@
 <title>Check a prompt · PromptLint</title>
 <meta name="description" content="Try your PromptLint API key: check a prompt and get a plain-English explanation of the result.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.13">
+<link rel="stylesheet" href="assets/site.css?v=1.2.17">
 <style>
   .t-head { padding: 40px 0 8px; position: relative; }
   .t-head::before {
@@ -136,7 +136,7 @@
   table.cost small { color: var(--ink-faint); display: block; font-size: .78rem; }
   .table-scroll { overflow-x: auto; }
 
-  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 10px; }
   .fact { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
   .fact small { display: block; font-size: .72rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
   .fact b { display: block; font-size: 1.05rem; margin-top: 4px; letter-spacing: -0.01em; }
@@ -161,6 +161,7 @@
   .why { margin: 14px 0 0; line-height: 1.55; color: var(--ink-soft); font-size: .95rem; }
   .why b { color: var(--ink); }
   table.cost tr.pick td { background: var(--accent-soft); }
+  table.cost .tag { white-space: nowrap; }
   table.cost .tag { display: inline-block; font-size: .7rem; font-weight: 650; border-radius: 999px; padding: 1px 8px; margin-left: 6px; background: var(--bg-tint); color: var(--ink-soft); }
   table.cost tr.pick .tag { background: var(--accent); color: #fff; }
   .nc-note { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--warn-soft); color: var(--warn-ink); font-size: .92rem; line-height: 1.55; border: 1px solid rgba(250,178,25,.45); }
@@ -253,7 +254,7 @@
       <div class="fg">
         <label class="f" for="strategySelect">Pick the AI model for</label>
         <select class="t" id="strategySelect">
-          <option value="balanced">Balance of price and quality (recommended)</option>
+          <option value="balanced">Balanced (recommended)</option>
           <option value="cheapest">Lowest price</option>
           <option value="quality">Best quality</option>
         </select>
@@ -778,5 +779,6 @@
     });
 })();
 </script>
+<script src="assets/site.js?v=1.2.17"></script>
 </body>
 </html>

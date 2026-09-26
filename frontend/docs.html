@@ -6,7 +6,7 @@
 <title>API docs · PromptLint</title>
 <meta name="description" content="PromptLint public API: score prompts, batch, pricing, usage. Authentication, limits, errors and response fields.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.13">
+<link rel="stylesheet" href="assets/site.css?v=1.2.17">
 <style>
   .doc-head { padding: 40px 0 12px; position: relative; }
   .doc-head::before {
@@ -169,7 +169,7 @@
     <section id="batch">
       <h2>Score many prompts</h2>
       <div class="endpoint"><span class="method">POST</span>/v1/score/batch <span class="auth-tag">API key</span></div>
-      <p>Up to 10 items on free, 50 on paid plans. Items are scored concurrently; one bad item doesn't fail the batch.</p>
+      <p>Up to 10 items on the free plan, 50 on dev and pro. Items are scored concurrently; one bad item doesn't fail the batch.</p>
 <pre class="codeblock">{
   <span class="k">"items"</span>: [
     { <span class="k">"id"</span>: <span class="s">"ticket-1"</span>, <span class="k">"prompt"</span>: <span class="s">"fix my code"</span> },
@@ -419,5 +419,6 @@ console.log(report.scores, report.suggestions.map((s) => s.text));`,
   }).catch(() => {});
 })();
 </script>
+<script src="assets/site.js?v=1.2.17"></script>
 </body>
 </html>

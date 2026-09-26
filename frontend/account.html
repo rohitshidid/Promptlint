@@ -6,8 +6,8 @@
 <title>Account · PromptLint</title>
 <meta name="description" content="Create a free PromptLint API key, manage keys, and see your usage.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.13">
-<link rel="stylesheet" href="assets/report.css?v=1.2.13">
+<link rel="stylesheet" href="assets/site.css?v=1.2.17">
+<link rel="stylesheet" href="assets/report.css?v=1.2.17">
 <style>
   .acct-head { padding: 40px 0 8px; position: relative; }
   .acct-head::before {
@@ -88,7 +88,12 @@
   .mbar .track i.rec { background: rgba(16,185,129,.28); }
   .mbar em { font-style: normal; color: var(--ink-faint); font-size: .8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .mbar span.nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  @media (max-width: 600px) { .mbar { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; } .mbar .track { grid-column: 1 / -1; grid-row: 2; } }
+  @media (max-width: 600px) {
+    .mbar { grid-template-columns: minmax(0, 1fr); row-gap: 4px; }
+    .mbar span.nm { white-space: normal; }
+    .mbar .track { grid-row: 2; }
+    .mbar em { grid-row: 3; white-space: normal; }
+  }
   button.info, span.info { display: inline-grid; place-items: center; width: 15px; height: 15px; padding: 0; margin-left: 4px; border-radius: 50%;
     border: 1.3px solid currentColor; background: transparent; color: var(--ink-faint); font: 700 .62rem/1 var(--mono); letter-spacing: 0;
     text-transform: none; vertical-align: 1px; cursor: help; }
@@ -131,6 +136,7 @@
   table.keys td { padding: 10px 6px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
   tr.revoked-row td { opacity: .6; }
   .qual { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .qual select { max-width: 100%; }
   .qual select { font: inherit; font-size: .78rem; padding: 3px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg-tint); color: var(--ink); max-width: 100%; }
   .qual span { font-size: .74rem; color: var(--ink-faint); }
   .qual button { font: inherit; font-size: .76rem; font-weight: 600; padding: 3px 10px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
@@ -341,7 +347,8 @@
   </div>
 </footer>
 
-<script src="assets/report.js?v=1.2.13"></script>
-<script src="assets/account.js?v=1.2.13"></script>
+<script src="assets/report.js?v=1.2.17"></script>
+<script src="assets/account.js?v=1.2.17"></script>
+<script src="assets/site.js?v=1.2.17"></script>
 </body>
 </html>

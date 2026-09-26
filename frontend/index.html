@@ -8,8 +8,8 @@
 <meta property="og:title" content="PromptLint · Stop paying frontier prices for every prompt">
 <meta property="og:description" content="Route each prompt to the cheapest model that can handle it. Measured: 89% cheaper than always using the priciest model.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.13">
-<link rel="stylesheet" href="assets/report.css?v=1.2.13">
+<link rel="stylesheet" href="assets/site.css?v=1.2.17">
+<link rel="stylesheet" href="assets/report.css?v=1.2.17">
 <style>
   /* ---- hero demo window */
   .demo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); min-height: 430px; }
@@ -87,7 +87,9 @@
   .calc-big b { display: block; font-size: clamp(2.2rem, 5vw, 3rem); letter-spacing: -0.04em; line-height: 1.1; margin-top: 4px; color: var(--good-ink); }
   .calc-big span { display: block; color: var(--ink-soft); font-size: .95rem; margin-top: 2px; }
   .calc-rows { margin-top: 18px; display: grid; gap: 8px; }
-  .calc-row { display: flex; justify-content: space-between; gap: 12px; font-size: .92rem; padding-bottom: 8px; border-bottom: 1px solid var(--line-soft); }
+  .calc-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: .92rem; padding-bottom: 8px; border-bottom: 1px solid var(--line-soft); }
+  .calc-row span { flex: 1 1 150px; min-width: 0; }
+  .calc-row b { margin-left: auto; text-align: right; }
   .calc-row span { color: var(--ink-soft); }
   .calc-row b { font-variant-numeric: tabular-nums; }
   .calc-note { font-size: .8rem; color: var(--ink-faint); line-height: 1.5; margin: 14px 0 0; }
@@ -135,7 +137,7 @@
   /* ---- accuracy */
   #acc-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   @media (max-width: 900px) { #acc-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 520px) { #acc-stats { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 560px) { #acc-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .acc-note { margin: 18px auto 0; max-width: 62ch; font-size: .86rem; color: var(--ink-faint); text-align: center; }
   .stat.pending b { color: var(--ink-faint); }
   .stat small { display: block; margin-top: 8px; font-size: .74rem; color: var(--ink-faint); font-family: var(--mono); }
@@ -232,7 +234,7 @@
         </label>
         <label>Routing strategy
           <select id="calc-strategy">
-            <option value="balanced">Balanced (best quality for the price)</option>
+            <option value="balanced">Balanced (recommended)</option>
             <option value="cheapest">Lowest cost</option>
             <option value="quality">Best quality</option>
           </select>
@@ -609,8 +611,9 @@ curl https://<span class="n">your-host</span>/v1/route \
   </div>
 </footer>
 
-<script src="assets/report.js?v=1.2.13"></script>
-<script src="assets/demo-data.js?v=1.2.13"></script>
-<script src="assets/landing.js?v=1.2.13"></script>
+<script src="assets/report.js?v=1.2.17"></script>
+<script src="assets/demo-data.js?v=1.2.17"></script>
+<script src="assets/landing.js?v=1.2.17"></script>
+<script src="assets/site.js?v=1.2.17"></script>
 </body>
 </html>

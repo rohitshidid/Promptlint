@@ -130,7 +130,7 @@ Jev Ai/
 | `docs.html` | API reference for developers, with a real example response. |
 | `tester.html` | Try an API key in the browser: checks a prompt through `/v1/route`, explains the result in plain words, shows the recommended model and savings, and (if switched on) the AI's answer. |
 | `playground/` | A raw Jev playground: send any questions to Jev and see its answers. |
-| `assets/` | Shared styling (`site.css`, `report.css`), the report card drawing (`report.js`), page logic (`app.js`, `landing.js`, `account.js`), the icon, and generated data (`demo-data.js`, `api-example.json`, `eval-summary.json`, `routing-summary.json`). |
+| `assets/` | Shared styling (`site.css`, `report.css`), the phone menu and phone-friendly tables used on every page (`site.js`), the report card drawing (`report.js`), page logic (`app.js`, `landing.js`, `account.js`), the icon, and generated data (`demo-data.js`, `api-example.json`, `eval-summary.json`, `routing-summary.json`). |
 
 The friendly **API tester** is `frontend/tester.html` (served at `/tester.html`, linked from the account dashboard). It calls `/v1/route` with your key and explains the answer in plain words, including which model to use. Opened straight from disk, it talks to the live server instead.
 

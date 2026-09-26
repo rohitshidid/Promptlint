@@ -292,3 +292,54 @@ footer { border-top: 1px solid var(--line); padding: 34px 0 44px; font-size: .84
 .foot-in { display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .foot-in a { color: var(--ink-soft); }
 .foot-links { display: flex; gap: 20px; flex-wrap: wrap; }
+
+/* ------------------------------------------------------ phone menu (site.js) */
+.menu-btn { display: none; width: 40px; height: 40px; margin-right: -8px; border: 0; background: transparent; border-radius: 10px;
+            cursor: pointer; padding: 11px 9px; flex-direction: column; justify-content: space-between; }
+.menu-btn span { display: block; height: 2px; border-radius: 2px; background: var(--ink); transition: transform .2s, opacity .2s; }
+.menu-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.menu-btn.open span:nth-child(2) { opacity: 0; }
+.menu-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+.menu-btn:focus-visible { outline: 2px solid var(--accent-mid); }
+.site-menu { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-bottom: 1px solid var(--line);
+             box-shadow: 0 12px 30px rgba(16,24,40,.12); padding: 8px 16px 14px; display: grid; }
+.site-menu[hidden] { display: none; }
+.site-menu a { padding: 13px 6px; font-size: 1rem; color: var(--ink); border-bottom: 1px solid var(--line-soft); }
+.site-menu a:last-child { border-bottom: 0; }
+.site-menu a[aria-current="page"] { color: var(--accent); font-weight: 600; }
+.site-menu a:hover { text-decoration: none; background: var(--bg-tint); }
+@media (max-width: 860px) {
+  .menu-btn { display: inline-flex; }
+  .nav-links > a:not(.btn) { display: none; }   /* they're all in the menu */
+  .nav-links { gap: 10px; }
+}
+@media (max-width: 360px) { .nav-name { display: none; } }
+
+/* ------------------------------------------- small screens: no sideways scrolling */
+@media (max-width: 600px) {
+  .codeblock { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; padding: 14px 15px; }
+}
+@media (max-width: 560px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .stat { padding: 18px 16px; border-radius: 16px; }
+  .stat b { font-size: 1.55rem; }
+  .stat span { font-size: .8rem; }
+}
+/* Tables marked by site.js become one card per row, with each cell's column name above it. */
+@media (max-width: 640px) {
+  table.stack, table.stack tbody { display: block; width: 100%; min-width: 0 !important; }
+  table.stack thead { display: none; }
+  table.stack tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; padding: 12px 2px;
+                   border-bottom: 1px solid var(--line-soft); }
+  table.stack td { display: block; padding: 0 !important; border: 0 !important; text-align: left !important; min-width: 0;
+                   overflow-wrap: anywhere; background: none !important; white-space: normal !important; }
+  table.stack td:first-child { grid-column: 1 / -1; }
+  table.stack td[data-label]:not(:first-child)::before { content: attr(data-label); display: block; margin-bottom: 2px;
+    font-size: .66rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); }
+  table.stack td:empty { display: none; }
+  table.stack td code { white-space: normal; overflow-wrap: anywhere; }
+  table.ref.stack td:last-child { grid-column: 1 / -1; }   /* descriptions get the full width */
+  table.keys.stack td:nth-child(2) { grid-column: 1 / -1; }   /* the key / model + quality controls get the full width */
+  table.keys.stack td:last-child { align-self: end; justify-self: start; }
+  table.stack tr.pick, table.stack tr.chosen, table.stack tr.suggested { background: var(--accent-soft); border-radius: 12px; padding: 12px 10px; }
+}
