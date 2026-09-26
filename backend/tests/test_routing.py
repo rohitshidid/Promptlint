@@ -584,3 +584,33 @@ def test_routing_usage_per_key_and_model(client, fakes):
     assert client.get("/v1/usage/routing", headers=h).json()["totals"]["checks"] == 2
     client.cookies.clear()
     assert client.get("/v1/usage/routing").status_code == 401
+
+
+def test_a_free_custom_endpoint_does_not_block_a_better_fit_in_balanced(client):
+    """A near-free 'mid' endpoint used to win every balanced pick: 3x of ~$0 left no room for a better fit."""
+    h = account(client)
+    free = {"id": "openrouter/free", "tier": "mid", "input_price": 0.0001, "output_price": 0.0001,
+            "base_url": "https://openrouter.ai/api/v1"}  # fmt: skip
+    body = {"prompt": "x", "routing": {"candidates": [free, "gemini-3.8-flash", "claude-sonnet-5"]}}
+    rt = client.post("/v1/score", json=body, headers=h).json()["routing"]
+    # writing (fake judge): Claude fits clearly better and is within 3x of the cheapest built-in mid model
+    assert rt["recommended"]["id"] == "claude-sonnet-5"
+    assert "cheapest built-in mid-tier model" in rt["reason"]
+    fits = {m["id"]: m["task_fit"] for m in rt["alternatives"]}
+    assert fits["openrouter/free"] == 0.8  # custom endpoints: quality unknown to us
+    # 'cheapest' still takes the free endpoint, and says so honestly
+    body["routing"]["strategy"] = "cheapest"
+    rt = client.post("/v1/score", json=body, headers=h).json()["routing"]
+    assert rt["recommended"]["id"] == "openrouter/free" and "over 99% cheaper" in rt["reason"]
+
+
+def test_band_floor_only_widens_the_band():
+    fits = {"mid-a": 0.85, "mid-b": 1.0}  # mid-b costs 2.5x mid-a
+    # floor below the cheapest model's own cost changes nothing
+    assert decide((0.1, 0.8, 0.1), fits=fits, band_floor={"mid": 0.0}).chosen.candidate.id == "mid-b"
+    # a tight band that excluded mid-b is widened by a higher floor
+    assert decide((0.1, 0.8, 0.1), fits=fits, price_band=2.0).chosen.candidate.id == "mid-a"
+    assert (
+        decide((0.1, 0.8, 0.1), fits=fits, price_band=2.0, band_floor={"mid": 0.01}).chosen.candidate.id
+        == "mid-b"
+    )

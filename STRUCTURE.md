@@ -116,7 +116,7 @@ Jev Ai/
 | `tips.yaml` | Every tip's text, ID and when it appears. |
 | `prices.yaml` | AI model prices (with the date checked) and answer-length ranges. |
 | `plans.yaml` | Free, dev and pro plans (all free of charge): checks per minute, per day and per batch. Raise the free numbers here as capacity grows. |
-| `routing.yaml` | How well each AI company's models fit each kind of task (coding, writing, math…). The router uses it to pick Claude for writing and coding, for example. Opinions you can edit. |
+| `routing.yaml` | How well each AI company's models fit each kind of task (coding, writing, math…). The router uses it to pick Claude for writing and coding, for example. Your own endpoints get a lower "unknown quality" rating, so a free one is used by the cheapest strategy but not over a clearly better model in balanced. Opinions you can edit. |
 | `quiz.yaml` | The quiz: five weak prompts to rewrite (New York scenarios, amounts in USD), and the grade cut-offs (A+ at 90 … F below 50). |
 
 ### `frontend/`: the website

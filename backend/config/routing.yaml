@@ -9,11 +9,14 @@
 #   cheapest  price only: the cheapest model that is strong enough. Strengths are ignored.
 #   balanced  start from the cheapest capable model; switch to a better-fitting capable model if it is
 #             at least `min_edge` better for this task AND costs at most `balanced_price_band` × the
-#             cheapest one.
+#             cheapest one (measured from at least the cheapest built-in model of that tier, so a free
+#             custom endpoint doesn't block every better fit).
 #   quality   the strongest tier, then the best fit for the task, then the lowest price.
 
 version: 1
 default_strength: 0.9
+custom_strength: 0.8   # your own endpoints (custom / connected): quality unknown to us, so a built-in model
+                       # that fits the task clearly better wins in `balanced`; use `cheapest` to prefer them
 min_edge: 0.1
 balanced_price_band: 3.0
 

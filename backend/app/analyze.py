@@ -362,10 +362,21 @@ class Analyzer:
             strategy=opts.strategy,
             baseline_id=opts.baseline_model,
             max_cost_usd=opts.max_cost_usd,
-            fits={c.id: self.cfg.routing.strength(a.task_type, c.id, c.provider) for c in candidates},
+            fits={
+                c.id: self.cfg.routing.strength(a.task_type, c.id, c.provider, c.source) for c in candidates
+            },
             min_edge=self.cfg.routing.min_edge,
             price_band=self.cfg.routing.balanced_price_band,
+            band_floor=self._band_floor(a),
         )
+
+    def _band_floor(self, a: Analysis) -> dict[str, float]:
+        """Per tier, what the cheapest built-in model would cost for this prompt (balanced's price-band floor)."""
+        floor: dict[str, float] = {}
+        for c in self.catalog_candidates():
+            cost = c.cost(a.input_o200k, a.output_p50)
+            floor[c.tier] = min(floor.get(c.tier, cost), cost)
+        return floor
 
     @staticmethod
     def _routed(r: model_router.Ranked | None) -> RoutedModel | None:

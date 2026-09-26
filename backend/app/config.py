@@ -143,15 +143,21 @@ class PlanConfig:
 @dataclass(frozen=True)
 class RoutingConfig:
     default_strength: float = 0.9
+    custom_strength: float = 0.8  # your own endpoints: quality unknown to us
     min_edge: float = 0.1
     balanced_price_band: float = 3.0
     task_strengths: dict[str, dict[str, float]] = field(default_factory=dict)
 
-    def strength(self, task_type: str, model_id: str, provider: str) -> float:
-        """How well a model fits a task type: the model's own entry, else its provider's, else the default."""
+    def strength(self, task_type: str, model_id: str, provider: str, source: str = "catalog") -> float:
+        """How well a model fits a task type: the model's own entry, else its provider's, else the default.
+
+        Models you add yourself (custom or connected endpoints) get `custom_strength`: we can't vouch for them.
+        """
         row = self.task_strengths.get(task_type, {})
         if model_id in row:
             return row[model_id]
+        if source != "catalog":
+            return self.custom_strength
         return row.get(provider.lower(), self.default_strength)
 
 
@@ -240,6 +246,7 @@ def load_routing(path: Path) -> RoutingConfig:
     raw = _load(path)
     return RoutingConfig(
         default_strength=float(raw.get("default_strength", 0.9)),
+        custom_strength=float(raw.get("custom_strength", 0.8)),
         min_edge=float(raw.get("min_edge", 0.1)),
         balanced_price_band=float(raw.get("balanced_price_band", 3.0)),
         task_strengths={

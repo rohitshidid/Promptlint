@@ -6,7 +6,7 @@
 <title>Check a prompt · PromptLint</title>
 <meta name="description" content="Try your PromptLint API key: check a prompt and get a plain-English explanation of the result.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.6">
+<link rel="stylesheet" href="assets/site.css?v=1.2.7">
 <style>
   .t-head { padding: 40px 0 8px; position: relative; }
   .t-head::before {
@@ -50,7 +50,31 @@
   details.adv { margin-bottom: 18px; }
   details.adv summary { cursor: pointer; color: var(--ink-soft); font-size: .88rem; }
   details.adv .fg { margin: 12px 0 0; }
-  #submitBtn { width: 100%; }
+  .submit-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; }
+  @media (max-width: 560px) { .submit-row { grid-template-columns: minmax(0, 1fr); } }
+  #submitBtn, #compareBtn { width: 100%; }
+  #compareBtn { font-size: .95rem; }
+  /* Jev's judgment panel */
+  .jev { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; background: var(--bg-tint); }
+  .jev-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .jev-head b { font-size: .95rem; }
+  .jev-head span { font-size: .78rem; color: var(--ink-faint); }
+  .jev-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
+  @media (max-width: 600px) { .jev-grid { grid-template-columns: minmax(0, 1fr); } }
+  .cbar { display: grid; grid-template-columns: 118px minmax(0, 1fr) 40px; gap: 8px; align-items: center; font-size: .84rem; margin: 4px 0; color: var(--ink-soft); }
+  .cbar .track { height: 9px; border-radius: 5px; background: #fff; overflow: hidden; }
+  .cbar .track i { display: block; height: 100%; background: var(--accent-mid); border-radius: 5px; }
+  .cbar em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; }
+  .cbar.need { color: var(--ink); font-weight: 600; }
+  .cbar.need .track i { background: var(--accent); }
+  .jev-facts { display: grid; gap: 8px; font-size: .86rem; color: var(--ink-soft); }
+  .jev-facts b { color: var(--ink); }
+  .cmp3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 640px) { .cmp3 { grid-template-columns: minmax(0, 1fr); } }
+  .cmp3 > div { border: 1px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; }
+  .cmp3 small { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  .cmp3 b { display: block; font-size: 1.1rem; margin-top: 3px; }
+  .cmp3 p { margin: 6px 0 0; font-size: .84rem; color: var(--ink-soft); line-height: 1.5; }
   .loader { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; animation: spin 1s linear infinite; display: none; }
 
   .status { display: inline-flex; align-items: center; gap: 8px; font-size: .84rem; color: var(--ink-soft);
@@ -243,6 +267,11 @@
     </div>
 
     <div class="fg">
+      <label class="check" style="margin-top:0"><input type="checkbox" id="includeConnected" checked> Include my own endpoints (custom models saved on my account, e.g. OpenRouter or Ollama)</label>
+      <p class="hint">Turn off to route only among the built-in Claude, GPT and Gemini models.</p>
+    </div>
+
+    <div class="fg">
       <label class="check" style="margin-top:0"><input type="checkbox" id="executeToggle"> Also send the prompt to the recommended AI and show its answer</label>
       <p class="hint">Uses the AI provider keys connected on your <a id="providersLink" href="account.html#providers-box">account page</a> (OpenAI, Anthropic, Gemini or your own endpoint).
         Off, or with no keys connected, you only get the recommendation. Nothing is sent to an AI and nothing is charged by a provider.</p>
@@ -256,10 +285,13 @@
       </div>
     </details>
 
-    <button type="submit" class="btn btn-fill btn-lg" id="submitBtn">
-      <span id="btnText">Check my prompt</span>
-      <span class="loader" id="btnLoader"></span>
-    </button>
+    <div class="submit-row">
+      <button type="submit" class="btn btn-fill btn-lg" id="submitBtn">
+        <span id="btnText">Check my prompt</span>
+        <span class="loader" id="btnLoader"></span>
+      </button>
+      <button type="button" class="btn btn-ghost btn-lg" id="compareBtn" title="Recommendation only; uses 3 checks">Compare the 3 strategies</button>
+    </div>
   </form>
 
   <div id="results" aria-live="polite"></div>
@@ -476,8 +508,33 @@
         return parts.join(" ");
     }
 
-    const pctText = (x) => Math.floor(x + 0.5) + "%";
-    function routingBox(rt) {
+    const pctText = (x) => (x >= 99.5 ? "Over 99%" : Math.floor(x + 0.5) + "%");
+    const STRAT_RULE = { cheapest: 50, balanced: 75, quality: 90 };
+    const TIER_OF = { low: "small", medium: "mid", high: "frontier" };
+    const TIER_NAME = { small: "small", mid: "mid-range", frontier: "top-end (frontier)" };
+    const FIT_WORD = (f) => (f == null ? "" : f >= 0.97 ? "best fit" : f >= 0.9 ? "good fit" : f >= 0.85 ? "ok fit" : "unknown / weaker fit");
+    // What Jev decided about this prompt, and how that turns into the tier the router needs.
+    function jevPanel(rt, d) {
+        const s = d.signals || {}, cx = s.complexity || {}, probs = cx.probs || {}, tt = s.task_type || {};
+        const jev = d.backend && d.backend.name === "jev" && !d.backend.degraded;
+        const need = rt.required_tier;
+        const bars = ["low", "medium", "high"].map((k) => {
+            const p = probs[k] ?? (cx.label === k ? 1 : 0);
+            return `<div class="cbar ${TIER_OF[k] === need ? "need" : ""}"><span>${k === "low" ? "Simple" : k === "medium" ? "Medium" : "Hard"} → ${TIER_OF[k]}</span>
+                <div class="track"><i style="width:${(p * 100).toFixed(1)}%"></i></div><em>${Math.round(p * 100)}%</em></div>`;
+        }).join("");
+        return `<div class="jev"><div class="jev-head"><b>${jev ? "How Jev judged this prompt" : "How the fallback rules judged this prompt"}</b>
+            <span>${jev ? `decided by TypeSafe Jev (${esc(d.backend.version)}) in one call` : `Jev wasn't available (${esc(d.backend && d.backend.fallback_reason || "unknown")}), so simple rules judged it. Routing is rougher.`}</span></div>
+            <div class="jev-grid"><div>${bars}
+              <p class="hint" style="margin-top:6px">The ${esc(rt.strategy)} strategy needs to be ${STRAT_RULE[rt.strategy]}% sure the model is strong enough, so it adds up
+                the bars from Simple down until the total reaches ${STRAT_RULE[rt.strategy]}%. That bar's tier is the minimum.</p></div>
+            <div class="jev-facts">
+              <div>Kind of task: <b>${esc((TASK[tt.label] || tt.label || "?").replace(/^an? /, ""))}</b> (${Math.round((tt.confidence || 0) * 100)}% sure)</div>
+              <div>Needs at least: <b>${esc(TIER_NAME[need] || need)}</b> model</div>
+              <div>Then: the cheapest model at that level or above, unless another fits a ${esc((TASK[tt.label] || "").replace(/^an? /, "") || "task like this")} clearly better (Claude for code and writing, by default).</div>
+            </div></div></div>`;
+    }
+    function routingBox(rt, d) {
         if (!rt) return "";
         let html = "";
         if (rt.action === "clarify_first") {
@@ -491,7 +548,8 @@
         }
         const saves = rt.baseline && rt.baseline.id !== r.id && rt.savings_usd > 0;
         html += `<div class="box"><h2>Which AI to send it to</h2>
-            <p class="sub">PromptLint picks the model for each prompt, so easy prompts don't go to expensive models.</p>
+            <p class="sub">Jev judges the prompt; the router turns that judgment into a model, so easy prompts don't go to expensive models.</p>
+            ${jevPanel(rt, d)}
             <div class="route-card"><div><small>${r.connected === false ? "Best fit (not connected)" : "Recommended"}</small><b>${esc(r.name)}</b>
                 <span>${esc(PROVIDER[r.provider] || r.provider)} · ${esc(r.tier)} model · about ${money(r.est_cost_usd_p50)} per request</span></div>
                 ${saves ? `<span class="save">${pctText(rt.savings_percent)} cheaper than ${esc(rt.baseline.name)}</span>`
@@ -505,10 +563,11 @@
         if (rt.alternatives && rt.alternatives.length) {
             const rows = [r, ...rt.alternatives.filter((m) => m.id !== r.id)];
             html += `<h2 style="margin-top:20px;font-size:1rem">All the models we compared</h2>
-                <div class="table-scroll"><table class="cost" style="margin-top:8px"><thead><tr><th>AI model</th><th>Good enough?</th><th class="r">One request</th></tr></thead><tbody>
+                <div class="table-scroll"><table class="cost" style="margin-top:8px"><thead><tr><th>AI model</th><th>Good enough?</th><th>Task fit</th><th class="r">One request</th></tr></thead><tbody>
                 ${rows.map((m, k) => `<tr class="${k === 0 ? "pick" : ""}"><td>${esc(m.name)}${k === 0 ? '<span class="tag">pick</span>' : rt.fallback && m.id === rt.fallback.id ? '<span class="tag">backup</span>' : ""}${rt.not_connected && rt.not_connected.instead && m.id === rt.not_connected.instead.id ? '<span class="tag used">used instead</span>' : ""}${m.connected === false ? '<span class="tag nc">not connected</span>' : ""}
                     <small>${esc(PROVIDER[m.provider] || m.provider)} · ${esc(m.tier)}${m.source !== "catalog" ? " · yours" : ""}</small></td>
                     <td>${m.capable ? "Yes" : "Probably not"}</td>
+                    <td>${m.task_fit != null ? `${m.task_fit.toFixed(2)}<small>${FIT_WORD(m.task_fit)}</small>` : "–"}</td>
                     <td class="r">${money(m.est_cost_usd_p50)}<small>up to ${money(m.est_cost_usd_p90)}</small></td></tr>`).join("")}
                 </tbody></table></div>`;
         }
@@ -550,7 +609,7 @@
             <p class="second-score">Second opinion: <b>PQS score ${d.scores.pqs_score}/100</b>, a different formula that puts more weight on
             how complete and clear the prompt is. When both are low, the prompt really needs more detail.</p></div></div></div>`;
 
-        html += routingBox(d.routing);
+        html += routingBox(d.routing, d);
         html += executionBox(d.execution, wanted, d.routing && d.routing.action === "clarify_first");
 
         html += `<div class="box"><h2>The key numbers</h2><p class="sub">Each bar is 0–100%. Green is good, orange is so-so, red needs attention.</p><div class="meters">
@@ -622,6 +681,54 @@
     }
 
     // ------------------------------------------------------------ submit
+    function routingOptions(strategy) {
+        const r = { strategy };
+        if ($("baselineSelect").value) r.baseline_model = $("baselineSelect").value;
+        if (!$("includeConnected").checked) r.include_connected = false;
+        return r;
+    }
+
+    // Same prompt through all three strategies (recommendation only), side by side.
+    $("compareBtn").addEventListener("click", async () => {
+        const results = $("results");
+        const apiKey = $("apiKey").value.trim().replace(/^\$/, "");
+        const prompt = $("promptText").value.trim();
+        if (!apiKey || !prompt) {
+            results.style.display = "block";
+            results.innerHTML = `<div class="notice err"><b>${!apiKey ? "Paste your API key first." : "Type or paste a prompt to check."}</b></div>`;
+            return;
+        }
+        const btn = $("compareBtn"); btn.disabled = true; btn.textContent = "Comparing…";
+        try {
+            const strategies = ["cheapest", "balanced", "quality"];
+            const base = { prompt, backend: $("backendSelect").value, execute: false };
+            const system = $("systemPrompt").value.trim();
+            if (system) base.system = system;
+            const res = await Promise.all(strategies.map((st) => fetch(server() + "/v1/route", {
+                method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+                body: JSON.stringify({ ...base, routing: routingOptions(st) }),
+            }).then(async (r) => ({ ok: r.ok, status: r.status, data: await r.json().catch(() => null) }))));
+            results.style.display = "block";
+            const bad = res.find((x) => !x.ok);
+            if (bad) { results.innerHTML = renderError(bad.status, bad.data, 0); return; }
+            const bal = res[1].data;
+            const cols = res.map(({ data }, i) => {
+                const rt = data.routing, r = rt.recommended;
+                return `<div><small>${strategies[i]}</small><b>${r ? esc(r.name) : "No model"}</b>
+                    <p>${r ? `${esc(r.tier)} · about ${money(r.est_cost_usd_p50)} per request` : ""}${r && r.connected === false ? " · not connected" : ""}</p>
+                    <p>Needs at least a ${esc(TIER_NAME[rt.required_tier] || rt.required_tier)} model${rt.savings_percent > 0 && rt.baseline ? ` · ${pctText(rt.savings_percent)} cheaper than ${esc(rt.baseline.name)}` : ""}</p>
+                    <p>${esc(rt.reason)}</p></div>`;
+            }).join("");
+            results.innerHTML = `<div class="box"><h2>Same prompt, three strategies</h2>
+                <p class="sub">Jev judged the prompt once per request; each strategy turns that into a model differently. Recommendation only, nothing was sent to an AI. Used 3 checks.</p>
+                ${jevPanel(bal.routing, bal)}<div class="cmp3">${cols}</div></div>`;
+            results.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (err) {
+            results.style.display = "block";
+            results.innerHTML = `<div class="notice err"><b>Couldn't reach the PromptLint server.</b><div class="more">Browser error: ${esc(err)}</div></div>`;
+        } finally { btn.disabled = false; btn.textContent = "Compare the 3 strategies"; }
+    });
+
     $("apiForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         const results = $("results");
@@ -639,8 +746,7 @@
         if (models.length) payload.models = models;
         const wanted = $("executeToggle").checked;
         payload.execute = wanted;
-        payload.routing = { strategy: $("strategySelect").value };
-        if ($("baselineSelect").value) payload.routing.baseline_model = $("baselineSelect").value;
+        payload.routing = routingOptions($("strategySelect").value);
 
         $("submitBtn").disabled = true; $("btnText").textContent = wanted ? "Checking and asking the AI…" : "Checking…"; $("btnLoader").style.display = "block";
         const t0 = performance.now();

@@ -16,7 +16,9 @@ How a pick is made
      per-request budget removes models whose p90 cost exceeds it.
      Task fit (config/routing.yaml) is a 0–1 rating of each model for each task type. balanced starts
      from the cheapest capable model and switches to a better-fitting capable one when it is at least
-     `min_edge` better and costs at most `price_band` × as much. cheapest ignores fit.
+     `min_edge` better and costs at most `price_band` × as much. The band is measured from at least the
+     cheapest built-in model of that tier (`band_floor`), so a free or near-free custom endpoint can't
+     shut every better fit out. cheapest ignores fit.
   4. Action. If the prompt is likely to fail anyway (verdict likely_to_fail and low first-try odds),
      the action is `clarify_first`: ask the user for the missing pieces before paying for a call.
   5. Savings. Expected cost of the pick vs a baseline model (the caller's, or their priciest).
@@ -127,6 +129,7 @@ def route(
     fits: dict[str, float] | None = None,
     min_edge: float = 0.1,
     price_band: float = 3.0,
+    band_floor: dict[str, float] | None = None,
 ) -> RouteDecision:
     if strategy not in STRATEGIES:
         raise ValueError(f"strategy must be one of {', '.join(STRATEGIES)}")
@@ -151,15 +154,17 @@ def route(
 
     # balanced: pay a bit more for a clearly better fit for this kind of task.
     cheapest_capable = None
+    band_base = 0.0
     if strategy == "balanced" and ranked and ranked[0].capable and ranked[0].within_budget:
         base = ranked[0]
+        band_base = max(base.cost_p50, (band_floor or {}).get(base.candidate.tier, 0.0))
         better = [
             r
             for r in ranked[1:]
             if r.capable
             and r.within_budget
             and r.fit >= base.fit + min_edge - 1e-9
-            and r.cost_p50 <= base.cost_p50 * price_band + 1e-12
+            and r.cost_p50 <= band_base * price_band + 1e-12
         ]
         if better:
             pick = max(better, key=lambda r: (r.fit, -r.cost_p50))
@@ -214,11 +219,16 @@ def route(
                 + (" within your budget" if max_cost_usd else "")
             )
         elif cheapest_capable is not None:
-            ratio = chosen.cost_p50 / cheapest_capable.cost_p50 if cheapest_capable.cost_p50 else 1.0
+            ratio = chosen.cost_p50 / band_base if band_base else 1.0
+            cost_words = (
+                f"costs {ratio:.1f}× as much"
+                if band_base <= cheapest_capable.cost_p50
+                else f"costs {ratio:.1f}× the cheapest built-in {TIER_WORDS[cheapest_capable.candidate.tier]} model"
+            )
             reason = (
                 f"A {complexity} {task} prompt needs a {TIER_WORDS[need_tier]} model or better. "
                 f"{c.name} is a better fit for {task} than {cheapest_capable.candidate.name} "
-                f"(the cheapest that qualifies) and costs {ratio:.1f}× as much"
+                f"(the cheapest that qualifies) and {cost_words}"
             )
         elif chosen.capable:
             reason = (
@@ -228,8 +238,9 @@ def route(
         else:
             reason = f"{c.name} is the strongest model available"
         if baseline and baseline.candidate.id != c.id and savings > 0:
-            joiner = ". It's still about" if cheapest_capable is not None else ", about"
-            reason += f"{joiner} {int(percent + 0.5)}% cheaper than {baseline.candidate.name}"
+            joiner = ". It's still" if cheapest_capable is not None else ","
+            amount = "over 99%" if percent >= 99.5 else f"about {int(percent + 0.5)}%"
+            reason += f"{joiner} {amount} cheaper than {baseline.candidate.name}"
         reason += "."
 
     return RouteDecision(
