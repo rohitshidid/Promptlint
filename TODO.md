@@ -42,5 +42,6 @@ These matter because once it's public, strangers can sign up and every check the
 - Model router: every check says which AI model to use (cheapest / balanced / quality), with savings versus always using one model. `/v1/route` can also call that model with the user's own keys (OpenAI, Anthropic, Gemini, or any OpenAI-compatible endpoint like Ollama), with a backup if it fails.
 - Savings stats and a calculator on the home page, measured on 480 test prompts.
 - Prompt quiz with grades and a leaderboard.
-- 176 automated tests; accuracy tests on 240 prompt pairs and 100 labeled prompts.
+- Task-fit routing (Claude for writing and coding by default) and per-key routing stats with money saved on the account page.
+- 180 automated tests; accuracy tests on 240 prompt pairs and 100 labeled prompts.
 - Docker setup and a free hosting plan (Render + Neon).

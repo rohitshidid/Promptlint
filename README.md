@@ -125,6 +125,7 @@ curl http://localhost:8787/v1/score \
 | `POST /v1/score` | API key | Score one prompt: `prompt`, optional `system`, `models`, `backend` (`auto`/`jev`/`heuristic`), `options {include_suggestions, include_confidence, store}` |
 | `POST /v1/score/batch` | API key | Up to 10 (free) or 50 prompts; per-item errors |
 | `POST /v1/route` | API key | Score + routing, then (with `execute: true` and a provider key) call the recommended model and return its answer |
+| `GET /v1/usage/routing?days=30` | key or session | Where the router sent prompts, per key and per model; spend and money saved |
 | `GET/POST/DELETE /v1/providers` | session | Connected LLM providers: save an encrypted OpenAI / Anthropic / Gemini key, or a custom OpenAI-compatible endpoint |
 | `GET /v1/pricing` | public | Price table + `last_verified` |
 | `GET /v1/usage?days=30` | key or session | Usage per UTC day, used today / this month |
@@ -166,7 +167,11 @@ How it picks: Jev's complexity answer (low / medium / high, with probabilities) 
 
 **`/v1/route`** runs the same routing, then calls the model when `execute` is true (the default) and a key exists: `provider_keys` in the request (never stored), then keys saved on the account page (encrypted with `PROVIDER_KEY_SECRET`). With no keys, or `execute: false`, you get the recommendation only. If only some models have keys, it picks among those. Up to three models are tried in order; `execution` holds the answer, tokens, cost and each attempt. Answers are returned whole (no streaming yet).
 
-**Savings**, measured by `eval/run_routing.py` on the 480 test prompts: balanced routing averages $0.00094 per request, **93% cheaper** than always using GPT-6 Astra and 83% cheaper than the average frontier model. It is *more* expensive than always using the smallest model (GPT-6 Luna), because it sends harder prompts to stronger models. The home page calculator uses these numbers.
+**Task fit.** [`config/routing.yaml`](backend/config/routing.yaml) rates each provider 0–1 for each task type (by default Claude leads on coding, writing and conversation; OpenAI on math; Gemini on factual Q&A and extraction). `cheapest` ignores it. `balanced` switches from the cheapest capable model to a better-fitting one when it's at least 0.1 better and costs at most 3× as much, so a medium coding or writing prompt goes to Claude Sonnet 5 with Gemini 3.8 Flash as the backup. `quality` takes the best fit in the strongest tier. These ratings are editable opinions, not measurements. Each routed model in the response carries its `task_fit`.
+
+**Savings**, measured by `eval/run_routing.py` on the 480 test prompts: balanced routing averages $0.00156 per request, **89% cheaper** than always using GPT-6 Astra and 72% cheaper than the average frontier model. It is *more* expensive than always using Gemini 3.8 Flash or GPT-6 Luna, because it sends harder prompts to stronger models and writing/coding to Claude; `cheapest` ($0.00084) avoids that. The home page calculator uses these numbers.
+
+**Routing stats.** `GET /v1/usage/routing?days=30` (session or API key) returns, per API key and per model, how often each model was picked, how many prompts were really sent through `/v1/route`, tokens, spend, and savings: `saved_usd` compares real calls with the same tokens on the comparison model; `est_saved_usd` compares expected costs for every routed prompt. The account page shows it.
 
 Errors are `{"error": {"type", "message", "request_id"}}` with 400 / 401 / 403 / 413 / 429 / 503. Plans (`config/plans.yaml`): **free** 20 req/min, 1,000 prompts/day, batch 10 · **dev** 120/min, 50,000/month, batch 50 · **pro** 600/min. Scoring responses carry `X-RateLimit-*` and `X-Quota-*` headers.
 
@@ -175,7 +180,7 @@ The website uses `POST /api/analyze` (per-IP limit, no key; takes `strategy`) an
 ## Tests
 
 ```sh
-cd backend && .venv/bin/pytest -q        # 176 tests, no network or secrets needed
+cd backend && .venv/bin/pytest -q        # 180 tests, no network or secrets needed
 ```
 
 | Layer | Covers |
@@ -243,7 +248,7 @@ backend/
                   analyze.py (report), backends.py (jev / heuristic / fallback), jev_client.py,
                   scoring.py (lint + PQS), cost.py, tokens.py, tips.py, router.py (model routing),
                   providers.py (calls OpenAI / Anthropic / Gemini / compatible), quiz.py, db.py, security.py, cli.py
-  config/         questions.yaml · weights.yaml · pqs_scoring.yaml · prices.yaml · tips.yaml · plans.yaml · quiz.yaml
+  config/         questions.yaml · weights.yaml · pqs_scoring.yaml · prices.yaml · tips.yaml · plans.yaml · quiz.yaml · routing.yaml
   migrations/     Alembic (SQLite and Postgres)
   tests/          unit, contract (recorded Jev fixtures), API, /v1, resilience, load/
   scripts/        build_demo_data.py (landing demo + API example from recorded fixtures)

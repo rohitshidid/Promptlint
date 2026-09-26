@@ -12,8 +12,11 @@ How a pick is made
   2. Candidates. The caller's models (catalog IDs or custom entries with prices and a tier), or our
      whole price table. A candidate is "capable" when its tier ≥ the required tier.
   3. Rank. cheapest/balanced: capable models, lowest adequate tier first, then lowest expected cost.
-     quality: highest tier first, then lowest cost. An optional per-request budget removes models
-     whose p90 cost exceeds it.
+     quality: highest tier first, then the best fit for the task type, then lowest cost. An optional
+     per-request budget removes models whose p90 cost exceeds it.
+     Task fit (config/routing.yaml) is a 0–1 rating of each model for each task type. balanced starts
+     from the cheapest capable model and switches to a better-fitting capable one when it is at least
+     `min_edge` better and costs at most `price_band` × as much. cheapest ignores fit.
   4. Action. If the prompt is likely to fail anyway (verdict likely_to_fail and low first-try odds),
      the action is `clarify_first`: ask the user for the missing pieces before paying for a call.
   5. Savings. Expected cost of the pick vs a baseline model (the caller's, or their priciest).
@@ -60,6 +63,7 @@ class Ranked:
     cost_p50: float
     cost_p90: float
     within_budget: bool
+    fit: float = 1.0  # how well the model suits this task type (routing.yaml)
 
 
 @dataclass(frozen=True)
@@ -77,6 +81,7 @@ class RouteDecision:
     reason: str
     clarify_reason: str | None
     warnings: list[str]
+    task_type: str = "other"
 
 
 def required_tier(complexity_probs: Sequence[float], strategy: str) -> str:
@@ -93,8 +98,8 @@ def required_tier(complexity_probs: Sequence[float], strategy: str) -> str:
 def _rank_key(r: Ranked, strategy: str, need: int) -> tuple:
     tier = TIER_RANK[r.candidate.tier]
     if strategy == "quality":
-        # Strongest first; within a tier, cheapest.
-        return (not r.within_budget, not r.capable, -tier, r.cost_p50, r.candidate.id)
+        # Strongest first; within a tier, the best fit for the task, then cheapest.
+        return (not r.within_budget, not r.capable, -tier, -r.fit, r.cost_p50, r.candidate.id)
     # cheapest / balanced: capable first, the lowest adequate tier, then cheapest.
     return (
         not r.within_budget,
@@ -119,6 +124,9 @@ def route(
     strategy: str = "balanced",
     baseline_id: str | None = None,
     max_cost_usd: float | None = None,
+    fits: dict[str, float] | None = None,
+    min_edge: float = 0.1,
+    price_band: float = 3.0,
 ) -> RouteDecision:
     if strategy not in STRATEGIES:
         raise ValueError(f"strategy must be one of {', '.join(STRATEGIES)}")
@@ -135,10 +143,29 @@ def route(
             cost_p50=c.cost(input_tokens, output_p50),
             cost_p90=c.cost(input_tokens, output_p90),
             within_budget=max_cost_usd is None or c.cost(input_tokens, output_p90) <= max_cost_usd,
+            fit=(fits or {}).get(c.id, 1.0),
         )
         for c in candidates
     ]
     ranked.sort(key=lambda r: _rank_key(r, strategy, need))
+
+    # balanced: pay a bit more for a clearly better fit for this kind of task.
+    cheapest_capable = None
+    if strategy == "balanced" and ranked and ranked[0].capable and ranked[0].within_budget:
+        base = ranked[0]
+        better = [
+            r
+            for r in ranked[1:]
+            if r.capable
+            and r.within_budget
+            and r.fit >= base.fit + min_edge - 1e-9
+            and r.cost_p50 <= base.cost_p50 * price_band + 1e-12
+        ]
+        if better:
+            pick = max(better, key=lambda r: (r.fit, -r.cost_p50))
+            ranked.remove(pick)
+            ranked.insert(0, pick)
+            cheapest_capable = base
 
     if ranked and not any(r.capable for r in ranked):
         warnings.append(
@@ -179,9 +206,19 @@ def route(
         c = chosen.candidate
         task = task_type.replace("_", " ")
         if strategy == "quality":
+            same_tier = [r for r in ranked if r.candidate.tier == c.tier and r is not chosen]
+            best_fit = any(r.fit < chosen.fit for r in same_tier)
             reason = (
-                f"Quality first: {c.name} is in the strongest tier available ({TIER_WORDS[c.tier]}) "
-                f"and is the lowest-cost model in it{' within your budget' if max_cost_usd else ''}"
+                f"Quality first: {c.name} is in the strongest tier available ({TIER_WORDS[c.tier]}) and is "
+                + (f"the best fit for {task} prompts in it" if best_fit else "the lowest-cost model in it")
+                + (" within your budget" if max_cost_usd else "")
+            )
+        elif cheapest_capable is not None:
+            ratio = chosen.cost_p50 / cheapest_capable.cost_p50 if cheapest_capable.cost_p50 else 1.0
+            reason = (
+                f"A {complexity} {task} prompt needs a {TIER_WORDS[need_tier]} model or better. "
+                f"{c.name} is a better fit for {task} than {cheapest_capable.candidate.name} "
+                f"(the cheapest that qualifies) and costs {ratio:.1f}× as much"
             )
         elif chosen.capable:
             reason = (
@@ -191,11 +228,13 @@ def route(
         else:
             reason = f"{c.name} is the strongest model available"
         if baseline and baseline.candidate.id != c.id and savings > 0:
-            reason += f", about {int(percent + 0.5)}% cheaper than {baseline.candidate.name}"
+            joiner = ". It's still about" if cheapest_capable is not None else ", about"
+            reason += f"{joiner} {int(percent + 0.5)}% cheaper than {baseline.candidate.name}"
         reason += "."
 
     return RouteDecision(
         strategy=strategy,
+        task_type=task_type,
         action="clarify_first" if clarify else "send",
         required_tier=need_tier,
         complexity=complexity,

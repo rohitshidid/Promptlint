@@ -66,6 +66,30 @@
   .keyline { display: flex; gap: 8px; align-items: center; }
   .keyline code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; display: block; padding: 9px 10px; background: #fff; font-size: .8rem; }
   .key-done { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 12px; font-size: .84rem; color: var(--ink-soft); }
+  /* routing stats */
+  .saved { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+  @media (max-width: 720px) { .saved { grid-template-columns: minmax(0, 1fr); } }
+  .saved > div { border-radius: 16px; padding: 18px; border: 1px solid var(--line); background: #fff; min-width: 0; }
+  .saved > div.save-hero { background: linear-gradient(180deg, var(--accent-soft), #fff); border-color: rgba(4,120,87,.28); }
+  .saved small { display: block; font-size: .74rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
+  .saved .save-hero small { color: var(--accent); }
+  .saved > div > b { display: block; font-size: 2rem; letter-spacing: -0.03em; margin-top: 6px; line-height: 1.1; }
+  .saved > div > span { display: block; font-size: .84rem; color: var(--ink-soft); margin-top: 6px; line-height: 1.45; }
+  .rt-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+  @media (max-width: 720px) { .rt-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .rt-facts div { background: var(--bg-tint); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+  .rt-facts small { display: block; font-size: .7rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
+  .rt-facts b { display: block; font-size: 1.15rem; margin-top: 2px; }
+  .box h3 { font-size: .95rem; margin: 22px 0 4px; }
+  .mbar { display: grid; grid-template-columns: minmax(0, 170px) minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: .86rem; padding: 6px 0; }
+  .mbar .track { height: 10px; background: var(--bg-tint); border-radius: 5px; overflow: hidden; display: flex; }
+  .mbar .track i { display: block; height: 100%; }
+  .mbar .track i.sent { background: var(--accent-mid); }
+  .mbar .track i.rec { background: rgba(16,185,129,.28); }
+  .mbar em { font-style: normal; color: var(--ink-faint); font-size: .8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .mbar span.nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (max-width: 600px) { .mbar { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; } .mbar .track { grid-column: 1 / -1; grid-row: 2; } }
+  .yes { color: var(--good-ink); font-weight: 600; } .no { color: var(--ink-faint); }
   table.keys { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: .88rem; }
   table.keys th { text-align: left; font-size: .72rem; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; padding: 0 6px 8px; border-bottom: 1px solid var(--line); }
   table.keys td { padding: 10px 6px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
@@ -189,6 +213,12 @@
         <div class="legend"><span><i style="background:var(--accent-mid)"></i>Scored by Jev</span><span><i style="background:#6da7ec"></i>Heuristic fallback</span></div>
         <details class="data"><summary>Show as a table</summary><div id="usage-table"></div></details>
       </div>
+    </div>
+
+    <div class="box" style="margin-top:18px" id="routing-box">
+      <h2>LLM routing, last 30 days</h2>
+      <p class="sub">Which model the router picked for your prompts, which ones were really sent to your LLMs through <code>/v1/route</code>, and what that saved. Per API key and per model.</p>
+      <div id="routing-stats"><p class="sub">Loading…</p></div>
     </div>
 
     <div class="box try-box" style="margin-top:18px">

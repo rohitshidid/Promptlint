@@ -152,7 +152,7 @@
           <div class="calc-row"><span>With ${esc($("calc-strategy").selectedOptions[0].text.split(" (")[0].toLowerCase())} routing</span><b>${money(routed)}</b></div>
           <div class="calc-row"><span>Most-picked models</span><b style="font-weight:500">${esc(top)}</b></div>`;
         $("calc-note").textContent = total < 0
-          ? `${base.name} is cheaper because it's a small model; routing sends prompts that need more reasoning to stronger ones. If ${base.name} is good enough for everything you do, keep it.`
+          ? `${base.name} is cheaper per request. Routing sends prompts that need more reasoning to stronger models, and writing or coding to the model that fits them best (Claude, by default). If ${base.name} is good enough for everything you do, keep it, or use the "cheapest" strategy.`
           : `Estimate from routing our ${rs.n_prompts} test prompts over 7 models (prices checked ${rs.prices_last_updated}). ` +
             `Your savings depend on your own mix of prompts. "Wasted retries" assumes each prompt that routing flags as unclear costs one extra call today.`;
       }

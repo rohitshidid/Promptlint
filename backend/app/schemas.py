@@ -66,10 +66,12 @@ class RoutedModel(BaseModel):
     capable: bool
     est_cost_usd_p50: float
     est_cost_usd_p90: float
+    task_fit: float | None = Field(None, description="0–1: how well the model suits this task type")
 
 
 class Routing(BaseModel):
     strategy: Strategy
+    task_type: str | None = None
     action: Literal["send", "clarify_first"]
     required_tier: str
     complexity: str

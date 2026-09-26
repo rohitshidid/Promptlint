@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from limits import parse
 from pydantic import BaseModel, Field
 from slowapi import Limiter
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import case, delete, func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -62,7 +62,6 @@ from app.schemas import (
     ProviderKeyIn,
     RouteRequest,
     RouteResponse,
-    Routing,
     RoutingOptions,
     ScoreRequest,
     ScoreResponse,
@@ -160,7 +159,15 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             raise ApiError(503, "backend_unavailable", e.message) from e
 
     async def _record(
-        db: AsyncSession, request: Request, ctx: KeyContext, a: Analysis, prompt: str, system, store: bool
+        db: AsyncSession,
+        request: Request,
+        ctx: KeyContext,
+        a: Analysis,
+        prompt: str,
+        system,
+        store: bool,
+        decision: model_router.RouteDecision | None = None,
+        executed: dict | None = None,
     ) -> None:
         s = request.app.state.settings
         event = ScoreEvent(
@@ -173,6 +180,8 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             lint_score=a.lint.lint_score,
             pqs_score=a.pqs.pqs_score,
             latency_ms=a.elapsed_ms,
+            **_routing_fields(decision),
+            **(executed or {}),
         )
         db.add(event)
         if store:
@@ -180,6 +189,22 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             db.add(StoredPrompt(event_id=event.id, prompt=prompt, system=system))
 
     # ------------------------------------------------------------ routing helpers
+    def _routing_fields(d: model_router.RouteDecision | None) -> dict:
+        """What the router picked, for the per-key routing stats on the account page."""
+        if d is None or d.chosen is None:
+            return {}
+        c = d.chosen.candidate
+        return {
+            "strategy": d.strategy,
+            "task_type": d.task_type,
+            "routed_model": c.id,
+            "routed_provider": c.provider,
+            "baseline_model": d.baseline.candidate.id if d.baseline else None,
+            "est_cost_usd": d.chosen.cost_p50,
+            "est_baseline_usd": d.baseline.cost_p50 if d.baseline else None,
+            "clarify_first": d.action == "clarify_first",
+        }
+
     def _vault(request: Request) -> KeyVault | None:
         secret = request.app.state.settings.effective_provider_key_secret
         return KeyVault(secret) if secret else None
@@ -227,9 +252,6 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
         except ValueError as e:
             raise ApiError(400, "unknown_model", str(e)) from e
 
-    def _routing(request: Request, a: Analysis, opts: RoutingOptions, candidates) -> Routing:
-        return request.app.state.analyzer.routing_out(_decide(request, a, opts, candidates))
-
     # ------------------------------------------------------------ scoring
     @router.post("/score", response_model=ScoreResponse, response_model_exclude_none=True)
     async def score(
@@ -245,8 +267,9 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
         candidates = _candidates(request, body.routing, connected)
         await _quota(db, response, ctx, 1)
         a = await _analyze(request, body.prompt, body.system, body.models, body.backend)
-        routing = _routing(request, a, body.routing, candidates)
-        await _record(db, request, ctx, a, body.prompt, body.system, body.options.store)
+        decision = _decide(request, a, body.routing, candidates)
+        routing = request.app.state.analyzer.routing_out(decision)
+        await _record(db, request, ctx, a, body.prompt, body.system, body.options.store, decision)
         await record_usage(
             db, key_id=ctx.key.id, user_id=ctx.user.id, prompts=1, degraded=int(a.judged.degraded)
         )
@@ -305,7 +328,8 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                 continue
             scored += 1
             degraded += int(a.judged.degraded)
-            await _record(db, request, ctx, a, item.prompt, item.system, body.options.store)
+            decision = _decide(request, a, body.routing, candidates)
+            await _record(db, request, ctx, a, item.prompt, item.system, body.options.store, decision)
             results.append(
                 BatchResult(
                     index=i,
@@ -316,7 +340,7 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                         include_suggestions=body.options.include_suggestions,
                         include_confidence=body.options.include_confidence,
                         stored=body.options.store,
-                        routing=_routing(request, a, body.routing, candidates),
+                        routing=request.app.state.analyzer.routing_out(decision),
                     ),
                 )
             )
@@ -353,6 +377,7 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
         routing = request.app.state.analyzer.routing_out(decision)
 
         execution = Execution(executed=False)
+        called = False  # did we actually try any model?
         if not body.execute:
             execution.reason = "execute is false: recommendation only."
         elif decision.action == "clarify_first" and not body.send_anyway:
@@ -430,6 +455,7 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                             continue
                     attempts.append({"candidate": c, "api_key": usable[c.id][1]})
                 won, out, log = (None, None, [])
+                called = bool(attempts)
                 if attempts:
                     won, out, log = await run_with_fallback(
                         request.app.state.providers,
@@ -462,7 +488,27 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                     if row is not None:
                         row.last_used_at = utcnow()
 
-        await _record(db, request, ctx, a, body.prompt, body.system, body.options.store)
+        executed = None
+        if called or execution.attempts:
+            executed = {"exec_ok": execution.executed, "exec_attempts": len(execution.attempts)}
+            if execution.executed:
+                won_c = next(c for c in candidates if c.id == execution.model_used)
+                executed |= {
+                    "executed_model": won_c.id,
+                    "executed_provider": won_c.provider,
+                    "exec_input_tokens": execution.input_tokens,
+                    "exec_output_tokens": execution.output_tokens,
+                    "exec_cost_usd": execution.cost_usd,
+                }
+                if (
+                    decision.baseline
+                    and execution.input_tokens is not None
+                    and execution.output_tokens is not None
+                ):
+                    executed["exec_baseline_usd"] = decision.baseline.candidate.cost(
+                        execution.input_tokens, execution.output_tokens
+                    )
+        await _record(db, request, ctx, a, body.prompt, body.system, body.options.store, decision, executed)
         await record_usage(
             db, key_id=ctx.key.id, user_id=ctx.user.id, prompts=1, degraded=int(a.judged.degraded)
         )
@@ -682,6 +728,149 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             "used_today": await prompts_used(db, user.id, today),
             "used_this_month": await prompts_used(db, user.id, today.replace(day=1)),
             "days": series,
+        }
+
+    @router.get("/usage/routing")
+    async def routing_usage(
+        request: Request,
+        days: int = 30,
+        user: User | None = Depends(current_user),
+        db: AsyncSession = Depends(get_db),
+    ):
+        """Where the router sent prompts, per API key and per model, and what that saved.
+
+        `est_*` covers every routed check (recommendations included): the pick's expected cost vs the
+        baseline's. `spent_usd` / `saved_usd` cover only real calls made by /v1/route: what the model
+        cost at list prices vs the same tokens on the baseline model.
+        """
+        only_key = None
+        if request.headers.get("authorization"):
+            ctx = await require_api_key(request, db)
+            user, only_key = ctx.user, ctx.key.id
+        if user is None:
+            raise ApiError(401, "missing_api_key", "Send an API key, or sign in.")
+        days = max(1, min(days, 90))
+        since = utcnow() - dt.timedelta(days=days)
+        kq = select(ApiKey).where(ApiKey.user_id == user.id).order_by(ApiKey.created_at.desc())
+        if only_key is not None:
+            kq = kq.where(ApiKey.id == only_key)
+        keys = list((await db.scalars(kq)).all())
+        key_ids = [k.id for k in keys]
+        E = ScoreEvent
+        where = (E.key_id.in_(key_ids), E.created_at >= since, E.routed_model.is_not(None))
+        ok = func.sum(case((E.exec_ok.is_(True), 1), else_=0))
+        failed = func.sum(case((E.exec_ok.is_(False), 1), else_=0))
+        clar = func.sum(case((E.clarify_first.is_(True), 1), else_=0))
+        rows = (
+            await db.execute(
+                select(
+                    E.key_id,
+                    E.routed_model,
+                    E.routed_provider,
+                    E.executed_model,
+                    E.executed_provider,
+                    func.count(),
+                    ok,
+                    failed,
+                    clar,
+                    func.sum(E.est_cost_usd),
+                    func.sum(E.est_baseline_usd),
+                    func.sum(E.exec_cost_usd),
+                    func.sum(E.exec_baseline_usd),
+                    func.sum(E.exec_input_tokens),
+                    func.sum(E.exec_output_tokens),
+                )
+                .where(*where)
+                .group_by(E.key_id, E.routed_model, E.routed_provider, E.executed_model, E.executed_provider)
+            )
+        ).all()
+        base_rows = (
+            await db.execute(select(E.baseline_model, func.count()).where(*where).group_by(E.baseline_model))
+        ).all()
+
+        names = {m.id: m.name for m in request.app.state.config.prices.models}
+        name = lambda m: names.get(m, m)  # noqa: E731
+
+        def blank():
+            return {
+                "checks": 0, "clarify_first": 0, "sent": 0, "failed": 0,
+                "est_cost_usd": 0.0, "est_baseline_usd": 0.0, "spent_usd": 0.0, "exec_baseline_usd": 0.0,
+                "input_tokens": 0, "output_tokens": 0,
+            }  # fmt: skip
+
+        per_key = {k: blank() | {"recommended": {}, "sent_to": {}, "providers": set()} for k in key_ids}
+        per_model: dict[str, dict] = {}
+        total = blank()
+        for kid, rmodel, rprov, xmodel, xprov, n, n_ok, n_fail, n_clar, ec, eb, xc, xb, ti, to in rows:
+            for bucket in (per_key[kid], total):
+                bucket["checks"] += n
+                bucket["clarify_first"] += n_clar or 0
+                bucket["sent"] += n_ok or 0
+                bucket["failed"] += n_fail or 0
+                bucket["est_cost_usd"] += ec or 0.0
+                bucket["est_baseline_usd"] += eb or 0.0
+                bucket["spent_usd"] += xc or 0.0
+                bucket["exec_baseline_usd"] += xb or 0.0
+                bucket["input_tokens"] += ti or 0
+                bucket["output_tokens"] += to or 0
+            k = per_key[kid]
+            k["recommended"][rmodel] = k["recommended"].get(rmodel, 0) + n
+            pm = per_model.setdefault(
+                rmodel,
+                {"model": rmodel, "name": name(rmodel), "provider": rprov, "recommended": 0, "sent": 0,
+                 "spent_usd": 0.0, "input_tokens": 0, "output_tokens": 0},
+            )  # fmt: skip
+            pm["recommended"] += n
+            if xmodel:
+                k["providers"].add(xprov)
+                sent = k["sent_to"].setdefault(xmodel, {"calls": 0, "spent_usd": 0.0})
+                sent["calls"] += n_ok or 0
+                sent["spent_usd"] += xc or 0.0
+                xm = per_model.setdefault(
+                    xmodel,
+                    {"model": xmodel, "name": name(xmodel), "provider": xprov, "recommended": 0, "sent": 0,
+                     "spent_usd": 0.0, "input_tokens": 0, "output_tokens": 0},
+                )  # fmt: skip
+                xm["sent"] += n_ok or 0
+                xm["spent_usd"] += xc or 0.0
+                xm["input_tokens"] += ti or 0
+                xm["output_tokens"] += to or 0
+
+        def finish(b: dict) -> dict:
+            out = {k: (round(v, 6) if isinstance(v, float) else v) for k, v in b.items()}
+            out["est_saved_usd"] = round(max(0.0, b["est_baseline_usd"] - b["est_cost_usd"]), 6)
+            out["saved_usd"] = round(max(0.0, b["exec_baseline_usd"] - b["spent_usd"]), 6)
+            return out
+
+        keys_out = []
+        for k in keys:
+            b = per_key[k.id]
+            if k.revoked_at is not None and not b["checks"]:
+                continue
+            entry = _key_out(k) | finish({x: b[x] for x in blank()})
+            entry["recommended"] = sorted(
+                ({"model": m, "name": name(m), "count": c} for m, c in b["recommended"].items()),
+                key=lambda x: -x["count"],
+            )
+            entry["sent_to"] = sorted(
+                ({"model": m, "name": name(m), "calls": v["calls"], "spent_usd": round(v["spent_usd"], 6)}
+                 for m, v in b["sent_to"].items()),
+                key=lambda x: -x["calls"],
+            )  # fmt: skip
+            entry["providers_used"] = sorted(p for p in b["providers"] if p)
+            keys_out.append(entry)
+        return {
+            "days": days,
+            "totals": finish(total),
+            "baselines": sorted(
+                ({"model": m, "name": name(m), "checks": n} for m, n in base_rows if m),
+                key=lambda x: -x["checks"],
+            ),
+            "models": sorted(
+                ({**m, "spent_usd": round(m["spent_usd"], 6)} for m in per_model.values()),
+                key=lambda x: (-x["sent"], -x["recommended"]),
+            ),
+            "keys": keys_out,
         }
 
     # ------------------------------------------------------------ accounts

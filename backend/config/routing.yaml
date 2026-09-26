@@ -1,0 +1,29 @@
+# Task strengths: how well each provider's models fit each kind of task (0–1, higher = better fit).
+#
+# These are starting opinions, not measurements: edit them to match your own experience, then re-run
+# `python eval/run_routing.py` to see how the picks and savings change. Keys under each task type are a
+# provider name from prices.yaml (anthropic, openai, google) or an exact model ID (a model ID wins over
+# its provider). Anything not listed gets `default_strength`, including custom endpoints.
+#
+# How the strategies use them (app/router.py):
+#   cheapest  price only: the cheapest model that is strong enough. Strengths are ignored.
+#   balanced  start from the cheapest capable model; switch to a better-fitting capable model if it is
+#             at least `min_edge` better for this task AND costs at most `balanced_price_band` × the
+#             cheapest one.
+#   quality   the strongest tier, then the best fit for the task, then the lowest price.
+
+version: 1
+default_strength: 0.9
+min_edge: 0.1
+balanced_price_band: 3.0
+
+task_strengths:
+  coding:                     { anthropic: 1.0, openai: 0.9, google: 0.85 }
+  writing:                    { anthropic: 1.0, openai: 0.9, google: 0.85 }
+  conversation:               { anthropic: 1.0, openai: 0.9, google: 0.85 }
+  analysis:                   { anthropic: 0.95, openai: 0.95, google: 0.9 }
+  brainstorming:              { anthropic: 0.95, openai: 0.95, google: 0.9 }
+  math:                       { openai: 1.0, google: 0.95, anthropic: 0.9 }
+  factual_qa:                 { google: 1.0, openai: 0.95, anthropic: 0.9 }
+  extraction_transformation:  { google: 1.0, openai: 0.95, anthropic: 0.95 }
+  other: {}

@@ -185,7 +185,7 @@
       <div class="scroll"><table class="ref">
         <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>routing.strategy</code></td><td><code>balanced</code> | <code>cheapest</code> | <code>quality</code></td><td><b>balanced</b> (default): the lowest-cost model that's strong enough, with a safety margin. <b>cheapest</b>: less margin, lower cost. <b>quality</b>: the strongest tier available, cheapest within it.</td></tr>
+          <tr><td><code>routing.strategy</code></td><td><code>balanced</code> | <code>cheapest</code> | <code>quality</code></td><td><b>balanced</b> (default): the lowest-cost model that's strong enough, with a safety margin, unless another capable model fits this kind of task clearly better for at most 3× the price. <b>cheapest</b>: less margin, price only. <b>quality</b>: the strongest tier available, best fit for the task within it.</td></tr>
           <tr><td><code>routing.candidates</code></td><td>array</td><td>The models you have. Mix IDs from <a href="#pricing">/v1/pricing</a> with your own: <code>{"id", "tier": "small|mid|frontier", "input_price", "output_price", "provider", "base_url", "model"}</code>. Default: all priced models.</td></tr>
           <tr><td><code>routing.baseline_model</code></td><td>string</td><td>What you'd use without routing, for the savings numbers. Default: your priciest candidate.</td></tr>
           <tr><td><code>routing.max_cost_usd</code></td><td>number</td><td>Skip models whose p90 cost for this prompt is above this.</td></tr>
@@ -194,16 +194,19 @@
       </table></div>
       <p>How it decides: Jev rates how hard the prompt is (low, medium, high). The strategy turns that into a required
         tier (small, mid, frontier), and the router ranks your models by tier and expected cost for <em>this</em> prompt.
+        Jev also names the task type (coding, writing, math…); each model's <code>task_fit</code> (0–1, from
+        <code>config/routing.yaml</code>) says how well it suits that type. By default Claude leads on coding, writing and
+        conversation, OpenAI on math, and Gemini on factual questions and extraction.
         If the prompt is likely to fail anyway, <code>routing.action</code> is <code>"clarify_first"</code> with a
         <code>clarify_reason</code>: ask the user for the missing details before paying for a call.</p>
 <pre class="codeblock"><span class="c">// "routing" in the response for "write me a poem"</span>
 {
-  <span class="k">"strategy"</span>: <span class="s">"balanced"</span>, <span class="k">"action"</span>: <span class="s">"send"</span>, <span class="k">"required_tier"</span>: <span class="s">"mid"</span>,
-  <span class="k">"recommended"</span>: { <span class="k">"id"</span>: <span class="s">"gemini-3.8-flash"</span>, <span class="k">"tier"</span>: <span class="s">"mid"</span>, <span class="k">"est_cost_usd_p50"</span>: 0.000783 },
-  <span class="k">"fallback"</span>:    { <span class="k">"id"</span>: <span class="s">"claude-sonnet-5"</span>, … },
+  <span class="k">"strategy"</span>: <span class="s">"balanced"</span>, <span class="k">"task_type"</span>: <span class="s">"writing"</span>, <span class="k">"action"</span>: <span class="s">"send"</span>, <span class="k">"required_tier"</span>: <span class="s">"mid"</span>,
+  <span class="k">"recommended"</span>: { <span class="k">"id"</span>: <span class="s">"claude-sonnet-5"</span>, <span class="k">"tier"</span>: <span class="s">"mid"</span>, <span class="k">"est_cost_usd_p50"</span>: 0.002088, <span class="k">"task_fit"</span>: 1.0 },
+  <span class="k">"fallback"</span>:    { <span class="k">"id"</span>: <span class="s">"gemini-3.8-flash"</span>, <span class="k">"task_fit"</span>: 0.85, … },
   <span class="k">"baseline"</span>:    { <span class="k">"id"</span>: <span class="s">"gpt-6-astra"</span>, … },
-  <span class="k">"savings_percent"</span>: 92.5,
-  <span class="k">"reason"</span>: <span class="s">"A medium-difficulty writing prompt needs a mid-tier model or better; Gemini 3.8 Flash is the best-value one…"</span>,
+  <span class="k">"savings_percent"</span>: 80.0,
+  <span class="k">"reason"</span>: <span class="s">"A medium-difficulty writing prompt needs a mid-tier model or better. Claude Sonnet 5 is a better fit for writing than Gemini 3.8 Flash (the cheapest that qualifies) and costs 2.7× as much. It's still about 80% cheaper than GPT-6 Astra."</span>,
   <span class="k">"alternatives"</span>: [ …every candidate, ranked… ]
 }</pre>
     </section>
@@ -256,6 +259,11 @@ curl https://<span class="n">your-host</span>/v1/route \
       <div class="endpoint"><span class="method get">GET</span>/v1/usage?days=30 <span class="auth-tag">API key or signed-in session</span></div>
       <p>Requests, prompts and fallback counts per UTC day (up to 90 days), plus prompts used today and this month.
         With a key, usage is for that key; signed in on the website, it's for your whole account.</p>
+      <div class="endpoint"><span class="method get">GET</span>/v1/usage/routing?days=30 <span class="auth-tag">API key or signed-in session</span></div>
+      <p>Where the router sent your prompts: per API key and per model, how often each model was <b>picked</b>, how many
+        prompts were really <b>sent</b> through <code>/v1/route</code>, tokens, <code>spent_usd</code>, and two savings
+        numbers. <code>saved_usd</code> compares your real calls with the same tokens on the comparison model;
+        <code>est_saved_usd</code> compares expected costs for every routed prompt, recommendations included.</p>
     </section>
 
     <section id="health">

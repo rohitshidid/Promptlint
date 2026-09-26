@@ -100,6 +100,25 @@ class ScoreEvent(Base):
     lint_score: Mapped[int] = mapped_column(Integer)
     pqs_score: Mapped[int] = mapped_column(Integer)
     latency_ms: Mapped[int] = mapped_column(Integer)
+    # Routing (v1.2): what the router picked, and what really happened when /v1/route called a model.
+    strategy: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    task_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    routed_model: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    routed_provider: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    baseline_model: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    est_cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)  # the pick, p50
+    est_baseline_usd: Mapped[float | None] = mapped_column(Float, nullable=True)  # baseline, p50
+    clarify_first: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    exec_ok: Mapped[bool | None] = mapped_column(Boolean, nullable=True)  # None = no model was called
+    executed_model: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    executed_provider: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    exec_attempts: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    exec_input_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    exec_output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    exec_cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    exec_baseline_usd: Mapped[float | None] = mapped_column(
+        Float, nullable=True
+    )  # same tokens on the baseline
 
 
 class StoredPrompt(Base):

@@ -72,6 +72,46 @@ def test_required_tier(probs, strategy, need):
     assert R.required_tier(probs, strategy) == need
 
 
+def test_task_fit_moves_balanced_to_a_better_model_within_the_price_band():
+    fits = {"mid-a": 0.85, "mid-b": 1.0}  # mid-b costs 2.5x mid-a here
+    d = decide((0.1, 0.8, 0.1), fits=fits)
+    assert d.chosen.candidate.id == "mid-b" and d.fallback.candidate.id == "mid-a"
+    assert "better fit for writing" in d.reason and "2.5×" in d.reason
+    # cheapest ignores fit; a tight band or a small edge keeps the cheaper model
+    assert decide((0.1, 0.8, 0.1), strategy="cheapest", fits=fits).chosen.candidate.id == "mid-a"
+    assert decide((0.1, 0.8, 0.1), fits=fits, price_band=2.0).chosen.candidate.id == "mid-a"
+    assert decide((0.1, 0.8, 0.1), fits={"mid-a": 0.95, "mid-b": 1.0}).chosen.candidate.id == "mid-a"
+
+
+def test_quality_prefers_the_best_fit_in_the_strongest_tier():
+    pool = [cand("big-cheap", "frontier", 2, 12), cand("big-fit", "frontier", 4, 20)]
+    d = R.route(
+        candidates=pool,
+        complexity_probs=(0, 0.2, 0.8),
+        input_tokens=100,
+        output_p50=300,
+        output_p90=900,
+        verdict="needs_work",
+        first_try=0.8,
+        missing=[],
+        task_type="coding",
+        strategy="quality",
+        fits={"big-cheap": 0.85, "big-fit": 1.0},
+    )
+    assert d.chosen.candidate.id == "big-fit" and "best fit for coding" in d.reason
+    assert d.task_type == "coding"
+
+
+def test_routing_yaml_strengths_send_writing_to_claude(client):
+    h = account(client)
+    d = client.post("/v1/score", json={"prompt": "x"}, headers=h).json()
+    rt = d["routing"]
+    assert rt["task_type"] == "writing" and rt["recommended"]["id"] == "claude-sonnet-5"
+    assert rt["fallback"]["id"] == "gemini-3.8-flash"
+    fits = {m["id"]: m["task_fit"] for m in rt["alternatives"]}
+    assert fits["claude-sonnet-5"] == 1.0 and fits["gemini-3.8-flash"] == 0.85
+
+
 def test_simple_prompt_goes_to_the_cheapest_small_model():
     d = decide((0.95, 0.05, 0))
     assert d.chosen.candidate.id == "small-a" and d.action == "send"
@@ -275,7 +315,7 @@ def test_route_falls_back_when_the_first_model_fails(client, fakes):
         json={
             "prompt": "x",
             "provider_keys": {"gemini": "g-1", "anthropic": "sk-ant-1"},
-            "routing": {"candidates": ["gemini-3.8-flash", "claude-sonnet-5"]},
+            "routing": {"candidates": ["gemini-3.8-flash", "claude-sonnet-5"], "strategy": "cheapest"},
         },
         headers=h,
     ).json()
@@ -477,3 +517,36 @@ async def test_anthropic_adapter_sends_system_and_reads_usage(fakes):
     assert body["system"] == "Be brief." and body["max_tokens"] == 100
     assert fakes.requests[-1].headers["x-api-key"] == "sk-ant"
     await pc.aclose()
+
+
+# ------------------------------------------------------------------ routing stats on the account page
+def test_routing_usage_per_key_and_model(client, fakes):
+    h = account(client)
+    # one recommendation-only check, and one real call to Claude with a per-request key
+    client.post("/v1/score", json={"prompt": "x"}, headers=h)
+    d = client.post(
+        "/v1/route",
+        json={"prompt": "x", "provider_keys": {"anthropic": "sk-ant-1"}},
+        headers=h,
+    ).json()
+    assert d["execution"]["executed"] is True and d["execution"]["model_used"] == "claude-sonnet-5"
+
+    u = client.get("/v1/usage/routing").json()  # signed-in session
+    t = u["totals"]
+    assert t["checks"] == 2 and t["sent"] == 1 and t["failed"] == 0
+    assert t["spent_usd"] == d["execution"]["cost_usd"]
+    # the baseline for the real call is the priciest model with a key (Claude Opus 5.5), same tokens
+    assert t["saved_usd"] > 0 and t["est_saved_usd"] > 0
+    [key] = u["keys"]
+    assert key["checks"] == 2 and key["providers_used"] == ["Anthropic"]
+    assert key["sent_to"] == [
+        {"model": "claude-sonnet-5", "name": "Claude Sonnet 5", "calls": 1, "spent_usd": t["spent_usd"]}
+    ]
+    assert key["recommended"][0] == {"model": "claude-sonnet-5", "name": "Claude Sonnet 5", "count": 2}
+    sonnet = next(m for m in u["models"] if m["model"] == "claude-sonnet-5")
+    assert sonnet["recommended"] == 2 and sonnet["sent"] == 1
+
+    # with an API key, only that key's numbers; without auth, 401
+    assert client.get("/v1/usage/routing", headers=h).json()["totals"]["checks"] == 2
+    client.cookies.clear()
+    assert client.get("/v1/usage/routing").status_code == 401

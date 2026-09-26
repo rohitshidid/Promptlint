@@ -141,6 +141,21 @@ class PlanConfig:
 
 
 @dataclass(frozen=True)
+class RoutingConfig:
+    default_strength: float = 0.9
+    min_edge: float = 0.1
+    balanced_price_band: float = 3.0
+    task_strengths: dict[str, dict[str, float]] = field(default_factory=dict)
+
+    def strength(self, task_type: str, model_id: str, provider: str) -> float:
+        """How well a model fits a task type: the model's own entry, else its provider's, else the default."""
+        row = self.task_strengths.get(task_type, {})
+        if model_id in row:
+            return row[model_id]
+        return row.get(provider.lower(), self.default_strength)
+
+
+@dataclass(frozen=True)
 class AppConfig:
     questions: QuestionConfig
     weights: WeightConfig
@@ -149,6 +164,7 @@ class AppConfig:
     pqs: PqsConfig
     plans: PlanConfig
     score_tops: dict[str, int] = field(default_factory=dict)
+    routing: RoutingConfig = field(default_factory=RoutingConfig)
 
 
 def load_questions(path: Path) -> QuestionConfig:
@@ -218,6 +234,21 @@ def load_plans(path: Path) -> PlanConfig:
     )
 
 
+def load_routing(path: Path) -> RoutingConfig:
+    if not path.exists():
+        return RoutingConfig()
+    raw = _load(path)
+    return RoutingConfig(
+        default_strength=float(raw.get("default_strength", 0.9)),
+        min_edge=float(raw.get("min_edge", 0.1)),
+        balanced_price_band=float(raw.get("balanced_price_band", 3.0)),
+        task_strengths={
+            t: {str(k): float(v) for k, v in (row or {}).items()}
+            for t, row in (raw.get("task_strengths") or {}).items()
+        },
+    )
+
+
 def load_config(config_dir: Path) -> AppConfig:
     questions = load_questions(config_dir / "questions.yaml")
     cfg = AppConfig(
@@ -228,6 +259,7 @@ def load_config(config_dir: Path) -> AppConfig:
         pqs=load_pqs(config_dir / "pqs_scoring.yaml"),
         plans=load_plans(config_dir / "plans.yaml"),
         score_tops={k: q.top for k, q in questions.scores.items()},
+        routing=load_routing(config_dir / "routing.yaml"),
     )
     _validate(cfg)
     return cfg
@@ -270,3 +302,16 @@ def _validate(cfg: AppConfig) -> None:
         raise ValueError("plans.yaml default_plan is not a defined plan")
     if cfg.score_tops.get("complexity") != len(cfg.weights.tier_hint) - 1:
         raise ValueError("weights.yaml tier_hint needs one entry per complexity level")
+    r = cfg.routing
+    if r.balanced_price_band < 1:
+        raise ValueError("routing.yaml balanced_price_band must be at least 1")
+    providers = {m.provider.lower() for m in cfg.prices.models}
+    model_ids = {m.id for m in cfg.prices.models}
+    for t, row in r.task_strengths.items():
+        if t not in task_types:
+            raise ValueError(f"routing.yaml has strengths for unknown task type {t!r}")
+        for k, v in row.items():
+            if k not in providers and k not in model_ids:
+                raise ValueError(f"routing.yaml {t}: {k!r} is not a provider or model ID in prices.yaml")
+            if not 0 <= v <= 1:
+                raise ValueError(f"routing.yaml {t}.{k} must be between 0 and 1")

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-26T00:20:11+00:00",
+  "generated_at": "2026-09-26T03:19:51+00:00",
   "n_prompts": 480,
   "prices_last_updated": "2026-09-25",
   "strategies": {
@@ -29,7 +29,7 @@
       ]
     },
     "balanced": {
-      "avg_cost_usd": 0.0009428259375000003,
+      "avg_cost_usd": 0.0015551670833333338,
       "tier_mix": {
         "small": 0.25,
         "mid": 0.74375,
@@ -39,7 +39,12 @@
         {
           "model": "gemini-3.8-flash",
           "name": "Gemini 3.8 Flash",
-          "share": 0.74375
+          "share": 0.46041666666666664
+        },
+        {
+          "model": "claude-sonnet-5",
+          "name": "Claude Sonnet 5",
+          "share": 0.2833333333333333
         },
         {
           "model": "gpt-6-luna",
@@ -49,12 +54,12 @@
         {
           "model": "gemini-3.1-pro-preview",
           "name": "Gemini 3.1 Pro",
-          "share": 0.00625
+          "share": 0.004166666666666667
         }
       ]
     },
     "quality": {
-      "avg_cost_usd": 0.003399245833333331,
+      "avg_cost_usd": 0.006012058333333335,
       "tier_mix": {
         "small": 0.0,
         "mid": 0.0,
@@ -62,9 +67,19 @@
       },
       "top_picks": [
         {
+          "model": "claude-opus-5-5",
+          "name": "Claude Opus 5.5",
+          "share": 0.6666666666666666
+        },
+        {
           "model": "gemini-3.1-pro-preview",
           "name": "Gemini 3.1 Pro",
-          "share": 1.0
+          "share": 0.20416666666666666
+        },
+        {
+          "model": "gpt-6-astra",
+          "name": "GPT-6 Astra",
+          "share": 0.12916666666666668
         }
       ]
     }
@@ -110,27 +125,27 @@
       "gemini-3.8-flash": 21.4
     },
     "balanced": {
-      "claude-opus-5-5": 83.4,
-      "claude-sonnet-5": 66.8,
-      "claude-haiku-4-5": 33.6,
-      "gpt-6-astra": 93.4,
-      "gpt-6-luna": -563.6,
-      "gemini-3.1-pro-preview": 72.3,
-      "gemini-3.8-flash": 11.5
+      "claude-opus-5-5": 72.6,
+      "claude-sonnet-5": 45.3,
+      "claude-haiku-4-5": -9.5,
+      "gpt-6-astra": 89.1,
+      "gpt-6-luna": -994.6,
+      "gemini-3.1-pro-preview": 54.2,
+      "gemini-3.8-flash": -46.0
     },
     "quality": {
-      "claude-opus-5-5": 40.2,
-      "claude-sonnet-5": -19.6,
-      "claude-haiku-4-5": -139.3,
-      "gpt-6-astra": 76.1,
-      "gpt-6-luna": -2292.6,
-      "gemini-3.1-pro-preview": 0.0,
-      "gemini-3.8-flash": -219.0
+      "claude-opus-5-5": -5.8,
+      "claude-sonnet-5": -111.6,
+      "claude-haiku-4-5": -323.2,
+      "gpt-6-astra": 57.7,
+      "gpt-6-luna": -4131.7,
+      "gemini-3.1-pro-preview": -76.9,
+      "gemini-3.8-flash": -464.2
     }
   },
   "headline": {
-    "balanced_vs_frontier_avg": 83.0,
-    "balanced_vs_priciest": 93.4,
+    "balanced_vs_frontier_avg": 72.0,
+    "balanced_vs_priciest": 89.1,
     "priciest_model": "gpt-6-astra",
     "clarify_first_share": 0.23541666666666666,
     "clarify_first_weak_share": 0.4708333333333333

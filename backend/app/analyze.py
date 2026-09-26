@@ -362,6 +362,9 @@ class Analyzer:
             strategy=opts.strategy,
             baseline_id=opts.baseline_model,
             max_cost_usd=opts.max_cost_usd,
+            fits={c.id: self.cfg.routing.strength(a.task_type, c.id, c.provider) for c in candidates},
+            min_edge=self.cfg.routing.min_edge,
+            price_band=self.cfg.routing.balanced_price_band,
         )
 
     @staticmethod
@@ -378,11 +381,13 @@ class Analyzer:
             capable=r.capable,
             est_cost_usd_p50=round(r.cost_p50, 8),
             est_cost_usd_p90=round(r.cost_p90, 8),
+            task_fit=round(r.fit, 3),
         )
 
     def routing_out(self, d: model_router.RouteDecision) -> Routing:
         return Routing(
             strategy=d.strategy,
+            task_type=d.task_type,
             action=d.action,
             required_tier=d.required_tier,
             complexity=d.complexity,

@@ -196,6 +196,60 @@
     catch (err) { show($("prov-msg"), err.message, "err"); }
   });
 
+  /* ------------------------------------------------------- routing stats */
+  function usd(x) {
+    if (!x) return "$0";
+    if (x >= 1) return "$" + x.toFixed(2);
+    if (x >= 0.01) return "$" + x.toFixed(3);
+    return "$" + x.toFixed(Math.min(6, Math.max(2, -Math.floor(Math.log10(x)) + 1)));
+  }
+  function routingStats(u) {
+    const t = u.totals, box = $("routing-stats");
+    if (!t.checks) {
+      box.innerHTML = `<p class="sub" style="margin:0">No routed prompts yet. Every <code>/v1/score</code> and <code>/v1/route</code> call with your keys shows up here.</p>`;
+      return;
+    }
+    const base = u.baselines[0];
+    const baseName = base ? (u.baselines.length > 1 ? `your priciest model (mostly ${base.name})` : base.name) : "the priciest model";
+    const pctOf = (saved, cost) => (saved + cost > 0 ? Math.round((saved / (saved + cost)) * 100) : 0);
+    let html = `<div class="saved">
+      <div class="save-hero"><small>Money saved on real LLM calls</small><b>${usd(t.saved_usd)}</b>
+        <span>${t.sent ? `You paid <b>${usd(t.spent_usd)}</b> for ${fmt(t.sent)} answer${t.sent === 1 ? "" : "s"} through <code>/v1/route</code>. The same tokens on ${esc(baseName)} would have cost <b>${usd(t.spent_usd + t.saved_usd)}</b>${t.saved_usd > 0 ? ` (${pctOf(t.saved_usd, t.spent_usd)}% less)` : ""}.`
+          : "No prompts were sent to your LLMs yet. Turn on execute in <code>/v1/route</code> (or the tester) with your provider keys connected."}</span></div>
+      <div><small>Estimated savings on every routed prompt</small><b>${usd(t.est_saved_usd)}</b>
+        <span>${fmt(t.checks)} prompt${t.checks === 1 ? "" : "s"} routed. Picks cost about <b>${usd(t.est_cost_usd)}</b> vs <b>${usd(t.est_baseline_usd)}</b> if every one went to ${esc(baseName)} (expected cost, recommendations included).</span></div>
+    </div>
+    <div class="rt-facts">
+      <div><small>Prompts routed</small><b>${fmt(t.checks)}</b></div>
+      <div><small>Sent to your LLMs</small><b>${fmt(t.sent)}</b></div>
+      <div><small>Failed calls</small><b>${fmt(t.failed)}</b></div>
+      <div><small>"Clarify first"</small><b>${fmt(t.clarify_first)}</b></div>
+    </div>`;
+    const top = Math.max(...u.models.map((m) => Math.max(m.recommended, m.sent)), 1);
+    html += `<h3>By model</h3><p class="sub" style="margin:0 0 6px">Dark = sent to your LLM, light = recommended only.</p>
+      ${u.models.map((m) => {
+        const recOnly = Math.max(0, m.recommended - m.sent);
+        return `<div class="mbar"><span class="nm" title="${esc(m.name)}">${esc(m.name)}</span>
+          <div class="track" title="${fmt(m.recommended)} recommended · ${fmt(m.sent)} sent"><i class="sent" style="width:${(m.sent / top) * 100}%"></i><i class="rec" style="width:${(recOnly / top) * 100}%"></i></div>
+          <em>${fmt(m.recommended)} picked · ${fmt(m.sent)} sent${m.spent_usd ? ` · ${usd(m.spent_usd)}` : ""}</em></div>`;
+      }).join("")}
+      <details class="data"><summary>Show as a table</summary><div class="table-scroll"><table class="keys"><thead><tr><th>Model</th><th>Picked</th><th>Sent</th><th>Tokens in / out</th><th>Spent</th></tr></thead><tbody>
+        ${u.models.map((m) => `<tr><td>${esc(m.name)}<br><span class="muted">${esc(m.provider || "")}</span></td><td>${fmt(m.recommended)}</td><td>${fmt(m.sent)}</td>
+          <td class="muted">${fmt(m.input_tokens)} / ${fmt(m.output_tokens)}</td><td>${usd(m.spent_usd)}</td></tr>`).join("")}</tbody></table></div></details>`;
+    html += `<h3>By API key</h3><div class="table-scroll"><table class="keys"><thead><tr><th>Key</th><th>Routed</th><th>Used your LLM keys?</th><th>Router's picks</th><th>Spent</th><th>Saved</th></tr></thead><tbody>
+      ${u.keys.map((k) => `<tr>
+        <td><b>${esc(k.name)}</b><br><code>${esc(k.masked)}</code>${k.revoked ? ' <span class="muted">revoked</span>' : ""}</td>
+        <td>${fmt(k.checks)}</td>
+        <td>${k.sent || k.failed ? `<span class="yes">Yes</span>: ${fmt(k.sent)} sent${k.failed ? `, ${fmt(k.failed)} failed` : ""}<br><span class="muted">${esc(k.providers_used.join(", ") || "—")}${k.sent_to.length ? " · " + k.sent_to.map((x) => `${esc(x.name)} ×${fmt(x.calls)}`).join(", ") : ""}</span>`
+          : `<span class="no">${k.checks ? "No, recommendations only" : "Not used yet"}</span>`}</td>
+        <td class="muted">${k.recommended.slice(0, 3).map((x) => `${esc(x.name)} ×${fmt(x.count)}`).join("<br>") || "—"}</td>
+        <td>${usd(k.spent_usd)}</td>
+        <td>${k.saved_usd ? `<b>${usd(k.saved_usd)}</b><br><span class="muted">est. ${usd(k.est_saved_usd)}</span>` : `<span class="muted">est. ${usd(k.est_saved_usd)}</span>`}</td></tr>`).join("")}
+      </tbody></table></div>
+      <p class="sub" style="margin:12px 0 0">"Saved" compares what your real calls cost with the same tokens on the comparison model, at list prices. "Est." compares expected costs for every routed prompt, including recommendation-only checks.</p>`;
+    box.innerHTML = html;
+  }
+
   function chart(days) {
     const W = 560, H = 170, L = 34, R = 6, T = 10, B = 22;
     const max = Math.max(4, ...days.map((d) => d.prompts));
@@ -284,8 +338,10 @@ curl ${esc(host)}/v1/usage -H <span class="s">"Authorization: Bearer $PQS_KEY"</
     tiles(me);
     quickstart();
     syncProviderForm();
-    const [, usage] = await Promise.all([loadKeys(), api("/v1/usage?days=30"), loadProviders()]);
+    const [, usage, , routing] = await Promise.all([loadKeys(), api("/v1/usage?days=30"), loadProviders(), api("/v1/usage/routing?days=30").catch(() => null)]);
     chart(usage.days);
+    if (routing) routingStats(routing);
+    else $("routing-stats").innerHTML = `<p class="sub" style="margin:0">Couldn't load routing stats.</p>`;
   }
 
   api("/v1/account/config").then((cfg) => {

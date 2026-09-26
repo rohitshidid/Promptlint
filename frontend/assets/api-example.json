@@ -210,7 +210,7 @@
       }
     ],
     "tier_hint": "mid",
-    "suggested_model": "gemini-3.8-flash",
+    "suggested_model": "claude-sonnet-5",
     "backend": {
       "name": "jev",
       "version": "jev-1.13.0",
@@ -218,20 +218,11 @@
     },
     "routing": {
       "strategy": "balanced",
+      "task_type": "writing",
       "action": "send",
       "required_tier": "mid",
       "complexity": "medium-difficulty",
       "recommended": {
-        "id": "gemini-3.8-flash",
-        "name": "Gemini 3.8 Flash",
-        "provider": "Google",
-        "tier": "mid",
-        "source": "catalog",
-        "capable": true,
-        "est_cost_usd_p50": 0.000783,
-        "est_cost_usd_p90": 0.002193
-      },
-      "fallback": {
         "id": "claude-sonnet-5",
         "name": "Claude Sonnet 5",
         "provider": "Anthropic",
@@ -239,9 +230,21 @@
         "source": "catalog",
         "capable": true,
         "est_cost_usd_p50": 0.002088,
-        "est_cost_usd_p90": 0.005848
+        "est_cost_usd_p90": 0.005848,
+        "task_fit": 1.0
       },
-      "reason": "A medium-difficulty writing prompt needs a mid-tier model or better; Gemini 3.8 Flash is the best-value one that qualifies, about 93% cheaper than GPT-6 Astra.",
+      "fallback": {
+        "id": "gemini-3.8-flash",
+        "name": "Gemini 3.8 Flash",
+        "provider": "Google",
+        "tier": "mid",
+        "source": "catalog",
+        "capable": true,
+        "est_cost_usd_p50": 0.000783,
+        "est_cost_usd_p90": 0.002193,
+        "task_fit": 0.85
+      },
+      "reason": "A medium-difficulty writing prompt needs a mid-tier model or better. Claude Sonnet 5 is a better fit for writing than Gemini 3.8 Flash (the cheapest that qualifies) and costs 2.7\u00d7 as much. It's still about 80% cheaper than GPT-6 Astra.",
       "baseline": {
         "id": "gpt-6-astra",
         "name": "GPT-6 Astra",
@@ -250,21 +253,12 @@
         "source": "catalog",
         "capable": true,
         "est_cost_usd_p50": 0.01044,
-        "est_cost_usd_p90": 0.02924
+        "est_cost_usd_p90": 0.02924,
+        "task_fit": 0.9
       },
-      "savings_usd": 0.009657,
-      "savings_percent": 92.5,
+      "savings_usd": 0.008352,
+      "savings_percent": 80.0,
       "alternatives": [
-        {
-          "id": "gemini-3.8-flash",
-          "name": "Gemini 3.8 Flash",
-          "provider": "Google",
-          "tier": "mid",
-          "source": "catalog",
-          "capable": true,
-          "est_cost_usd_p50": 0.000783,
-          "est_cost_usd_p90": 0.002193
-        },
         {
           "id": "claude-sonnet-5",
           "name": "Claude Sonnet 5",
@@ -273,7 +267,19 @@
           "source": "catalog",
           "capable": true,
           "est_cost_usd_p50": 0.002088,
-          "est_cost_usd_p90": 0.005848
+          "est_cost_usd_p90": 0.005848,
+          "task_fit": 1.0
+        },
+        {
+          "id": "gemini-3.8-flash",
+          "name": "Gemini 3.8 Flash",
+          "provider": "Google",
+          "tier": "mid",
+          "source": "catalog",
+          "capable": true,
+          "est_cost_usd_p50": 0.000783,
+          "est_cost_usd_p90": 0.002193,
+          "task_fit": 0.85
         },
         {
           "id": "gemini-3.1-pro-preview",
@@ -283,7 +289,8 @@
           "source": "catalog",
           "capable": true,
           "est_cost_usd_p50": 0.002504,
-          "est_cost_usd_p90": 0.007016
+          "est_cost_usd_p90": 0.007016,
+          "task_fit": 0.85
         },
         {
           "id": "claude-opus-5-5",
@@ -293,7 +300,8 @@
           "source": "catalog",
           "capable": true,
           "est_cost_usd_p50": 0.004176,
-          "est_cost_usd_p90": 0.011696
+          "est_cost_usd_p90": 0.011696,
+          "task_fit": 1.0
         },
         {
           "id": "gpt-6-astra",
@@ -303,7 +311,8 @@
           "source": "catalog",
           "capable": true,
           "est_cost_usd_p50": 0.01044,
-          "est_cost_usd_p90": 0.02924
+          "est_cost_usd_p90": 0.02924,
+          "task_fit": 0.9
         },
         {
           "id": "gpt-6-luna",
@@ -313,7 +322,8 @@
           "source": "catalog",
           "capable": false,
           "est_cost_usd_p50": 0.0001044,
-          "est_cost_usd_p90": 0.0002924
+          "est_cost_usd_p90": 0.0002924,
+          "task_fit": 0.9
         },
         {
           "id": "claude-haiku-4-5",
@@ -323,7 +333,8 @@
           "source": "catalog",
           "capable": false,
           "est_cost_usd_p50": 0.001044,
-          "est_cost_usd_p90": 0.002924
+          "est_cost_usd_p90": 0.002924,
+          "task_fit": 1.0
         }
       ],
       "warnings": []

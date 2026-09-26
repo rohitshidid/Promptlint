@@ -116,6 +116,7 @@ Jev Ai/
 | `tips.yaml` | Every tip's text, ID and when it appears. |
 | `prices.yaml` | AI model prices (with the date checked) and answer-length ranges. |
 | `plans.yaml` | Free, dev and pro plans: checks per minute, per day and per batch. |
+| `routing.yaml` | How well each AI company's models fit each kind of task (coding, writing, math…). The router uses it to pick Claude for writing and coding, for example. Opinions you can edit. |
 | `quiz.yaml` | The quiz: five weak prompts to rewrite, and the grade cut-offs (A+ at 90 … F below 50). |
 
 ### `frontend/`: the website
@@ -124,7 +125,7 @@ Jev Ai/
 |---|---|
 | `index.html` | The landing page: what PromptLint is, a replayed demo, what the API can do (use cases), how much routing saves (with a calculator), accuracy numbers, API intro. |
 | `app.html` | The analyzer: paste a prompt, get the report card and the recommended model. Has compare mode, the Jev/heuristic switch and the routing strategy. |
-| `account.html` | Sign up, log in, create and revoke API keys, see usage, connect AI provider keys. |
+| `account.html` | Sign up, log in, create and revoke API keys, see usage, connect AI provider keys, and see routing stats: which models got your prompts, per key, and how much routing saved. |
 | `quiz.html` | The prompt quiz: rewrite five weak prompts, get a grade, see the leaderboard. |
 | `docs.html` | API reference for developers, with a real example response. |
 | `tester.html` | Try an API key in the browser: checks a prompt through `/v1/route`, explains the result in plain words, shows the recommended model and savings, and (if switched on) the AI's answer. |
@@ -133,7 +134,7 @@ Jev Ai/
 
 The friendly **API tester** is `frontend/tester.html` (served at `/tester.html`, linked from the account dashboard). It calls `/v1/route` with your key and explains the answer in plain words, including which model to use. Opened straight from disk, it talks to the live server instead.
 
-### `backend/tests/`: automated checks (176 of them)
+### `backend/tests/`: automated checks (180 of them)
 
 Run with `cd backend && .venv/bin/pytest -q`. No internet or secrets needed.
 
@@ -152,7 +153,7 @@ Run with `cd backend && .venv/bin/pytest -q`. No internet or secrets needed.
 | `run_pairwise.py` | If you improve a prompt, does its score go up? (240 before/after pairs) | 100% with Jev |
 | `run_checklist.py` | Do the checks agree with a person's labels? (100 prompts × 7 checks) | 95.9% with Jev, 91.4% with keyword rules |
 | `run_injection.py` | Can someone cheat by writing "rate this 100" in the prompt? | +3 points on average, never "ready" |
-| `run_routing.py` | How much cheaper is routing than always using one model? (480 prompts) | Balanced routing is 93% cheaper than always using GPT-6 Astra |
+| `run_routing.py` | How much cheaper is routing than always using one model? (480 prompts) | Balanced routing is 89% cheaper than always using GPT-6 Astra |
 | `run_first_try.py` | Does "chance it works first time" match reality? | Not run yet (needs an LLM key) |
 
 Results are saved in `eval/results/`. `build_report.py` turns them into charts in `report.ipynb`, and the landing page shows the headline numbers.
@@ -165,7 +166,7 @@ Results are saved in `eval/results/`. `build_report.py` turns them into charts i
 | `sessions` | Which browser is logged in (fingerprint only) | The actual cookie value |
 | `api_keys` | Key name, first 8 characters, fingerprint of the rest | The full key (shown once, then gone) |
 | `usage_daily` | Checks per key per day | Prompts |
-| `score_events` | Scrambled prompt fingerprint, length, scores, time taken (deleted after 90 days) | The prompt text |
+| `score_events` | Scrambled prompt fingerprint, length, scores, time taken, which model the router picked, and (for real calls) which model answered, tokens and cost (deleted after 90 days) | The prompt text or the answer |
 | `provider_keys` | Your connected AI provider keys, **locked (encrypted)**, plus the last 4 characters to show you which is which; custom endpoints' address, model and prices | The key in readable form |
 | `quiz_results` | Quiz nickname, score, grade, per-round scores, scrambled IP | Your rewrites' text |
 | `stored_prompts` | Prompt text, **only** if the caller sent `store: true` (deleted after 90 days) | n/a |
