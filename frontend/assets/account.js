@@ -85,17 +85,23 @@
       <div class="tile"><small>Plan</small><b style="text-transform:capitalize">${esc(p.name)}</b><span>${me.active_keys} of ${me.max_keys} keys active</span></div>`;
   }
 
+  let showRevoked = false;
   async function loadKeys() {
     const { keys } = await api("/v1/keys");
-    $("key-rows").innerHTML = keys.length
-      ? keys.map((k) => `<tr>
+    const revoked = keys.filter((k) => k.revoked).length;
+    const shown = showRevoked ? keys : keys.filter((k) => !k.revoked);
+    const toggle = revoked ? `<tr><td colspan="5"><button class="linkbtn show-revoked" id="toggle-revoked" type="button">${showRevoked ? "Hide" : "Show"} ${revoked} revoked key${revoked === 1 ? "" : "s"}</button></td></tr>` : "";
+    $("key-rows").innerHTML = (shown.length
+      ? shown.map((k) => `<tr class="${k.revoked ? "revoked-row" : ""}">
           <td>${esc(k.name)}</td>
           <td><code>${esc(k.masked)}</code></td>
           <td class="muted">${day(k.created_at)}</td>
           <td class="muted">${k.last_used_at ? day(k.last_used_at) : "Never"}</td>
           <td style="text-align:right">${k.revoked ? '<span class="tag-revoked">Revoked</span>' : `<button class="linkbtn" data-revoke="${k.id}" data-name="${esc(k.name)}">Revoke</button>`}</td>
         </tr>`).join("")
-      : `<tr><td colspan="5" class="muted">No keys yet. Create one above.</td></tr>`;
+      : `<tr><td colspan="5" class="muted">No active keys. Create one above.</td></tr>`) + toggle;
+    const t = $("toggle-revoked");
+    if (t) t.onclick = () => { showRevoked = !showRevoked; loadKeys(); };
   }
 
   $("key-rows").addEventListener("click", async (e) => {
@@ -296,9 +302,12 @@
       }
     });
     $("chart").innerHTML = s + "</svg>";
-    $("usage-table").innerHTML = `<table><thead><tr><th>Day (UTC)</th><th>Requests</th><th>Prompts</th><th>Fallback</th></tr></thead><tbody>${
-      days.slice().reverse().map((d) => `<tr><td>${d.day}</td><td>${fmt(d.requests)}</td><td>${fmt(d.prompts)}</td><td>${fmt(d.degraded)}</td></tr>`).join("")
-    }</tbody></table>`;
+    const active = days.filter((d) => d.requests || d.prompts).reverse();
+    $("usage-table").innerHTML = active.length
+      ? `<div class="data-scroll"><table><thead><tr><th>Day (UTC)</th><th>Requests</th><th>Prompts</th><th>Fallback</th></tr></thead><tbody>${
+          active.map((d) => `<tr><td>${d.day}</td><td>${fmt(d.requests)}</td><td>${fmt(d.prompts)}</td><td>${fmt(d.degraded)}</td></tr>`).join("")
+        }</tbody></table></div><p class="muted" style="margin:6px 0 0">Days with no checks are left out.</p>`
+      : `<p class="muted" style="margin:8px 0 0">No checks in the last 30 days.</p>`;
   }
 
   function quickstart(key) {

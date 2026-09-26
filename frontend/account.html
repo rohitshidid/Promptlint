@@ -6,8 +6,8 @@
 <title>Account · PromptLint</title>
 <meta name="description" content="Create a free PromptLint API key, manage keys, and see your usage.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.4">
-<link rel="stylesheet" href="assets/report.css?v=1.2.4">
+<link rel="stylesheet" href="assets/site.css?v=1.2.5">
+<link rel="stylesheet" href="assets/report.css?v=1.2.5">
 <style>
   .acct-head { padding: 40px 0 8px; position: relative; }
   .acct-head::before {
@@ -46,7 +46,7 @@
   #captcha { margin-top: 16px; }
 
   /* ---- dashboard */
-  .grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; align-items: start; }
   @media (max-width: 920px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
   .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
   @media (max-width: 820px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -119,6 +119,8 @@
   table.keys { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: .88rem; }
   table.keys th { text-align: left; font-size: .72rem; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; padding: 0 6px 8px; border-bottom: 1px solid var(--line); }
   table.keys td { padding: 10px 6px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+  tr.revoked-row td { opacity: .6; }
+  .show-revoked { margin-top: 10px; color: var(--ink-soft) !important; }
   table.keys code { font-size: .76rem; }
   table.keys .muted { color: var(--ink-faint); font-size: .8rem; }
   .table-scroll { overflow-x: auto; }
@@ -137,6 +139,7 @@
   .legend span { display: inline-flex; gap: 6px; align-items: center; }
   .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
   details.data { margin-top: 10px; font-size: .82rem; color: var(--ink-soft); }
+  details.data .data-scroll { max-height: 280px; overflow-y: auto; }
   details.data table { width: 100%; border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
   details.data td, details.data th { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line-soft); }
   details.data td:first-child, details.data th:first-child { text-align: left; }
@@ -316,7 +319,7 @@
   </div>
 </footer>
 
-<script src="assets/report.js?v=1.2.4"></script>
-<script src="assets/account.js?v=1.2.4"></script>
+<script src="assets/report.js?v=1.2.5"></script>
+<script src="assets/account.js?v=1.2.5"></script>
 </body>
 </html>

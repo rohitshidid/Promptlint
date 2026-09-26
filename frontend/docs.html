@@ -6,7 +6,7 @@
 <title>API docs · PromptLint</title>
 <meta name="description" content="PromptLint public API: score prompts, batch, pricing, usage. Authentication, limits, errors and response fields.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.1">
+<link rel="stylesheet" href="assets/site.css?v=1.2.5">
 <style>
   .doc-head { padding: 40px 0 12px; position: relative; }
   .doc-head::before {
@@ -199,6 +199,9 @@
         Jev also names the task type (coding, writing, math…); each model's <code>task_fit</code> (0–1, from
         <code>config/routing.yaml</code>) says how well it suits that type. By default Claude leads on coding, writing and
         conversation, OpenAI on math, and Gemini on factual questions and extraction.
+        Once you've connected any provider, each model carries <code>"connected"</code>; if the best fit is a model you
+        have no key for, <code>routing.not_connected</code> names it, the best of your connected models
+        (<code>instead</code>) and a plain-English <code>note</code>. <code>/v1/route</code> only ever calls connected models.
         If the prompt is likely to fail anyway, <code>routing.action</code> is <code>"clarify_first"</code> with a
         <code>clarify_reason</code>: ask the user for the missing details before paying for a call.</p>
 <pre class="codeblock"><span class="c">// "routing" in the response for "write me a poem"</span>
