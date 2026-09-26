@@ -66,8 +66,10 @@
 <header class="doc-head">
   <div class="wrap">
     <h1>API reference</h1>
-    <p>Score a prompt before your app sends it to an LLM. One request returns both scores, every signal, token and cost
-      estimates, and fix-it suggestions. No LLM runs on our side: judgments come from one TypeSafe Jev call.</p>
+    <p>Send each prompt to the cheapest model that can handle it. <a href="#route"><code>POST /v1/route</code></a> picks the model,
+      calls it with your own LLM keys (with a backup), and returns the answer with what it cost and saved.
+      <a href="#routing"><code>/v1/score</code></a> gives the same recommendation plus the prompt's scores, signals and fix-it
+      tips, without calling a model.</p>
   </div>
 </header>
 

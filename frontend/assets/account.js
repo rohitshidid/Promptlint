@@ -342,7 +342,7 @@ curl ${esc(host)}/v1/usage -H <span class="s">"Authorization: Bearer $PQS_KEY"</
     dismissKey();
     if (!me) {
       $("title").textContent = "Get a free API key";
-      $("subtitle").textContent = "Score prompts from your own code: both scores, every signal, and cost estimates in one JSON reply.";
+      $("subtitle").textContent = "Route every prompt to the cheapest model that can handle it, call it with your own LLM keys, and see what you saved. Prompt scores come with every call.";
       return;
     }
     $("title").textContent = "Your API";

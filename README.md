@@ -1,10 +1,12 @@
 # PromptLint
 
-> Lint your prompt before you send it.
+> Stop paying frontier prices for every prompt.
 
-Paste a prompt, or send one from your app through the **public API**, and get a report card: a **0–100 Lint Score** and a **PQS score**, the odds an LLM gets it **right on the first try**, how **generic or specific** it is, a **checklist** of what's missing, **fix-it tips**, the **token count and cost range** on seven models, and **which model to send it to** (a router that picks the cheapest model that's good enough, and shows how much that saves).
+PromptLint is an **LLM router that saves money**. It reads each prompt, sends it to the **cheapest model that can handle it** (or the best fit for the task, like Claude for code and writing), with a **backup** if that call fails, and tracks **what you spent and what routing saved**, per API key. Measured on 480 test prompts, balanced routing is **89% cheaper** than always using the priciest model.
 
-It's two things in one API: a **prompt quality scorer**, and a **routing middle layer** for apps that use several LLMs. `POST /v1/route` recommends a model for every prompt; if you connect your own OpenAI, Anthropic, Gemini or OpenAI-compatible (Ollama, Groq, OpenRouter…) keys, it also calls that model and returns the answer, with a backup model if the first one fails. There's also a [prompt quiz](frontend/quiz.html) with grades and a leaderboard.
+It also **lints the prompt** in the same call, so you don't pay twice: a **0–100 Lint Score** and a **PQS score**, the odds an LLM gets it **right on the first try**, a **checklist** of what's missing, **fix-it tips**, and the **cost range** on seven models.
+
+Two things in one API: a **routing middle layer** for apps that use several LLMs, and a **prompt quality scorer**. `POST /v1/route` recommends a model for every prompt; if you connect your own OpenAI, Anthropic, Gemini or OpenAI-compatible (Ollama, Groq, OpenRouter…) keys, it also calls that model and returns the answer, with a backup model if the first one fails. There's also a [prompt quiz](frontend/quiz.html) with grades and a leaderboard.
 
 All judgments come from **one call to TypeSafe's Jev**, a System One decision model, with a rule-based **heuristic backend** as the baseline and automatic fallback. Everything else (tokens, cost, scoring, tips, routing) is deterministic code. The only generative LLM calls are the ones `/v1/route` makes **with the caller's own provider keys**, when they ask for it.
 

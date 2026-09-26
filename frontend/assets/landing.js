@@ -26,17 +26,22 @@
   function demoOutput(r) {
     const v = VERDICT[r.verdict];
     const pick = ["task_clear", "context_given", "has_output_format", "has_audience", "conflicting"];
-    const checks = r.checks.filter((c) => pick.includes(c.id));
+    const checks = r.checks.filter((c) => pick.includes(c.id)).slice(0, 4);
     const ft = r.first_try_success, st = ft >= 0.7 ? "good" : ft >= 0.4 ? "warn" : "bad";
     const tips = r.tips.slice(0, 2);
-    return `
+    const rt = r.routing;
+    const route = rt && rt.recommended ? `
+      <div class="demo-route">
+        <div><small>Send to</small><b>${esc(rt.recommended.name)}</b>
+          <span>${esc(rt.required_tier)}-tier ${esc(rt.task_type || "")} prompt${rt.fallback ? ` · backup ${esc(rt.fallback.name)}` : ""}</span></div>
+        ${rt.savings_percent > 0 && rt.baseline ? `<em>${Math.round(rt.savings_percent)}% cheaper<br><span>than ${esc(rt.baseline.name)}</span></em>` : ""}
+      </div>` : "";
+    return `${route}
       <div class="demo-row">
         <div class="gauge-wrap">${gaugeSVG(r.lint_score, r.verdict)}<div class="gauge-num">${r.lint_score}<small>/100</small></div></div>
         <div>
           <span class="verdict ${r.verdict}">${v.icon}${v.label}</span>
-          <div class="pills"><span class="pill">Specificity: ${esc(r.specificity.label)}</span>${
-            r.routing && r.routing.recommended ? `<span class="pill accent">Send to ${esc(r.routing.recommended.name)}${
-              r.routing.savings_percent > 0 ? ` · ${Math.round(r.routing.savings_percent)}% cheaper` : ""}</span>` : ""}</div>
+          <div class="pills"><span class="pill">Specificity: ${esc(r.specificity.label)}</span></div>
         </div>
       </div>
       <div>
@@ -125,6 +130,24 @@
       $("sv-priciest-label").textContent = `cheaper than always using ${priciest.name}, the priciest model we price`;
       $("sv-small").textContent = Math.round(rs.strategies.balanced.tier_mix.small * 100) + "%";
       $("sv-clarify").textContent = Math.round(h.clarify_first_weak_share * 100) + "%";
+      // hero strip and the at-a-glance row
+      const set = (id, v) => { if ($(id)) $(id).textContent = v; };
+      set("hs-priciest", Math.round(h.balanced_vs_priciest) + "%");
+      set("hs-priciest-name", priciest.name);
+      set("hs-frontier", Math.round(h.balanced_vs_frontier_avg) + "%");
+      set("hs-n", rs.n_prompts.toLocaleString());
+      set("g-priciest", Math.round(h.balanced_vs_priciest) + "%");
+      set("g-priciest-label", `cheaper than sending every prompt to ${priciest.name}`);
+      set("g-small", Math.round(rs.strategies.balanced.tier_mix.small * 100) + "%");
+      set("g-clarify", Math.round(h.clarify_first_weak_share * 100) + "%");
+      // where the balanced router sent the prompts
+      const COLORS = ["#047857", "#10b981", "#6da7ec", "#f59e0b", "#a78bfa"];
+      const picks = rs.strategies.balanced.top_picks.filter((x) => x.share >= 0.005);
+      if (picks.length) {
+        $("sv-mix-bar").innerHTML = picks.map((x, i) => `<i style="width:${(x.share * 100).toFixed(1)}%;background:${COLORS[i % COLORS.length]}" title="${esc(x.name)} ${Math.round(x.share * 100)}%"></i>`).join("");
+        $("sv-mix-legend").innerHTML = picks.map((x, i) => `<span><i style="background:${COLORS[i % COLORS.length]}"></i>${esc(x.name)} <b>${Math.round(x.share * 100)}%</b></span>`).join("");
+        $("sv-mix").hidden = false;
+      }
 
       const sel = $("calc-baseline");
       const models = Object.entries(rs.baselines).sort((a, b) => b[1].avg_cost_usd - a[1].avg_cost_usd);
@@ -187,7 +210,7 @@
         ? tile(Math.round(s.latency.median_ms) + " ms", "median Jev latency across eval calls", `p95 ${Math.round(s.latency.p95_ms)} ms`)
         : pend("median latency", "not run yet"));
       $("acc-stats").innerHTML = tiles.join("");
-      if (s.latency) $("stat-latency").textContent = "~" + Math.round(s.latency.median_ms / 10) * 10 + " ms";
+      if (s.latency && $("stat-latency")) $("stat-latency").textContent = "~" + Math.round(s.latency.median_ms / 10) * 10 + " ms";
       $("acc-note").innerHTML = `Last run ${esc(s.generated_at.slice(0, 10))} with <code>${esc(s.jev_model)}</code>. ${esc(s.note || "")}`;
     })
     .catch(() => { $("acc-note").textContent = "No evaluation results published yet. Run the scripts in eval/ to fill these in."; });

@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PromptLint · Lint your prompt before you send it</title>
-<meta name="description" content="Paste a prompt and get a 0–100 score, the odds an LLM gets it right first try, what's missing, fix-it tips and per-model cost, from one TypeSafe Jev call.">
-<meta property="og:title" content="PromptLint · Lint your prompt before you send it">
-<meta property="og:description" content="A report card for your prompt in about 200 ms. No LLM in the loop, nothing stored.">
+<title>PromptLint · Route every prompt to the cheapest model that can handle it</title>
+<meta name="description" content="An LLM router that cuts your AI bill: PromptLint reads each prompt, sends it to the cheapest model that can handle it (with a backup), and lints it so you don't pay twice. One API call, your own keys.">
+<meta property="og:title" content="PromptLint · Stop paying frontier prices for every prompt">
+<meta property="og:description" content="Route each prompt to the cheapest model that can handle it. Measured: 89% cheaper than always using the priciest model.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.1">
-<link rel="stylesheet" href="assets/report.css?v=1.2.1">
+<link rel="stylesheet" href="assets/site.css?v=1.2.2">
+<link rel="stylesheet" href="assets/report.css?v=1.2.2">
 <style>
   /* ---- hero demo window */
   .demo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); min-height: 430px; }
@@ -36,6 +36,14 @@
   .demo .checks small { display: none; }
   .demo .tips li { padding: 9px 12px; font-size: .84rem; }
   .demo-tips-k { margin-top: 2px; }
+
+  .demo-route { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px 16px; border-radius: 14px;
+                background: linear-gradient(180deg, var(--accent-soft), #fff); border: 1px solid rgba(4,120,87,.28); }
+  .demo-route small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--accent); }
+  .demo-route b { display: block; font-size: 1.2rem; letter-spacing: -0.02em; margin-top: 1px; }
+  .demo-route span { display: block; font-size: .8rem; color: var(--ink-soft); margin-top: 2px; }
+  .demo-route em { font-style: normal; text-align: right; font-weight: 700; color: var(--good-ink); font-size: 1.05rem; line-height: 1.2; }
+  .demo-route em span { font-weight: 500; font-size: .76rem; color: var(--ink-faint); margin: 0; }
 
   /* ---- architecture */
   .flow { display: grid; gap: 10px; }
@@ -84,6 +92,36 @@
   .calc-row b { font-variant-numeric: tabular-nums; }
   .calc-note { font-size: .8rem; color: var(--ink-faint); line-height: 1.5; margin: 14px 0 0; }
 
+  /* ---- hero savings strip */
+  .hero-save { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 8px 10px; margin-top: 22px; }
+  .hero-save span { display: inline-flex; align-items: baseline; gap: 6px; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: .9rem; color: var(--ink-soft); box-shadow: var(--shadow-sm); }
+  .hero-save b { color: var(--good-ink); font-size: 1rem; }
+
+  /* ---- routing steps */
+  .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 54px; counter-reset: st; }
+  @media (max-width: 860px) { .steps { grid-template-columns: minmax(0, 1fr); } }
+  .step { position: relative; padding: 26px 24px 24px; border: 1px solid var(--line); border-radius: 20px; background: #fff; box-shadow: var(--shadow-sm); min-width: 0; }
+  .step::before { counter-increment: st; content: counter(st); width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--accent); color: #fff; font-weight: 700; font-size: .9rem; margin-bottom: 14px; }
+  .step h3 { font-size: 1.12rem; letter-spacing: -0.015em; }
+  .step p { margin: 8px 0 0; color: var(--ink-soft); font-size: .94rem; line-height: 1.55; }
+  .step .tagrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .step .tagrow span { font-size: .76rem; font-family: var(--mono); color: var(--accent); background: var(--accent-soft); border-radius: 7px; padding: 2px 8px; }
+
+  /* ---- where prompts went */
+  .mix { margin-top: 26px; }
+  .mix-bar { display: flex; height: 16px; border-radius: 8px; overflow: hidden; gap: 2px; background: var(--bg-tint); }
+  .mix-bar i { display: block; height: 100%; }
+  .mix-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; font-size: .88rem; color: var(--ink-soft); }
+  .mix-legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .mix-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .mix-legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .mix-k { font-size: .8rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+
+  /* ---- lint teaser */
+  .lint-list { display: grid; gap: 10px; margin: 18px 0 0; padding: 0; list-style: none; }
+  .lint-list li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; color: var(--ink-soft); line-height: 1.5; }
+  .lint-list li::before { content: "✓"; width: 22px; height: 22px; border-radius: 7px; background: var(--good-soft); color: var(--good-ink); display: grid; place-items: center; font-size: .75rem; font-weight: 700; }
+
   /* ---- accuracy */
   #acc-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   @media (max-width: 900px) { #acc-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -99,13 +137,13 @@
     <a class="nav-brand" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
     <span class="nav-ver">v1.2</span>
     <div class="nav-links">
-      <a class="opt" href="#how">How it works</a>
-      <a class="opt" href="#accuracy">Accuracy</a>
       <a class="opt" href="#savings">Savings</a>
+      <a class="opt" href="#routing">How routing works</a>
+      <a class="opt" href="#lint">Prompt lint</a>
       <a class="opt" href="#api">API</a>
-      <a class="opt" href="quiz.html">Quiz</a>
+      <a class="opt" href="docs.html">Docs</a>
       <a class="opt" href="account.html">Account</a>
-      <a class="btn btn-fill btn-sm" href="app.html">Lint a prompt</a>
+      <a class="btn btn-fill btn-sm" href="account.html">Get a free key</a>
     </div>
   </div>
 </nav>
@@ -113,82 +151,281 @@
 <header class="hero">
   <div class="wrap">
     <img class="hero-icon reveal" style="--i:0" src="assets/icon.svg" alt="PromptLint icon">
-    <h1 class="reveal" style="--i:1">Lint your prompt before you send it.</h1>
+    <h1 class="reveal" style="--i:1">Stop paying frontier prices for every prompt.</h1>
     <p class="lede reveal" style="--i:2">
-      Paste a prompt. PromptLint asks a <strong>decision model</strong> eighteen questions about it in
-      <strong>one call</strong>, then hands you a 0–100 score, the odds an LLM gets it <strong>right on the
-      first try</strong>, what's missing, and <strong>which model to send it to</strong>, with what that saves.
+      PromptLint is an <strong>LLM router</strong>. It reads each prompt, sends it to the
+      <strong>cheapest model that can handle it</strong> (Claude, GPT, Gemini or your own), with a backup if that call fails,
+      and <strong>checks the prompt first</strong> so you don't pay for an answer you'll have to ask for again.
     </p>
     <div class="hero-cta reveal" style="--i:3">
-      <a class="btn btn-fill btn-lg" href="app.html">Lint a prompt <span class="arrow">→</span></a>
-      <a class="btn btn-ghost btn-lg" href="#how">How it works</a>
+      <a class="btn btn-fill btn-lg" href="#savings">Estimate your savings <span class="arrow">→</span></a>
+      <a class="btn btn-ghost btn-lg" href="app.html">Try the router</a>
     </div>
-    <p class="hero-note reveal" style="--i:4">About 200 ms · picks the right model per prompt · nothing stored · free API key</p>
+    <div class="hero-save reveal" style="--i:4" id="hero-save">
+      <span><b id="hs-priciest">89%</b> cheaper than always <i id="hs-priciest-name" style="font-style:normal">GPT-6 Astra</i></span>
+      <span><b id="hs-frontier">72%</b> cheaper than a frontier model</span>
+      <span>measured on <b id="hs-n" style="color:var(--ink)">480</b> prompts</span>
+    </div>
 
     <div class="stage reveal" style="--i:5">
       <div class="win" aria-label="PromptLint demo: a vague prompt, then a specific one">
-        <div class="win-bar"><i></i><i></i><i></i><span class="win-title">promptlint — /app</span></div>
+        <div class="win-bar"><i></i><i></i><i></i><span class="win-title">promptlint — route + lint</span></div>
         <div class="demo">
           <div class="demo-prompt">
             <div class="demo-k"><span>Prompt</span><span id="demo-which">1 of 2</span></div>
             <div class="demo-text" id="demo-text" aria-live="off"></div>
-            <span class="btn btn-fill btn-sm demo-btn" id="demo-btn">Analyze</span>
+            <span class="btn btn-fill btn-sm demo-btn" id="demo-btn">Route</span>
           </div>
           <div class="demo-out dim" id="demo-out"></div>
         </div>
       </div>
       <div class="stage-hint">
         <button id="demo-replay" type="button">↻ Replay</button>
-        <span>two real analyses, recorded from Jev: a vague prompt, then a specific one</span>
+        <span>two real results, recorded from Jev: where each prompt goes, and what it's missing</span>
       </div>
     </div>
   </div>
 </header>
 
-<section class="tint tight" aria-label="At a glance">
-  <div class="wrap stats">
-    <div class="stat reveal" style="--i:0"><b>1</b><span>Jev call per analysis. Every judgment rides in the same request.</span></div>
-    <div class="stat reveal" style="--i:1"><b id="stat-latency">~200 ms</b><span>typical time for that call, then plain math for the rest</span></div>
-    <div class="stat reveal" style="--i:2"><b>18</b><span>judgments: twelve yes/no, five scales, one task type</span></div>
-    <div class="stat reveal" style="--i:3"><b>0</b><span>generative LLM calls. No rewrites, no answer previews.</span></div>
+
+<section id="savings" class="tint">
+  <div class="wrap">
+    <div class="center sec-head">
+      <p class="eyebrow reveal">Savings, measured</p>
+      <h2 class="reveal" style="--i:1">Most prompts don't need your most expensive model.</h2>
+      <p class="lede reveal" style="--i:2">We routed <strong id="sv-n">480</strong> test prompts and compared the cost with sending
+        every one to a single model. The numbers below come from that run, not from guesses.</p>
+    </div>
+    <div class="stats" id="sv-stats" style="margin-top:48px">
+      <div class="stat reveal"><b id="sv-frontier">…</b><span>cheaper than always using a frontier model (average of the three)</span></div>
+      <div class="stat reveal" style="--i:1"><b id="sv-priciest">…</b><span id="sv-priciest-label">cheaper than always using the priciest model</span></div>
+      <div class="stat reveal" style="--i:2"><b id="sv-small">…</b><span>of prompts routed to a small, cheap model; most of the rest go mid-tier</span></div>
+      <div class="stat reveal" style="--i:3"><b id="sv-clarify">…</b><span id="sv-clarify-label">of weak prompts flagged "clarify first" before any money is spent</span></div>
+    </div>
+
+    <div class="mix panel reveal" id="sv-mix" style="padding:22px 24px" hidden>
+      <div class="mix-k">Where the router sent those prompts (balanced strategy)</div>
+      <div class="mix-bar" id="sv-mix-bar"></div>
+      <div class="mix-legend" id="sv-mix-legend"></div>
+    </div>
+
+    <div class="calc panel reveal" id="calc">
+      <div class="calc-in">
+        <h3>Estimate your savings</h3>
+        <label>LLM requests per month
+          <input type="number" id="calc-requests" min="1" step="1000" value="100000" inputmode="numeric">
+        </label>
+        <label>What you use today
+          <select id="calc-baseline"></select>
+        </label>
+        <label>Routing strategy
+          <select id="calc-strategy">
+            <option value="balanced">Balanced (best quality for the price)</option>
+            <option value="cheapest">Lowest cost</option>
+            <option value="quality">Best quality</option>
+          </select>
+        </label>
+        <label class="calc-check"><input type="checkbox" id="calc-retries" checked> Count retries avoided by "clarify first"</label>
+      </div>
+      <div class="calc-out" aria-live="polite">
+        <div class="calc-big"><small>You'd save about</small><b id="calc-month">…</b><span id="calc-year"></span></div>
+        <div class="calc-rows" id="calc-rows"></div>
+        <p class="calc-note" id="calc-note"></p>
+      </div>
+    </div>
   </div>
 </section>
 
-<section id="why">
+
+<section id="routing">
   <div class="wrap">
     <div class="center sec-head">
-      <p class="eyebrow reveal">The problem</p>
-      <h2 class="reveal" style="--i:1">The second message costs more than the first.</h2>
-      <p class="lede reveal" style="--i:2">
-        A vague prompt doesn't fail loudly. The model <strong>guesses</strong>, you read the answer, spot what it
-        got wrong, and send a correction. PromptLint catches the gaps <strong>before</strong> the first send,
-        when fixing them is one sentence.
-      </p>
+      <p class="eyebrow reveal">How routing works</p>
+      <h2 class="reveal" style="--i:1">The right model for each prompt, in one call.</h2>
+      <p class="lede reveal" style="--i:2">An easy question doesn't need your biggest model, and a hard one shouldn't go to your
+        smallest. PromptLint decides per prompt, explains why, and tells you what you saved.</p>
     </div>
-    <div class="cards">
+    <div class="steps">
+      <div class="step reveal" style="--i:0">
+        <h3>Read the prompt</h3>
+        <p>One call to TypeSafe's Jev decision model rates how hard the prompt is (low, medium, high) and what kind of task it
+          is (coding, writing, math, a quick fact…), with a probability for each. About 200 ms.</p>
+        <div class="tagrow"><span>complexity</span><span>task_type</span></div>
+      </div>
+      <div class="step reveal" style="--i:1">
+        <h3>Pick the model</h3>
+        <p>The strategy turns difficulty into the tier needed. Among your models that qualify, it takes the cheapest, unless
+          another fits the task clearly better (Claude for code and writing, by default). A backup from another provider comes too.</p>
+        <div class="tagrow"><span>cheapest</span><span>balanced</span><span>quality</span></div>
+      </div>
+      <div class="step reveal" style="--i:2">
+        <h3>Send it, or just tell you</h3>
+        <p>Connect your OpenAI, Anthropic, Gemini or OpenAI-compatible keys and <code>/v1/route</code> calls the model and returns
+          the answer. No keys? You get the recommendation as JSON and call it yourself.</p>
+        <div class="tagrow"><span>POST /v1/route</span><span>fallback</span></div>
+      </div>
+    </div>
+
+    <div class="feature reveal" style="margin-top:64px">
+      <div class="feature-text">
+        <h3>Every decision comes with its reason.</h3>
+        <p>The response names the <strong>recommended model</strong>, the <strong>backup</strong>, the tier the prompt needs,
+          each model's <strong>task fit</strong>, and the saving against a baseline you choose, in dollars and percent.</p>
+        <p>If a prompt is so vague that any model would miss, the router says <strong>clarify first</strong> instead of
+          spending money on a guess.</p>
+        <p>Your account page tracks it all: <strong>which models got your prompts, per API key</strong>, what you spent, and
+          how much routing saved.</p>
+      </div>
+      <div class="feature-visual">
+<pre class="codeblock"><span class="c"># "routing" for a medium writing prompt</span>
+{
+  <span class="k">"strategy"</span>: <span class="s">"balanced"</span>, <span class="k">"task_type"</span>: <span class="s">"writing"</span>,
+  <span class="k">"required_tier"</span>: <span class="s">"mid"</span>,
+  <span class="k">"recommended"</span>: { <span class="k">"id"</span>: <span class="s">"claude-sonnet-5"</span>, <span class="k">"task_fit"</span>: 1.0 },
+  <span class="k">"fallback"</span>: { <span class="k">"id"</span>: <span class="s">"gemini-3.8-flash"</span> },
+  <span class="k">"baseline"</span>: { <span class="k">"id"</span>: <span class="s">"gpt-6-astra"</span> },
+  <span class="k">"savings_percent"</span>: 80.0,
+  <span class="k">"reason"</span>: <span class="s">"… Claude Sonnet 5 is a better fit for
+    writing than Gemini 3.8 Flash … It's still about
+    80% cheaper than GPT-6 Astra."</span>
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="use-cases" class="tint">
+  <div class="wrap">
+    <div class="center sec-head">
+      <p class="eyebrow reveal">What you can build</p>
+      <h2 class="reveal" style="--i:1">A router first. A prompt checker too.</h2>
+      <p class="lede reveal" style="--i:2">Put PromptLint between your app and your LLMs to cut the bill, and use the same call to
+        catch weak prompts before they cost you twice.</p>
+    </div>
+    <div class="uc-grid">
       <div class="card reveal" style="--i:0">
-        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.8"/><path d="M10 6v4.5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-        <h3>Fewer round trips</h3>
-        <p>A first-try success estimate tells you whether the model can finish the job in one go, or will need you to fill in the blanks afterwards.</p>
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M3 10h5m0 0l4-5h5M8 10l4 5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Model router</h3>
+        <p>Tell it which LLMs you have, from our price table or your own with prices. Every request comes back with the model to use, a backup, and what you save.</p>
+        <code class="uc-ep">routing.recommended</code>
       </div>
       <div class="card reveal" style="--i:1">
-        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l3.5 3.5L16 5.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <h3>Specific, not vague, feedback</h3>
-        <p>Eleven concrete checks, each with its probability, and fix-it tips ranked by how many points they're worth. "Add a word limit" beats "be clearer."</p>
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M7 9l2 2-2 2m4 0h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Middle layer with your keys</h3>
+        <p>Connect Claude, GPT, Gemini, or any OpenAI-compatible endpoint (Ollama, Groq, OpenRouter). PromptLint picks the model, calls it, falls back if it fails, and returns the answer.</p>
+        <code class="uc-ep">POST /v1/route</code>
       </div>
       <div class="card reveal" style="--i:2">
         <div class="ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2.5v19M16.5 6H10a3 3 0 000 6h4a3 3 0 010 6H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <h3>Know the bill up front</h3>
-        <p>Input tokens, an output range from the expected answer length, and a cost range on seven models, plus a hint for whether a small model will do.</p>
+        <h3>Spend and savings tracking</h3>
+        <p>See which models got your prompts, per API key, what you spent, and how much routing saved compared with your priciest model.</p>
+        <code class="uc-ep">GET /v1/usage/routing</code>
+      </div>
+      <div class="card reveal" style="--i:0">
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.8"/><path d="M10 6v4.5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>Stop paying twice</h3>
+        <p>When a prompt will probably miss, the API says <strong>clarify first</strong>, so you ask the user one question instead of paying for an answer they'll reject.</p>
+        <code class="uc-ep">routing.action</code>
+      </div>
+      <div class="card reveal" style="--i:1">
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l3.5 3.5L16 5.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Prompt quality scoring</h3>
+        <p>Score, checklist, first-try odds and fix-it tips for any prompt, as JSON. Show it in your app before users hit send.</p>
+        <code class="uc-ep">POST /v1/score</code>
+      </div>
+      <div class="card reveal" style="--i:2">
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3l2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 8.2l5-.7L10 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+        <h3>Quizzes &amp; prompt tests</h3>
+        <p>Rewrite weak prompts, get scored, and climb a leaderboard. Use it to train a team or hire prompt engineers.</p>
+        <a class="uc-ep" href="quiz.html">Take the quiz →</a>
       </div>
     </div>
   </div>
 </section>
 
-<section id="how" class="tint">
+<section id="api">
   <div class="wrap">
     <div class="center sec-head">
-      <p class="eyebrow reveal">How it works</p>
+      <p class="eyebrow reveal">Public API</p>
+      <h2 class="reveal" style="--i:1">Drop it in front of your LLM calls.</h2>
+      <p class="lede reveal" style="--i:2">Send the prompt to PromptLint instead of a fixed model. It picks the model, calls it
+        with your key, and hands back the answer, plus what it cost and what it saved.</p>
+    </div>
+    <div class="feature reveal" style="margin-top:56px">
+      <div class="feature-text">
+        <h3>Your keys, your models, one request.</h3>
+        <p>Save your provider keys once on the account page (encrypted), or send them with each request (never stored). Add any
+          OpenAI-compatible endpoint with its prices and it joins the routing.</p>
+        <p>If the first model fails, the <strong>backup is tried automatically</strong>. If Jev is ever unavailable, simple
+          rules take over and the reply says <code>"degraded": true</code>, so routing never blocks your app.</p>
+        <p>Free plan: <strong>1,000 prompts a day</strong>, 20 requests a minute. You pay the LLM providers directly, at their prices.</p>
+        <div class="hero-cta" style="justify-content:flex-start;margin-top:26px">
+          <a class="btn btn-fill btn-md" href="account.html">Get a free API key <span class="arrow">→</span></a>
+          <a class="btn btn-ghost btn-md" href="docs.html#route">Read the docs</a>
+        </div>
+      </div>
+      <div class="feature-visual">
+<pre class="codeblock"><span class="c"># POST /v1/route</span>
+curl https://<span class="n">your-host</span>/v1/route \
+  -H <span class="s">"Authorization: Bearer $PQS_KEY"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"prompt": "Write a Python function that…"}'</span>
+
+<span class="c"># → 200 OK</span>
+{
+  <span class="k">"routing"</span>: {
+    <span class="k">"recommended"</span>: { <span class="k">"id"</span>: <span class="s">"claude-sonnet-5"</span> },
+    <span class="k">"fallback"</span>: { <span class="k">"id"</span>: <span class="s">"gemini-3.8-flash"</span> },
+    <span class="k">"savings_percent"</span>: 80.0
+  },
+  <span class="k">"execution"</span>: {
+    <span class="k">"model_used"</span>: <span class="s">"claude-sonnet-5"</span>,
+    <span class="k">"output"</span>: <span class="s">"def parse_duration(…"</span>,
+    <span class="k">"cost_usd"</span>: 0.0021
+  },
+  <span class="k">"overall_score"</span>: 88
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="lint" class="tint">
+  <div class="wrap">
+    <div class="center sec-head">
+      <p class="eyebrow reveal">Built in: prompt lint</p>
+      <h2 class="reveal" style="--i:1">The cheapest call is the one you don't repeat.</h2>
+      <p class="lede reveal" style="--i:2">
+        A vague prompt doesn't fail loudly. The model <strong>guesses</strong>, you read the answer, and you pay again for
+        the correction. The same call that routes your prompt also checks it, so you can fix the gaps
+        <strong>before</strong> the first send.
+      </p>
+    </div>
+    <div class="feature reveal" style="margin-top:56px">
+      <div class="feature-text">
+        <h3>A report card with every route.</h3>
+        <ul class="lint-list">
+          <li><span>A <strong>0–100 score</strong> and the odds an LLM gets it <strong>right on the first try</strong>.</span></li>
+          <li><span>Eleven concrete checks: goal, context, format, audience, limits, conflicts… each with its probability.</span></li>
+          <li><span><strong>Fix-it tips</strong> ranked by how many points they're worth, and a fill-in-the-blanks version.</span></li>
+          <li><span>Token counts and a <strong>cost range on every model</strong>, before you send anything.</span></li>
+        </ul>
+        <div class="hero-cta" style="justify-content:flex-start;margin-top:26px">
+          <a class="btn btn-fill btn-md" href="app.html">Check a prompt <span class="arrow">→</span></a>
+          <a class="btn btn-ghost btn-md" href="app.html#compare">Compare two versions</a>
+        </div>
+      </div>
+      <div class="feature-visual">
+        <div class="panel" id="cost-demo"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="center sec-head">
+      <p class="eyebrow reveal">Under the hood</p>
       <h2 class="reveal" style="--i:1">One judgment call. Everything else is arithmetic.</h2>
       <p class="lede reveal" style="--i:2">
         PromptLint never asks a chatbot for its opinion. It asks <strong>TypeSafe's Jev</strong>, a System One
@@ -242,26 +479,13 @@
       </div>
     </div>
 
-    <div class="feature reveal">
-      <div class="feature-text">
-        <h3>Costs as a range, never a guess.</h3>
-        <p>Input tokens are counted exactly where a tokenizer is available, and marked <strong>≈ approx.</strong>
-          where it isn't. Output length comes from Jev's answer-length scale: each level maps to a token range,
-          weighted by its probability.</p>
-        <p>Prices come from each provider's <strong>official pricing page</strong>, with the date they were
-          last checked shown next to the table.</p>
-      </div>
-      <div class="feature-visual">
-        <div class="panel" id="cost-demo"></div>
-      </div>
-    </div>
   </div>
 </section>
 
-<section id="checks">
+<section id="checks" class="tint">
   <div class="wrap">
     <div class="center sec-head">
-      <p class="eyebrow reveal">What it checks</p>
+      <p class="eyebrow reveal">What the lint checks</p>
       <h2 class="reveal" style="--i:1">Eleven checks, three meters, two scores.</h2>
       <p class="lede reveal" style="--i:2">Every check shows the probability behind it, so you can see how sure Jev is,
         not only whether it passed.</p>
@@ -288,7 +512,7 @@
   </div>
 </section>
 
-<section id="accuracy" class="tint">
+<section id="accuracy">
   <div class="wrap">
     <div class="center sec-head">
       <p class="eyebrow reveal">Accuracy</p>
@@ -306,177 +530,42 @@
   </div>
 </section>
 
-<section id="use-cases">
-  <div class="wrap">
-    <div class="center sec-head">
-      <p class="eyebrow reveal">What you can build</p>
-      <h2 class="reveal" style="--i:1">One API, four jobs.</h2>
-      <p class="lede reveal" style="--i:2">Check a prompt's quality, pick the right model for it, send it there with your own
-        keys, or turn prompting into a game. Each is one HTTP call.</p>
-    </div>
-    <div class="uc-grid">
-      <div class="card reveal" style="--i:0">
-        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l3.5 3.5L16 5.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <h3>Prompt quality scoring</h3>
-        <p>Score, checklist, first-try odds and fix-it tips for any prompt, as JSON. Show it in your app before users hit send.</p>
-        <code class="uc-ep">POST /v1/score</code>
-      </div>
-      <div class="card reveal" style="--i:1">
-        <div class="ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2.5v19M16.5 6H10a3 3 0 000 6h4a3 3 0 010 6H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <h3>Cut wasted LLM spend</h3>
-        <p>When a prompt will probably miss, the API says <strong>clarify first</strong>, so you ask the user one question instead of paying for an answer they'll reject.</p>
-        <code class="uc-ep">routing.action</code>
-      </div>
-      <div class="card reveal" style="--i:2">
-        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M3 10h5m0 0l4-5h5M8 10l4 5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <h3>Model router</h3>
-        <p>Tell it which LLMs you have, from ours or your own with prices. Every request comes back with the model to use, a fallback, and what you save.</p>
-        <code class="uc-ep">routing.recommended</code>
-      </div>
-      <div class="card reveal" style="--i:0">
-        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M7 9l2 2-2 2m4 0h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <h3>Middle layer with your keys</h3>
-        <p>Connect Claude, GPT, Gemini, or any OpenAI-compatible endpoint (Ollama, Groq, OpenRouter). PromptLint picks the model, calls it, falls back if it fails, and returns the answer.</p>
-        <code class="uc-ep">POST /v1/route</code>
-      </div>
-      <div class="card reveal" style="--i:1">
-        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M4 16V9m4 7V5m4 11v-5m4 5V8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></div>
-        <h3>Prompt analytics</h3>
-        <p>Track how clear your users' prompts are over time, which pieces they usually miss, and what their LLM traffic would cost on each model.</p>
-        <code class="uc-ep">GET /v1/usage</code>
-      </div>
-      <div class="card reveal" style="--i:2">
-        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3l2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 8.2l5-.7L10 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
-        <h3>Quizzes &amp; prompt tests</h3>
-        <p>Rewrite weak prompts, get scored, and climb a leaderboard. Use it to train a team or hire prompt engineers.</p>
-        <a class="uc-ep" href="quiz.html">Take the quiz →</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="savings" class="tint">
-  <div class="wrap">
-    <div class="center sec-head">
-      <p class="eyebrow reveal">Savings</p>
-      <h2 class="reveal" style="--i:1">Most prompts don't need your most expensive model.</h2>
-      <p class="lede reveal" style="--i:2">We routed <strong id="sv-n">480</strong> test prompts and compared the cost with sending
-        every one to a single model. The numbers below come from that run, not from guesses.</p>
-    </div>
-    <div class="stats" id="sv-stats" style="margin-top:48px">
-      <div class="stat reveal"><b id="sv-frontier">…</b><span>cheaper than always using a frontier model (average of the three)</span></div>
-      <div class="stat reveal" style="--i:1"><b id="sv-priciest">…</b><span id="sv-priciest-label">cheaper than always using the priciest model</span></div>
-      <div class="stat reveal" style="--i:2"><b id="sv-small">…</b><span>of prompts routed to a small, cheap model; most of the rest go mid-tier</span></div>
-      <div class="stat reveal" style="--i:3"><b id="sv-clarify">…</b><span id="sv-clarify-label">of weak prompts flagged "clarify first" before any money is spent</span></div>
-    </div>
-
-    <div class="calc panel reveal" id="calc">
-      <div class="calc-in">
-        <h3>Estimate your savings</h3>
-        <label>LLM requests per month
-          <input type="number" id="calc-requests" min="1" step="1000" value="100000" inputmode="numeric">
-        </label>
-        <label>What you use today
-          <select id="calc-baseline"></select>
-        </label>
-        <label>Routing strategy
-          <select id="calc-strategy">
-            <option value="balanced">Balanced (best quality for the price)</option>
-            <option value="cheapest">Lowest cost</option>
-            <option value="quality">Best quality</option>
-          </select>
-        </label>
-        <label class="calc-check"><input type="checkbox" id="calc-retries" checked> Count retries avoided by "clarify first"</label>
-      </div>
-      <div class="calc-out" aria-live="polite">
-        <div class="calc-big"><small>You'd save about</small><b id="calc-month">…</b><span id="calc-year"></span></div>
-        <div class="calc-rows" id="calc-rows"></div>
-        <p class="calc-note" id="calc-note"></p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="api">
-  <div class="wrap">
-    <div class="center sec-head">
-      <p class="eyebrow reveal">Public API</p>
-      <h2 class="reveal" style="--i:1">Check prompts from your own code.</h2>
-      <p class="lede reveal" style="--i:2">Run the same checks before your app pays for an LLM call. Sign up, create a key,
-        and send <strong>one request per prompt</strong>, or up to 50 in a batch.</p>
-    </div>
-    <div class="feature reveal" style="margin-top:56px">
-      <div class="feature-text">
-        <h3>Free key, typed JSON back.</h3>
-        <p>Every reply carries <strong>both scores</strong>, the clarity, specificity, completeness and re-ask-risk signals,
-          the missing components, token counts with p50/p90 output estimates, per-model cost, and fix-it suggestions with
-          stable IDs.</p>
-        <p>If Jev is ever unavailable, the API <strong>falls back to the rule-based backend</strong> and marks the reply
-          <code>"degraded": true</code>, so your pre-flight check never blocks your app.</p>
-        <p>Free plan: <strong>1,000 prompts a day</strong>, 20 requests a minute. Keys are stored as hashes and shown once.</p>
-        <div class="hero-cta" style="justify-content:flex-start;margin-top:26px">
-          <a class="btn btn-fill btn-md" href="account.html">Get a free API key <span class="arrow">→</span></a>
-          <a class="btn btn-ghost btn-md" href="docs.html">Read the docs</a>
-        </div>
-      </div>
-      <div class="feature-visual">
-<pre class="codeblock"><span class="c"># POST /v1/score</span>
-curl https://<span class="n">your-host</span>/v1/score \
-  -H <span class="s">"Authorization: Bearer $PQS_KEY"</span> \
-  -H <span class="s">"Content-Type: application/json"</span> \
-  -d <span class="s">'{"prompt": "write me a poem"}'</span>
-
-<span class="c"># → 200 OK</span>
-{
-  <span class="k">"overall_score"</span>: 57,
-  <span class="k">"scores"</span>: { <span class="k">"lint_score"</span>: 57, <span class="k">"pqs_score"</span>: 45 },
-  <span class="k">"signals"</span>: {
-    <span class="k">"reiteration_risk"</span>: 0.04,
-    <span class="k">"missing_components"</span>: [<span class="s">"goal"</span>, <span class="s">"context"</span>, …]
-  },
-  <span class="k">"suggestions"</span>: [{ <span class="k">"id"</span>: <span class="s">"add_specifics"</span>, … }],
-  <span class="k">"backend"</span>: { <span class="k">"name"</span>: <span class="s">"jev"</span>, <span class="k">"degraded"</span>: false }
-}</pre>
-      </div>
-    </div>
-  </div>
-</section>
 
 <section id="privacy" class="tint">
   <div class="wrap">
     <div class="center sec-head">
       <p class="eyebrow reveal">Privacy &amp; limits</p>
-      <h2 class="reveal" style="--i:1">Four things it is not.</h2>
+      <h2 class="reveal" style="--i:1">What to know before you switch.</h2>
     </div>
     <div class="not-list">
-      <div class="not-item reveal" style="--i:0"><b>Not a prompt store</b><span>Prompts aren't saved unless an API caller opts in with <code>store: true</code>. Logs and usage records keep a salted hash, the scores and latency. Identical prompts are cached in memory for an hour, by hash.</span></div>
-      <div class="not-item reveal" style="--i:1"><b>Not a rewriter</b><span>No LLM writes anything here. Tips come from fixed rules mapped to the checks that failed, so the advice is predictable and testable.</span></div>
-      <div class="not-item reveal" style="--i:2"><b>Not an oracle</b><span>Jev reads questions literally and can be nudged by text inside your prompt ("rate this 100"). Treat the score as a strong hint, and read the checks.</span></div>
-      <div class="not-item reveal" style="--i:3"><b>Not tuned for system prompts yet</b><span>v1 targets everyday chat prompts. Developer and system-prompt scoring is planned for v2. Costs are estimates, always shown as ranges.</span></div>
+      <div class="not-item reveal" style="--i:0"><b>Your keys stay yours</b><span>Saved provider keys are encrypted and only the last 4 characters are ever shown. Keys sent with a request are used once and never stored. You pay each provider directly.</span></div>
+      <div class="not-item reveal" style="--i:1"><b>Not a prompt store</b><span>Prompts and answers aren't saved unless an API caller opts in with <code>store: true</code>. Usage records keep a salted hash, the scores, the model used and the cost.</span></div>
+      <div class="not-item reveal" style="--i:2"><b>Savings are estimates</b><span>They're measured on our 480 test prompts at list prices. Your mix of prompts decides your number, and the router assumes a cheaper model that's rated good enough really is. Try it on your own traffic with the calculator and the account page stats.</span></div>
+      <div class="not-item reveal" style="--i:3"><b>Not an oracle</b><span>Jev reads questions literally and can be nudged by text inside your prompt. Task-fit ratings are editable opinions, not benchmarks. Answers come back whole (no streaming yet).</span></div>
     </div>
   </div>
 </section>
 
 <section class="final">
   <div class="wrap">
-    <h2 class="reveal">Check it before you send it.</h2>
-    <p class="lede reveal" style="--i:1">Free to try, with a limit of 20 analyses an hour per visitor so the demo stays free.</p>
+    <h2 class="reveal">Send every prompt to the right model.</h2>
+    <p class="lede reveal" style="--i:1">Free API key, 1,000 prompts a day. Bring your own LLM keys, or just take the recommendation.</p>
     <div class="hero-cta reveal" style="--i:2">
-      <a class="btn btn-fill btn-lg" href="app.html">Lint a prompt <span class="arrow">→</span></a>
-      <a class="btn btn-ghost btn-lg" href="app.html#compare">Compare two versions</a>
+      <a class="btn btn-fill btn-lg" href="account.html">Get a free API key <span class="arrow">→</span></a>
+      <a class="btn btn-ghost btn-lg" href="app.html">Try the router</a>
     </div>
   </div>
 </section>
 
 <footer>
   <div class="wrap foot-in">
-    <span>PromptLint · judgments by TypeSafe Jev, math by plain code</span>
-    <span class="foot-links"><a href="app.html">Analyzer</a><a href="docs.html">API docs</a><a href="account.html">Get an API key</a><a href="playground/">Jev playground</a><a href="https://github.com/rohitshidid/Promptlint">GitHub</a></span>
+    <span>PromptLint · the LLM router that checks your prompt first</span>
+    <span class="foot-links"><a href="app.html">Try the router</a><a href="docs.html">API docs</a><a href="account.html">Get an API key</a><a href="quiz.html">Prompt quiz</a><a href="playground/">Jev playground</a><a href="https://github.com/rohitshidid/Promptlint">GitHub</a></span>
   </div>
 </footer>
 
-<script src="assets/report.js?v=1.2.1"></script>
-<script src="assets/demo-data.js?v=1.2.1"></script>
-<script src="assets/landing.js?v=1.2.1"></script>
+<script src="assets/report.js?v=1.2.2"></script>
+<script src="assets/demo-data.js?v=1.2.2"></script>
+<script src="assets/landing.js?v=1.2.2"></script>
 </body>
 </html>
