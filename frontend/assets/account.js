@@ -338,10 +338,17 @@ curl ${esc(host)}/v1/usage -H <span class="s">"Authorization: Bearer $PQS_KEY"</
     tiles(me);
     quickstart();
     syncProviderForm();
-    const [, usage, , routing] = await Promise.all([loadKeys(), api("/v1/usage?days=30"), loadProviders(), api("/v1/usage/routing?days=30").catch(() => null)]);
-    chart(usage.days);
-    if (routing) routingStats(routing);
-    else $("routing-stats").innerHTML = `<p class="sub" style="margin:0">Couldn't load routing stats.</p>`;
+    // Each section loads on its own, so one failure can't leave the others stuck on "Loading…".
+    const failed = (el, what, err) => {
+      console.error(`account: ${what} failed`, err);
+      el.innerHTML = `<p class="sub" style="margin:0">Couldn't load ${what}${err && err.message ? `: ${esc(String(err.message).replace(/\.$/, ""))}` : ""}. <a href="" onclick="location.reload();return false">Try again</a></p>`;
+    };
+    await Promise.all([
+      loadKeys().catch((e) => console.error("account: keys failed", e)),
+      loadProviders().catch((e) => console.error("account: providers failed", e)),
+      api("/v1/usage?days=30").then((u) => chart(u.days)).catch((e) => failed($("chart"), "usage", e)),
+      api("/v1/usage/routing?days=30").then(routingStats).catch((e) => failed($("routing-stats"), "routing stats", e)),
+    ]);
   }
 
   api("/v1/account/config").then((cfg) => {
