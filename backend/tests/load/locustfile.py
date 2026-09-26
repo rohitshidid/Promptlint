@@ -19,7 +19,7 @@ PROMPTS = [
     "fix my code it doesnt work",
     "Summarize the causes of the 2008 financial crisis in 5 bullet points for a high-school class.",
     "Write a Python function that removes duplicates from a list while keeping order. Code only.",
-    "Plan a 3-day trip to Jaipur for a family with two kids on a ₹30,000 budget, as a daily itinerary.",
+    "Plan a 3-day trip to New York City for a family with two kids on a $1,500 budget, as a daily itinerary.",
     "Explain recursion.",
 ]
 UNIQUE = os.environ.get("PL_UNIQUE") == "1"

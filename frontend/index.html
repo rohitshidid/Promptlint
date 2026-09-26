@@ -8,8 +8,8 @@
 <meta property="og:title" content="PromptLint · Stop paying frontier prices for every prompt">
 <meta property="og:description" content="Route each prompt to the cheapest model that can handle it. Measured: 89% cheaper than always using the priciest model.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.5">
-<link rel="stylesheet" href="assets/report.css?v=1.2.5">
+<link rel="stylesheet" href="assets/site.css?v=1.2.6">
+<link rel="stylesheet" href="assets/report.css?v=1.2.6">
 <style>
   /* ---- hero demo window */
   .demo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); min-height: 430px; }
@@ -97,6 +97,16 @@
   .hero-save span { display: inline-flex; align-items: baseline; gap: 6px; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: .9rem; color: var(--ink-soft); box-shadow: var(--shadow-sm); }
   .hero-save b { color: var(--good-ink); font-size: 1rem; }
 
+  /* ---- free badge + section */
+  .free-badge { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 18px; padding: 6px 14px 6px 8px; border-radius: 999px;
+                background: var(--accent-soft); border: 1px solid rgba(4,120,87,.22); color: var(--accent); font-size: .88rem; font-weight: 600; text-decoration: none; }
+  .free-badge b { background: var(--accent); color: #fff; border-radius: 999px; padding: 2px 9px; font-size: .78rem; letter-spacing: .02em; }
+  .free-badge:hover { text-decoration: none; background: #d9f7ea; }
+  .free-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 48px; }
+  @media (max-width: 860px) { .free-grid { grid-template-columns: minmax(0, 1fr); } }
+  .limit-num { display: block; font-size: 2.2rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1.1; color: var(--ink); margin: 6px 0 2px; }
+  .limit-num small { font-size: .95rem; font-weight: 600; color: var(--ink-faint); letter-spacing: 0; }
+
   /* ---- routing steps */
   .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 54px; counter-reset: st; }
   @media (max-width: 860px) { .steps { grid-template-columns: minmax(0, 1fr); } }
@@ -141,6 +151,7 @@
       <a class="opt" href="#routing">How routing works</a>
       <a class="opt" href="#lint">Prompt lint</a>
       <a class="opt" href="#api">API</a>
+      <a class="opt" href="#free">Pricing</a>
       <a class="opt" href="docs.html">Docs</a>
       <a class="opt" href="account.html">Account</a>
       <a class="btn btn-fill btn-sm" href="account.html">Get a free key</a>
@@ -151,6 +162,7 @@
 <header class="hero">
   <div class="wrap">
     <img class="hero-icon reveal" style="--i:0" src="assets/icon.svg" alt="PromptLint icon">
+    <div class="reveal" style="--i:1"><a class="free-badge" href="#free"><b>FREE</b> Completely free · limits rising as we add capacity</a></div>
     <h1 class="reveal" style="--i:1">Stop paying frontier prices for every prompt.</h1>
     <p class="lede reveal" style="--i:2">
       PromptLint is an <strong>LLM router</strong>. It reads each prompt, sends it to the
@@ -358,7 +370,7 @@
           OpenAI-compatible endpoint with its prices and it joins the routing.</p>
         <p>If the first model fails, the <strong>backup is tried automatically</strong>. If Jev is ever unavailable, simple
           rules take over and the reply says <code>"degraded": true</code>, so routing never blocks your app.</p>
-        <p>Free plan: <strong>1,000 prompts a day</strong>, 20 requests a minute. You pay the LLM providers directly, at their prices.</p>
+        <p><strong>Completely free.</strong> For now each account gets <strong>800 prompts a day</strong> and 10 requests a minute per key, and we're raising those limits as we add capacity. You pay LLM providers directly, at their prices.</p>
         <div class="hero-cta" style="justify-content:flex-start;margin-top:26px">
           <a class="btn btn-fill btn-md" href="account.html">Get a free API key <span class="arrow">→</span></a>
           <a class="btn btn-ghost btn-md" href="docs.html#route">Read the docs</a>
@@ -531,6 +543,39 @@ curl https://<span class="n">your-host</span>/v1/route \
 </section>
 
 
+<section id="free">
+  <div class="wrap">
+    <div class="center sec-head">
+      <p class="eyebrow reveal">Pricing</p>
+      <h2 class="reveal" style="--i:1">Completely free. No card, no catch.</h2>
+      <p class="lede reveal" style="--i:2">PromptLint costs nothing to use. We're adding capacity on a rolling basis, so for now there's
+        a fair-use limit per person, and we'll raise it soon. The only bills you'll ever see are from your own LLM providers,
+        at their normal prices, and PromptLint is there to make those smaller.</p>
+    </div>
+    <div class="free-grid">
+      <div class="card reveal" style="--i:0">
+        <h3>Prompts per day</h3>
+        <span class="limit-num">800 <small>per account</small></span>
+        <p>Routing, scoring and linting all count as one prompt. Resets every day at midnight UTC.</p>
+      </div>
+      <div class="card reveal" style="--i:1">
+        <h3>Requests per minute</h3>
+        <span class="limit-num">10 <small>per API key</small></span>
+        <p>Up to 5 keys per account, and batches of up to 10 prompts in one request.</p>
+      </div>
+      <div class="card reveal" style="--i:2">
+        <h3>Limits going up</h3>
+        <span class="limit-num">Soon <small>rolling out</small></span>
+        <p>We're increasing capacity on a rolling basis and will raise these limits for everyone as we grow. Need more today?
+          <a href="https://github.com/rohitshidid/Promptlint/issues">Open a request on GitHub</a>.</p>
+      </div>
+    </div>
+    <div class="hero-cta reveal" style="margin-top:34px">
+      <a class="btn btn-fill btn-md" href="account.html">Get a free API key <span class="arrow">→</span></a>
+    </div>
+  </div>
+</section>
+
 <section id="privacy" class="tint">
   <div class="wrap">
     <div class="center sec-head">
@@ -549,7 +594,7 @@ curl https://<span class="n">your-host</span>/v1/route \
 <section class="final">
   <div class="wrap">
     <h2 class="reveal">Send every prompt to the right model.</h2>
-    <p class="lede reveal" style="--i:1">Free API key, 1,000 prompts a day. Bring your own LLM keys, or just take the recommendation.</p>
+    <p class="lede reveal" style="--i:1">Completely free, with limits rising as we grow. Bring your own LLM keys, or just take the recommendation.</p>
     <div class="hero-cta reveal" style="--i:2">
       <a class="btn btn-fill btn-lg" href="account.html">Get a free API key <span class="arrow">→</span></a>
       <a class="btn btn-ghost btn-lg" href="app.html">Try the router</a>
@@ -564,8 +609,8 @@ curl https://<span class="n">your-host</span>/v1/route \
   </div>
 </footer>
 
-<script src="assets/report.js?v=1.2.5"></script>
-<script src="assets/demo-data.js?v=1.2.5"></script>
-<script src="assets/landing.js?v=1.2.5"></script>
+<script src="assets/report.js?v=1.2.6"></script>
+<script src="assets/demo-data.js?v=1.2.6"></script>
+<script src="assets/landing.js?v=1.2.6"></script>
 </body>
 </html>

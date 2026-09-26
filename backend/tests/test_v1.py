@@ -167,13 +167,14 @@ def test_rate_limit_headers_and_429(cfg, tmp_path, fake):
     with make_client(cfg, tmp_path, judge=fake) as c:
         signup(c)
         h = {"Authorization": f"Bearer {new_key(c)}"}
+        rpm = cfg.plans.get("free").rpm
         codes = []
-        for i in range(21):
+        for i in range(rpm + 1):
             r = c.post("/v1/score", json={"prompt": f"p{i}"}, headers=h)
             codes.append(r.status_code)
-        assert codes[:20] == [200] * 20 and codes[20] == 429
+        assert codes[:rpm] == [200] * rpm and codes[rpm] == 429
         assert r.json()["error"]["type"] == "rate_limit_exceeded"
-        assert r.headers["X-RateLimit-Limit"] == "20" and r.headers["X-RateLimit-Remaining"] == "0"
+        assert r.headers["X-RateLimit-Limit"] == str(rpm) and r.headers["X-RateLimit-Remaining"] == "0"
         assert int(r.headers["Retry-After"]) >= 1
 
 

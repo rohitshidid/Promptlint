@@ -10,38 +10,38 @@
         "lint": {
           "main": 1.0,
           "hard": 1.0,
-          "main_mean_delta": 55.325,
-          "hard_mean_delta": 20.175
+          "main_mean_delta": 55.26,
+          "hard_mean_delta": 20.15
         },
         "pqs": {
           "main": 1.0,
           "hard": 1.0,
-          "main_mean_delta": 55.835,
-          "hard_mean_delta": 22.175
+          "main_mean_delta": 55.725,
+          "hard_mean_delta": 22.1
         }
       },
       "heuristic": {
         "lint": {
           "main": 0.995,
           "hard": 0.95,
-          "main_mean_delta": 49.705,
-          "hard_mean_delta": 15.3
+          "main_mean_delta": 49.76,
+          "hard_mean_delta": 15.275
         },
         "pqs": {
           "main": 0.995,
           "hard": 1.0,
-          "main_mean_delta": 55.025,
-          "hard_mean_delta": 17.075
+          "main_mean_delta": 55.04,
+          "hard_mean_delta": 17.0
         }
       }
     }
   },
   "latency": {
-    "median_ms": 182.0,
-    "p95_ms": 379,
-    "n": 1842
+    "median_ms": 183,
+    "p95_ms": 381,
+    "n": 1927
   },
-  "generated_at": "2026-09-25T21:30:08+00:00",
+  "generated_at": "2026-09-26T05:10:01+00:00",
   "jev_model": "jev-1.13.0",
   "note": "Prompt pairs and checklist labels were drafted with an AI assistant for this project; spot-check them before citing these numbers.",
   "checklist": {

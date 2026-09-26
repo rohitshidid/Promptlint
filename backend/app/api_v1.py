@@ -110,7 +110,8 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             raise ApiError(
                 429,
                 "rate_limit_exceeded",
-                f"Your plan allows {ctx.plan.rpm} requests per minute. Retry in {retry}s.",
+                f"Your plan allows {ctx.plan.rpm} requests per minute. Retry in {retry}s."
+                " PromptLint is free; we're raising limits on a rolling basis as capacity grows.",
                 {**headers, "Retry-After": str(retry)},
             )
 
@@ -132,7 +133,8 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                     429,
                     "quota_exceeded",
                     f"This request needs {prompts} prompt(s) but only {max(0, limit - used)} of your "
-                    f"{limit}/{period} remain on the {ctx.plan.name} plan.",
+                    f"{limit}/{period} remain on the {ctx.plan.name} plan. PromptLint is free; we're raising "
+                    "limits on a rolling basis as capacity grows.",
                 )
 
     def _check_input(request: Request, prompt: str, system: str | None, models: list[str] | None) -> None:

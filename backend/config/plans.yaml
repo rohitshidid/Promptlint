@@ -7,8 +7,8 @@ max_keys_per_user: 5
 
 plans:
   free:
-    rpm: 20            # requests per minute, per key
-    daily: 1000        # prompts per UTC day, per account
+    rpm: 10            # requests per minute, per key (raising as capacity grows)
+    daily: 800         # prompts per UTC day, per account (raising as capacity grows)
     monthly: null
     batch_max: 10
   dev:

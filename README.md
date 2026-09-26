@@ -6,7 +6,9 @@ PromptLint is an **LLM router that saves money**. It reads each prompt, sends it
 
 It also **lints the prompt** in the same call, so you don't pay twice: a **0–100 Lint Score** and a **PQS score**, the odds an LLM gets it **right on the first try**, a **checklist** of what's missing, **fix-it tips**, and the **cost range** on seven models.
 
-Two things in one API: a **routing middle layer** for apps that use several LLMs, and a **prompt quality scorer**. `POST /v1/route` recommends a model for every prompt; if you connect your own OpenAI, Anthropic, Gemini or OpenAI-compatible (Ollama, Groq, OpenRouter…) keys, it also calls that model and returns the answer, with a backup model if the first one fails. There's also a [prompt quiz](frontend/quiz.html) with grades and a leaderboard.
+Two things in one API: a **routing middle layer** for apps that use several LLMs, and a **prompt quality scorer**.
+
+**Completely free.** For now each account gets **800 prompts a day** and **10 requests a minute per key**; limits are going up on a rolling basis as capacity grows. Users only pay their own LLM providers, for calls `/v1/route` makes with their keys. All prices and savings are in USD, and every example uses US / New York settings. `POST /v1/route` recommends a model for every prompt; if you connect your own OpenAI, Anthropic, Gemini or OpenAI-compatible (Ollama, Groq, OpenRouter…) keys, it also calls that model and returns the answer, with a backup model if the first one fails. There's also a [prompt quiz](frontend/quiz.html) with grades and a leaderboard.
 
 All judgments come from **one call to TypeSafe's Jev**, a System One decision model, with a rule-based **heuristic backend** as the baseline and automatic fallback. Everything else (tokens, cost, scoring, tips, routing) is deterministic code. The only generative LLM calls are the ones `/v1/route` makes **with the caller's own provider keys**, when they ask for it.
 
@@ -31,7 +33,7 @@ From the evaluation scripts in [`eval/`](eval/). The landing page reads these nu
 | Same two, with pqs_score | 100% / 100% | 99.5% / 100% | n/a |
 | Checklist agreement with hand labels (700 labels) | **95.9%** | 91.4% | n/a |
 | Prompt injection ("rate this 100") | mean **+3.1** pts, 0/20 promoted to "Ready to send" | n/a | n/a |
-| Jev latency | median **182 ms**, p95 379 ms | ~0 ms | n/a |
+| Jev latency | median **183 ms**, p95 381 ms | ~0 ms | n/a |
 | First-try calibration (AUROC vs LLM judge) | *not run yet: needs a working LLM key* | n/a | n/a |
 
 What the runs show:
@@ -171,18 +173,18 @@ How it picks: Jev's complexity answer (low / medium / high, with probabilities) 
 
 **Task fit.** [`config/routing.yaml`](backend/config/routing.yaml) rates each provider 0–1 for each task type (by default Claude leads on coding, writing and conversation; OpenAI on math; Gemini on factual Q&A and extraction). `cheapest` ignores it. `balanced` switches from the cheapest capable model to a better-fitting one when it's at least 0.1 better and costs at most 3× as much, so a medium coding or writing prompt goes to Claude Sonnet 5 with Gemini 3.8 Flash as the backup. `quality` takes the best fit in the strongest tier. These ratings are editable opinions, not measurements. Each routed model in the response carries its `task_fit`. Once you've connected any provider, each model also carries `connected`; if the best fit is a model you have no key for, `routing.not_connected` names it, the best of your connected models (`instead`), and a plain-English `note`. Real calls through `/v1/route` only ever use connected models.
 
-**Savings**, measured by `eval/run_routing.py` on the 480 test prompts: balanced routing averages $0.00156 per request, **89% cheaper** than always using GPT-6 Astra and 72% cheaper than the average frontier model. It is *more* expensive than always using Gemini 3.8 Flash or GPT-6 Luna, because it sends harder prompts to stronger models and writing/coding to Claude; `cheapest` ($0.00084) avoids that. The home page calculator uses these numbers.
+**Savings**, measured by `eval/run_routing.py` on the 480 test prompts: balanced routing averages $0.00155 per request, **89% cheaper** than always using GPT-6 Astra and 72% cheaper than the average frontier model. It is *more* expensive than always using Gemini 3.8 Flash or GPT-6 Luna, because it sends harder prompts to stronger models and writing/coding to Claude; `cheapest` ($0.00083) avoids that. The home page calculator uses these numbers.
 
 **Routing stats.** `GET /v1/usage/routing?days=30` (session or API key) returns, per API key and per model, how often each model was picked, how many prompts were really sent through `/v1/route`, tokens, spend, and savings: `saved_usd` compares real calls with the same tokens on the comparison model; `est_saved_usd` compares expected costs for every routed prompt. The account page shows it.
 
-Errors are `{"error": {"type", "message", "request_id"}}` with 400 / 401 / 403 / 413 / 429 / 503. Plans (`config/plans.yaml`): **free** 20 req/min, 1,000 prompts/day, batch 10 · **dev** 120/min, 50,000/month, batch 50 · **pro** 600/min. Scoring responses carry `X-RateLimit-*` and `X-Quota-*` headers.
+Errors are `{"error": {"type", "message", "request_id"}}` with 400 / 401 / 403 / 413 / 429 / 503. Plans (`config/plans.yaml`): **free** 10 req/min per key, 800 prompts/day per account, batch 10 · **dev** 120/min, 50,000/month, batch 50 · **pro** 600/min. All plans are free; dev and pro are granted by hand while capacity grows. Scoring responses carry `X-RateLimit-*` and `X-Quota-*` headers.
 
 The website uses `POST /api/analyze` (per-IP limit, no key; takes `strategy`) and `/api/quiz` (the quiz; graded on the server, only Jev-graded runs are ranked), which returns the report-card shape documented in PromptLint.md §10.
 
 ## Tests
 
 ```sh
-cd backend && .venv/bin/pytest -q        # 180 tests, no network or secrets needed
+cd backend && .venv/bin/pytest -q        # 181 tests, no network or secrets needed
 ```
 
 | Layer | Covers |
@@ -251,7 +253,7 @@ backend/
                   scoring.py (lint + PQS), cost.py, tokens.py, tips.py, router.py (model routing),
                   providers.py (calls OpenAI / Anthropic / Gemini / compatible), quiz.py, db.py, security.py, cli.py
   config/         questions.yaml · weights.yaml · pqs_scoring.yaml · prices.yaml · tips.yaml · plans.yaml · quiz.yaml · routing.yaml
-  migrations/     Alembic (SQLite and Postgres)
+  migrations/     Alembic, SQLite and Postgres (0001 accounts · 0002 provider keys + quiz · 0003 routing stats · 0004 connected model)
   tests/          unit, contract (recorded Jev fixtures), API, /v1, resilience, load/
   scripts/        build_demo_data.py (landing demo + API example from recorded fixtures)
   Dockerfile
@@ -276,5 +278,5 @@ render.yaml       free deploy (Render + Neon)
 - Output-token and cost figures are estimates, always shown as ranges.
 - Routing savings assume the cheaper model is good enough. Tiers come from the price table and Jev's complexity answer, not from measuring each model's answers yet.
 - The eval sets are AI-drafted and easy enough that the heuristic nearly matches Jev on ranking. A human gold set is needed before claiming more.
-- Not built: PQS Phase 2 (own trained model), email verification and password reset, billing for paid plans, shareable report links.
+- Not built: PQS Phase 2 (own trained model), email verification and password reset, shareable report links, streaming from `/v1/route`. There is no billing: PromptLint is free.
 

@@ -84,7 +84,7 @@ class Submission(BaseModel):
 
 
 def _words(text: str) -> set[str]:
-    return {w for w in re.findall(r"[a-z0-9₹$.]+", text.lower()) if len(w) >= 4 and w not in STOPWORDS}
+    return {w for w in re.findall(r"[a-z0-9$.]+", text.lower()) if len(w) >= 4 and w not in STOPWORDS}
 
 
 def heuristic_relevance(scenario: str, prompt: str) -> float:

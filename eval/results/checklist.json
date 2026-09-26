@@ -80,13 +80,13 @@
       "check": "has_output_format",
       "label": false,
       "probability": 0.98,
-      "prompt": "Summarize this article in under 50 words:\n\nThe city council voted on Tuesday to expand the bike-lane network by 40 km ov"
+      "prompt": "Summarize this article in under 50 words:\n\nThe New York City Council voted on Tuesday to expand the bike-lane network by"
     },
     {
       "id": "k011",
       "check": "has_output_format",
       "label": false,
-      "probability": 0.7,
+      "probability": 0.66,
       "prompt": "Write a product description in the same style as this example: 'Meet Aero. Light enough to forget, strong enough to rely"
     },
     {
@@ -107,8 +107,8 @@
       "id": "k055",
       "check": "has_output_format",
       "label": false,
-      "probability": 0.86,
-      "prompt": "Write a regex that matches Indian PIN codes (6 digits, first digit not 0). Examples that should match: 560001, 110011. E"
+      "probability": 0.85,
+      "prompt": "Write a regex that matches US ZIP codes (5 digits, optionally a hyphen and 4 more digits). Examples that should match: 1"
     },
     {
       "id": "k061",
@@ -121,8 +121,8 @@
       "id": "k066",
       "check": "has_output_format",
       "label": false,
-      "probability": 0.6,
-      "prompt": "Name three famous Indian mathematicians."
+      "probability": 0.59,
+      "prompt": "Name three famous American mathematicians."
     },
     {
       "id": "k080",
@@ -149,7 +149,7 @@
       "id": "k011",
       "check": "has_constraints",
       "label": false,
-      "probability": 0.76,
+      "probability": 0.77,
       "prompt": "Write a product description in the same style as this example: 'Meet Aero. Light enough to forget, strong enough to rely"
     },
     {
@@ -191,8 +191,8 @@
       "id": "k045",
       "check": "has_constraints",
       "label": false,
-      "probability": 0.55,
-      "prompt": "Which smartphones launched in India this week?"
+      "probability": 0.61,
+      "prompt": "Which smartphones launched in the US this week?"
     },
     {
       "id": "k047",
@@ -247,15 +247,15 @@
       "id": "k025",
       "check": "multi_task",
       "label": false,
-      "probability": 0.75,
-      "prompt": "Is the Chennai airport open right now, and are flights delayed because of the cyclone?"
+      "probability": 0.78,
+      "prompt": "Is JFK airport open right now, and are flights delayed because of the snowstorm?"
     },
     {
       "id": "k096",
       "check": "multi_task",
       "label": false,
-      "probability": 0.65,
-      "prompt": "Is the new iPhone out yet, and how much does it cost in India?"
+      "probability": 0.63,
+      "prompt": "Is the new iPhone out yet, and how much does it cost in the US?"
     },
     {
       "id": "k064",
@@ -275,8 +275,8 @@
       "id": "k085",
       "check": "needs_current_info",
       "label": false,
-      "probability": 0.74,
-      "prompt": "Plan a 3-day trip to Jaipur for a family with two young kids, on a budget of \u20b930,000, as a day-by-day itinerary."
+      "probability": 0.81,
+      "prompt": "Plan a 3-day trip to New York City for a family with two young kids, on a budget of $1,500, as a day-by-day itinerary."
     }
   ],
   "baseline_heuristic": {
@@ -361,7 +361,7 @@
         "check": "has_output_format",
         "label": false,
         "probability": 0.85,
-        "prompt": "Summarize this article in under 50 words:\n\nThe city council voted on Tuesday to expand the bike-lane network by 40 km ov"
+        "prompt": "Summarize this article in under 50 words:\n\nThe New York City Council voted on Tuesday to expand the bike-lane network by"
       },
       {
         "id": "k019",
@@ -515,7 +515,7 @@
         "check": "has_constraints",
         "label": true,
         "probability": 0.15,
-        "prompt": "Name three famous Indian mathematicians."
+        "prompt": "Name three famous American mathematicians."
       },
       {
         "id": "k071",
@@ -550,7 +550,7 @@
         "check": "has_constraints",
         "label": true,
         "probability": 0.15,
-        "prompt": "Give me a CSV with columns city,country,population for 5 European capitals."
+        "prompt": "Give me a CSV with columns city,state,population for 5 US state capitals."
       },
       {
         "id": "k093",
@@ -606,7 +606,7 @@
         "check": "has_audience",
         "label": true,
         "probability": 0.15,
-        "prompt": "Explain how a bill becomes a law in India for college students studying political science."
+        "prompt": "Explain how a bill becomes a law in the United States for college students studying political science."
       },
       {
         "id": "k080",
@@ -620,7 +620,7 @@
         "check": "has_audience",
         "label": true,
         "probability": 0.15,
-        "prompt": "Plan a 3-day trip to Jaipur for a family with two young kids, on a budget of \u20b930,000, as a day-by-day itinerary."
+        "prompt": "Plan a 3-day trip to New York City for a family with two young kids, on a budget of $1,500, as a day-by-day itinerary."
       },
       {
         "id": "k090",
@@ -697,7 +697,7 @@
         "check": "has_examples",
         "label": true,
         "probability": 0.15,
-        "prompt": "Write a regex that matches Indian PIN codes (6 digits, first digit not 0). Examples that should match: 560001, 110011. E"
+        "prompt": "Write a regex that matches US ZIP codes (5 digits, optionally a hyphen and 4 more digits). Examples that should match: 1"
       },
       {
         "id": "k078",
@@ -732,7 +732,7 @@
         "check": "conflicting",
         "label": true,
         "probability": 0.05,
-        "prompt": "Write the answer in Hindi only, and make sure every word is in English."
+        "prompt": "Write the answer in Spanish only, and make sure every word is in English."
       },
       {
         "id": "k080",
@@ -753,7 +753,7 @@
         "check": "multi_task",
         "label": false,
         "probability": 0.75,
-        "prompt": "Write the answer in Hindi only, and make sure every word is in English."
+        "prompt": "Write the answer in Spanish only, and make sure every word is in English."
       },
       {
         "id": "k064",
@@ -774,7 +774,7 @@
         "check": "needs_current_info",
         "label": true,
         "probability": 0.05,
-        "prompt": "Is the new iPhone out yet, and how much does it cost in India?"
+        "prompt": "Is the new iPhone out yet, and how much does it cost in the US?"
       }
     ]
   }

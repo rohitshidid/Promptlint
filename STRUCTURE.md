@@ -4,7 +4,7 @@ This file explains the whole project in plain words: what each part does, how a 
 
 ## The idea in one paragraph
 
-People send AI chatbots vague prompts like "write me a poem", get a so-so answer, and have to ask again. PromptLint checks a prompt **before** it's sent. It asks an AI judge called **Jev** (made by TypeSafe) eighteen quick questions about the prompt: *Is the task clear? Does it say who it's for? Is there a word limit?* Jev answers each with a probability (for example "91% yes"). PromptLint then turns those answers into scores, a checklist, tips and cost estimates using ordinary code, with no chatbot involved. It also works as a **router**: from the same answers it recommends which AI model to send the prompt to (the cheapest one that's good enough), and it can even send it there for you with your own AI provider keys. You can use it on the website or from your own code through the API.
+Most apps send every prompt to their most expensive AI model, even "what's the capital of New York State?". PromptLint is an **LLM router that saves money**. For each prompt it asks an AI judge called **Jev** (made by TypeSafe) eighteen quick questions: *How hard is this? What kind of task is it? Is the task clear? Does it say who it's for?* Jev answers each with a probability (for example "91% yes"). From those answers, ordinary code picks **the cheapest model that's good enough** (or the best fit for the task, like Claude for code and writing), a backup, and works out how much that saves. With your own AI provider keys it can send the prompt there for you. The same answers also give the prompt a **score, a checklist, tips and cost estimates**, so you can fix a vague prompt before paying for an answer you'll throw away. You can use it on the website or from your own code through the API. It's **completely free**: for now each account gets 800 prompts a day and 10 requests a minute per key, and those limits go up as capacity grows. All money is shown in US dollars.
 
 ## The big picture
 
@@ -38,7 +38,7 @@ Following "write me a poem" from start to finish:
 
 1. **You click "Check".** The page sends the prompt to the server (`/api/analyze` on the website, `/v1/score` through the API with your key).
 2. **The server checks who you are.** On the website it only looks at your IP address, to limit how often you can check. Through the API it looks up your key's fingerprint in the database.
-3. **The server checks your limits.** For example, 20 checks a minute and 1,000 a day on the free plan.
+3. **The server checks your limits.** On the free plan: 10 checks a minute per key and 800 a day per account (going up as capacity grows).
 4. **One call to Jev.** The prompt plus all eighteen questions go to Jev in a single request (about 0.2 seconds). The questions are written in `backend/config/questions.yaml`.
 5. **The math.** Jev's answers become:
    - **Lint Score** (0–100): a weighted mix where "will it work first time?" counts most.
@@ -66,7 +66,7 @@ Jev Ai/
 ├── backend/              The server (Python)
 │   ├── app/              The code
 │   ├── config/           Settings you can change without touching code
-│   ├── migrations/       Database table definitions, versioned
+│   ├── migrations/       Database table definitions, versioned (0001–0004)
 │   ├── tests/            Automated tests
 │   ├── scripts/          Helper scripts
 │   └── Dockerfile        Recipe for the container that runs online
@@ -115,15 +115,15 @@ Jev Ai/
 | `pqs_scoring.yaml` | How the PQS score is weighted, including by task type. |
 | `tips.yaml` | Every tip's text, ID and when it appears. |
 | `prices.yaml` | AI model prices (with the date checked) and answer-length ranges. |
-| `plans.yaml` | Free, dev and pro plans: checks per minute, per day and per batch. |
+| `plans.yaml` | Free, dev and pro plans (all free of charge): checks per minute, per day and per batch. Raise the free numbers here as capacity grows. |
 | `routing.yaml` | How well each AI company's models fit each kind of task (coding, writing, math…). The router uses it to pick Claude for writing and coding, for example. Opinions you can edit. |
-| `quiz.yaml` | The quiz: five weak prompts to rewrite, and the grade cut-offs (A+ at 90 … F below 50). |
+| `quiz.yaml` | The quiz: five weak prompts to rewrite (New York scenarios, amounts in USD), and the grade cut-offs (A+ at 90 … F below 50). |
 
 ### `frontend/`: the website
 
 | File | Page |
 |---|---|
-| `index.html` | The landing page: what PromptLint is, a replayed demo, what the API can do (use cases), how much routing saves (with a calculator), accuracy numbers, API intro. |
+| `index.html` | The landing page, routing and savings first: the hero, measured savings with a calculator, how routing works, use cases, the API, then the prompt lint, accuracy numbers, and Pricing (completely free, current limits). |
 | `app.html` | The analyzer: paste a prompt, get the report card and the recommended model. Has compare mode, the Jev/heuristic switch and the routing strategy. |
 | `account.html` | Sign up, log in, create and revoke API keys, see usage, connect AI provider keys, and see routing stats: which models got your prompts, per key, and how much routing saved. |
 | `quiz.html` | The prompt quiz: rewrite five weak prompts, get a grade, see the leaderboard. |
@@ -134,7 +134,7 @@ Jev Ai/
 
 The friendly **API tester** is `frontend/tester.html` (served at `/tester.html`, linked from the account dashboard). It calls `/v1/route` with your key and explains the answer in plain words, including which model to use. Opened straight from disk, it talks to the live server instead.
 
-### `backend/tests/`: automated checks (180 of them)
+### `backend/tests/`: automated checks (181 of them)
 
 Run with `cd backend && .venv/bin/pytest -q`. No internet or secrets needed.
 
@@ -166,7 +166,7 @@ Results are saved in `eval/results/`. `build_report.py` turns them into charts i
 | `sessions` | Which browser is logged in (fingerprint only) | The actual cookie value |
 | `api_keys` | Key name, first 8 characters, fingerprint of the rest | The full key (shown once, then gone) |
 | `usage_daily` | Checks per key per day | Prompts |
-| `score_events` | Scrambled prompt fingerprint, length, scores, time taken, which model the router picked, and (for real calls) which model answered, tokens and cost (deleted after 90 days) | The prompt text or the answer |
+| `score_events` | Scrambled prompt fingerprint, length, scores, time taken, which model the router picked, the connected model used instead when the pick has no key, and (for real calls) which model answered, tokens and cost (deleted after 90 days) | The prompt text or the answer |
 | `provider_keys` | Your connected AI provider keys, **locked (encrypted)**, plus the last 4 characters to show you which is which; custom endpoints' address, model and prices | The key in readable form |
 | `quiz_results` | Quiz nickname, score, grade, per-round scores, scrambled IP | Your rewrites' text |
 | `stored_prompts` | Prompt text, **only** if the caller sent `store: true` (deleted after 90 days) | n/a |

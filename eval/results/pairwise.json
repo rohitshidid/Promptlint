@@ -3,10 +3,10 @@
     "n": 200,
     "accuracy": 1.0,
     "ties": 0,
-    "mean_delta": 55.325,
-    "mean_weak_score": 30.645,
-    "mean_improved_score": 85.97,
-    "first_try_alone_accuracy": 0.925,
+    "mean_delta": 55.26,
+    "mean_weak_score": 30.68,
+    "mean_improved_score": 85.94,
+    "first_try_alone_accuracy": 0.93,
     "by_task_type": {
       "analysis": {
         "n": 28,
@@ -44,9 +44,9 @@
     "n": 40,
     "accuracy": 1.0,
     "ties": 0,
-    "mean_delta": 20.175,
-    "mean_weak_score": 57.9,
-    "mean_improved_score": 78.075,
+    "mean_delta": 20.15,
+    "mean_weak_score": 58.0,
+    "mean_improved_score": 78.15,
     "first_try_alone_accuracy": 0.525,
     "by_adds": {
       "audience": {
@@ -77,28 +77,28 @@
       "lint": {
         "main": 1.0,
         "hard": 1.0,
-        "main_mean_delta": 55.325,
-        "hard_mean_delta": 20.175
+        "main_mean_delta": 55.26,
+        "hard_mean_delta": 20.15
       },
       "pqs": {
         "main": 1.0,
         "hard": 1.0,
-        "main_mean_delta": 55.835,
-        "hard_mean_delta": 22.175
+        "main_mean_delta": 55.725,
+        "hard_mean_delta": 22.1
       }
     },
     "heuristic": {
       "lint": {
         "main": 0.995,
         "hard": 0.95,
-        "main_mean_delta": 49.705,
-        "hard_mean_delta": 15.3
+        "main_mean_delta": 49.76,
+        "hard_mean_delta": 15.275
       },
       "pqs": {
         "main": 0.995,
         "hard": 1.0,
-        "main_mean_delta": 55.025,
-        "hard_mean_delta": 17.075
+        "main_mean_delta": 55.04,
+        "hard_mean_delta": 17.0
       }
     }
   },
@@ -108,10 +108,10 @@
         "n": 200,
         "accuracy": 1.0,
         "ties": 0,
-        "mean_delta": 55.325,
-        "mean_weak_score": 30.645,
-        "mean_improved_score": 85.97,
-        "first_try_alone_accuracy": 0.925,
+        "mean_delta": 55.26,
+        "mean_weak_score": 30.68,
+        "mean_improved_score": 85.94,
+        "first_try_alone_accuracy": 0.93,
         "by_task_type": {
           "analysis": {
             "n": 28,
@@ -149,9 +149,9 @@
         "n": 40,
         "accuracy": 1.0,
         "ties": 0,
-        "mean_delta": 20.175,
-        "mean_weak_score": 57.9,
-        "mean_improved_score": 78.075,
+        "mean_delta": 20.15,
+        "mean_weak_score": 58.0,
+        "mean_improved_score": 78.15,
         "first_try_alone_accuracy": 0.525,
         "by_adds": {
           "audience": {
@@ -183,10 +183,10 @@
         "n": 200,
         "accuracy": 1.0,
         "ties": 0,
-        "mean_delta": 55.835,
-        "mean_weak_score": 25.63,
-        "mean_improved_score": 81.465,
-        "first_try_alone_accuracy": 0.925,
+        "mean_delta": 55.725,
+        "mean_weak_score": 25.615,
+        "mean_improved_score": 81.34,
+        "first_try_alone_accuracy": 0.93,
         "by_task_type": {
           "analysis": {
             "n": 28,
@@ -223,9 +223,9 @@
         "n": 40,
         "accuracy": 1.0,
         "ties": 0,
-        "mean_delta": 22.175,
-        "mean_weak_score": 51.575,
-        "mean_improved_score": 73.75,
+        "mean_delta": 22.1,
+        "mean_weak_score": 51.625,
+        "mean_improved_score": 73.725,
         "first_try_alone_accuracy": 0.525,
         "by_adds": {
           "audience": {
@@ -257,9 +257,9 @@
         "n": 200,
         "accuracy": 0.995,
         "ties": 0,
-        "mean_delta": 49.705,
+        "mean_delta": 49.76,
         "mean_weak_score": 17.47,
-        "mean_improved_score": 67.175,
+        "mean_improved_score": 67.23,
         "first_try_alone_accuracy": 0.855,
         "by_task_type": {
           "analysis": {
@@ -308,9 +308,9 @@
         "n": 40,
         "accuracy": 0.95,
         "ties": 1,
-        "mean_delta": 15.3,
-        "mean_weak_score": 46.15,
-        "mean_improved_score": 61.45,
+        "mean_delta": 15.275,
+        "mean_weak_score": 46.275,
+        "mean_improved_score": 61.55,
         "first_try_alone_accuracy": 0.8,
         "by_adds": {
           "audience": {
@@ -363,9 +363,9 @@
         "n": 200,
         "accuracy": 0.995,
         "ties": 0,
-        "mean_delta": 55.025,
-        "mean_weak_score": 11.455,
-        "mean_improved_score": 66.48,
+        "mean_delta": 55.04,
+        "mean_weak_score": 11.46,
+        "mean_improved_score": 66.5,
         "first_try_alone_accuracy": 0.855,
         "by_task_type": {
           "analysis": {
@@ -414,9 +414,9 @@
         "n": 40,
         "accuracy": 1.0,
         "ties": 0,
-        "mean_delta": 17.075,
-        "mean_weak_score": 41.375,
-        "mean_improved_score": 58.45,
+        "mean_delta": 17.0,
+        "mean_weak_score": 41.525,
+        "mean_improved_score": 58.525,
         "first_try_alone_accuracy": 0.8,
         "by_adds": {
           "audience": {

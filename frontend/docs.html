@@ -6,7 +6,7 @@
 <title>API docs · PromptLint</title>
 <meta name="description" content="PromptLint public API: score prompts, batch, pricing, usage. Authentication, limits, errors and response fields.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.5">
+<link rel="stylesheet" href="assets/site.css?v=1.2.6">
 <style>
   .doc-head { padding: 40px 0 12px; position: relative; }
   .doc-head::before {
@@ -126,11 +126,15 @@
       <div class="scroll"><table class="ref">
         <thead><tr><th>Plan</th><th>Requests / min (per key)</th><th>Prompts (per account)</th><th>Batch size</th></tr></thead>
         <tbody>
-          <tr><td>free</td><td>20</td><td>1,000 per day</td><td>10</td></tr>
+          <tr><td>free</td><td>10</td><td>800 per day</td><td>10</td></tr>
           <tr><td>dev</td><td>120</td><td>50,000 per month</td><td>50</td></tr>
           <tr><td>pro</td><td>600</td><td>no quota</td><td>50</td></tr>
         </tbody>
       </table></div>
+      <p><strong>PromptLint is completely free.</strong> We're adding capacity on a rolling basis, so for now each person
+        is limited to the free plan's numbers above; we'll raise them soon. The dev and pro tiers are for higher limits we
+        grant as capacity grows, also at no cost. You only ever pay LLM providers directly, for calls <code>/v1/route</code>
+        makes with your own keys.</p>
       <p>New accounts are on <strong>free</strong>. A batch counts one request against the per-minute limit and one
         prompt per item against the quota. Days and months are UTC.</p>
       <div class="scroll"><table class="ref">
@@ -325,7 +329,7 @@ curl https://<span class="n">your-host</span>/v1/route \
 
     <section id="errors">
       <h2>Errors</h2>
-<pre class="codeblock">{ <span class="k">"error"</span>: { <span class="k">"type"</span>: <span class="s">"rate_limit_exceeded"</span>, <span class="k">"message"</span>: <span class="s">"Your plan allows 20 requests per minute. Retry in 12s."</span>, <span class="k">"request_id"</span>: <span class="s">"req_…"</span> } }</pre>
+<pre class="codeblock">{ <span class="k">"error"</span>: { <span class="k">"type"</span>: <span class="s">"rate_limit_exceeded"</span>, <span class="k">"message"</span>: <span class="s">"Your plan allows 10 requests per minute. Retry in 12s. PromptLint is free; we&#39;re raising limits on a rolling basis as capacity grows."</span>, <span class="k">"request_id"</span>: <span class="s">"req_…"</span> } }</pre>
       <div class="scroll"><table class="ref">
         <thead><tr><th>Status</th><th>type</th><th>When</th></tr></thead>
         <tbody>

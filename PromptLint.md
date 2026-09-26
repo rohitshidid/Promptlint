@@ -457,7 +457,7 @@ cost_high = in_tokens × in_price + out_high × out_price
 1. Final name check (GitHub and domain availability for "PromptLint").
 2. ~~Which ~6 models go in the cost table.~~ Resolved: seven (three Claude, OpenAI and Google flagship + small).
 3. Whether to add opt-in prompt storage for shareable report links in v1.1. (API-side opt-in storage exists: `options.store`.)
-4. Paid plans: `dev` and `pro` exist in `plans.yaml` but are assigned by hand (`python -m app.cli set-plan`). Billing (Stripe) is not built.
+4. Plans: everything is free. `dev` and `pro` exist in `plans.yaml` for higher limits and are assigned by hand (`python -m app.cli set-plan`) as capacity grows. There is no billing.
 5. Email verification and password reset need an email provider. Not built; decide on a free-tier provider before opening sign-ups widely.
 
 ---
@@ -481,7 +481,7 @@ Output p50/p90 come from the `expected_length` bucket CDF, interpolated inside t
 
 **Errors:** `{"error": {"type", "message", "request_id"}}` with 400 / 401 / 403 / 413 / 429 / 503. Every response has `X-Request-Id`; scoring responses have `X-RateLimit-Limit|Remaining|Reset` and `X-Quota-Limit|Remaining|Period`.
 
-**Plans** (`config/plans.yaml`): free 20 req/min per key, 1,000 prompts/day per account, batch 10 · dev 120/min, 50,000/month, batch 50 · pro 600/min, no quota. Quotas are counted in the database, so restarts don't reset them.
+**Plans** (`config/plans.yaml`, all free): free 10 req/min per key, 800 prompts/day per account (raised on a rolling basis as capacity grows), batch 10 · dev 120/min, 50,000/month, batch 50 · pro 600/min, no quota. Quotas are counted in the database, so restarts don't reset them.
 
 **Backends** (PQS §5): `jev` and `heuristic` implement one `Judge` interface returning the same typed answers. `backend: "auto"` (default) = Jev with automatic heuristic fallback on timeout, rate limit, 5xx or missing key (`degraded: true`); `"jev"` returns 503 instead; `"heuristic"` never calls Jev (prompt stays on the server).
 
@@ -515,13 +515,16 @@ Keeping it inside the free limits: metadata-only tables, 90-day retention with a
 
 ## 22. Model routing and the quiz (v1.2)
 
+**Positioning (v1.2):** the product is marketed as an LLM router that saves money, with prompt linting as the built-in second feature. It is completely free, with per-person limits (800 prompts/day, 10 requests/min per key) raised on a rolling basis. All copy, examples, quiz scenarios and eval prompts use US / New York settings and USD.
+
 PromptLint is also a **routing middle layer**: it recommends which model should answer each prompt, and can call it.
 
 - **Tier needed.** Jev's three-level complexity question gives P(low), P(medium), P(high). The needed tier is the smallest one whose cumulative probability reaches the strategy's confidence: `cheapest` 0.5, `balanced` 0.75 (default), `quality` 0.9. low → small, medium → mid, high → frontier.
 - **Pick.** Candidates (the price table, the caller's `candidates`, and saved custom endpoints) that reach the tier are *capable*. `cheapest`/`balanced` pick the capable model with the lowest expected cost (input tokens × price + p50 output × price); `quality` picks the cheapest model in the strongest tier needed. The fallback is the next capable model, from another provider when possible. `max_cost_usd` removes models by p90 cost.
 - **Task fit** (`config/routing.yaml`, v1.2): a 0–1 rating per task type for each provider or model. `balanced` moves from the cheapest capable model to a better fit when fit improves by ≥ `min_edge` (0.1) and cost is ≤ `balanced_price_band` (3×); `quality` sorts by fit within the strongest tier; `cheapest` ignores fit. On the eval set balanced now picks Gemini 3.8 Flash 46%, Claude Sonnet 5 28%, GPT-6 Luna 25%.
-- **Stats** (`GET /v1/usage/routing`): each score event stores the pick, baseline, expected costs, and for real calls the model used, tokens, cost and the baseline's cost for the same tokens (migration 0003). The account page aggregates them per key and per model.
+- **Stats** (`GET /v1/usage/routing`): each score event stores the pick, baseline, expected costs, and for real calls the model used, tokens, cost and the baseline's cost for the same tokens (migration 0003), plus the best connected model when the best fit has no key (migration 0004). The account page aggregates them per key and per model.
+- **Not connected.** Once a user has connected any provider, each routed model carries `connected`. If the best fit isn't connected, `routing.not_connected` names it, the best connected model (`instead`) and a plain-English `note`; `/v1/route` only calls connected models, and expected-cost savings use the connected model.
 - **Clarify first.** `likely_to_fail` and first-try < 0.4 → `action: clarify_first`; `/v1/route` then doesn't call a model unless `send_anyway: true`.
-- **Savings** are measured against `baseline_model` (default: the priciest candidate). `eval/run_routing.py` routes the 480 pair prompts: balanced averages $0.001555/request, 89.1% cheaper than always GPT-6 Astra, 72.0% cheaper than the frontier average, but more than always Gemini 3.8 Flash or GPT-6 Luna (it pays for task fit). 23.5% of prompts (47.1% of weak ones) get `clarify_first`.
+- **Savings** are measured against `baseline_model` (default: the priciest candidate). `eval/run_routing.py` routes the 480 pair prompts: balanced averages $0.001551/request, 89.0% cheaper than always GPT-6 Astra, 71.9% cheaper than the frontier average, but more than always Gemini 3.8 Flash or GPT-6 Luna (it pays for task fit). 23.8% of prompts (47.5% of weak ones) get `clarify_first`. (Re-run 26 Sept 2026 after the eval prompts were localized to US / New York and USD.)
 - **Execution** (`POST /v1/route`): keys come from `provider_keys` (per request, never stored), then saved keys (`/v1/providers`, Fernet-encrypted with `PROVIDER_KEY_SECRET`). Adapters: Anthropic (official SDK), OpenAI chat completions, Gemini `generateContent`, and any OpenAI-compatible `/chat/completions` (Ollama, Groq, OpenRouter…). Up to three models are tried in order; non-retryable errors (bad key) move on immediately. Custom endpoint URLs must be public HTTPS in production (SSRF guard). No keys, or `execute: false` → recommendation only. No streaming in v1.2.
-- **Quiz** (`/quiz.html`, `/api/quiz`): five weak prompts from `config/quiz.yaml` to rewrite. Each rewrite gets the Lint Score, capped at 20 if a one-question Jev check says it no longer asks for the round's task. Grades A+ ≥ 90 … F < 50. Only runs fully judged by Jev are ranked; the leaderboard shows each nickname's best (all time or this week). 5 submissions per IP per hour.
+- **Quiz** (`/quiz.html`, `/api/quiz`): five weak prompts from `config/quiz.yaml` (version 2, New York scenarios in USD) to rewrite. Each rewrite gets the Lint Score, capped at 20 if a one-question Jev check says it no longer asks for the round's task. Grades A+ ≥ 90 … F < 50. Only runs fully judged by Jev are ranked; the leaderboard shows each nickname's best (all time or this week). 5 submissions per IP per hour.

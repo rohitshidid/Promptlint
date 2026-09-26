@@ -6,7 +6,7 @@
 <title>Check a prompt · PromptLint</title>
 <meta name="description" content="Try your PromptLint API key: check a prompt and get a plain-English explanation of the result.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.5">
+<link rel="stylesheet" href="assets/site.css?v=1.2.6">
 <style>
   .t-head { padding: 40px 0 8px; position: relative; }
   .t-head::before {
@@ -317,8 +317,8 @@
     const ERRORS = {
         missing_api_key: ["No API key was sent", ["Paste your key in the API key box.", "If you typed $ before the key in a terminal, remove it."]],
         invalid_api_key: ["That API key doesn't work", ["Check you copied the whole key (it starts with pqs_live_).", "It may have been revoked. Create a new one on the account page."]],
-        rate_limit_exceeded: ["Too many checks in a short time", ["Wait a minute and try again. Your plan allows a set number of checks per minute."]],
-        quota_exceeded: ["You've used today's free checks", ["The free plan resets every day at midnight UTC."]],
+        rate_limit_exceeded: ["Too many checks in a short time", ["Wait a minute and try again. The free plan allows 10 checks a minute per key for now.", "PromptLint is completely free. We're adding capacity and raising limits on a rolling basis."]],
+        quota_exceeded: ["You've used today's free checks", ["Each account gets 800 checks a day for now. They reset at midnight UTC.", "PromptLint is completely free. We're adding capacity and raising limits on a rolling basis."]],
         prompt_too_long: ["The prompt is too long", ["Prompts can be up to 32,000 characters. Shorten it and try again."]],
         unknown_model: ["One of the selected models isn't known", ["Pick models from the list on this page."]],
         invalid_routing: ["The model-picking settings aren't valid", ["Pick a different \"Show savings compared with\" model and try again."]],

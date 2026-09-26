@@ -82,7 +82,7 @@
         ${quota.limit ? `<div class="meter ${st}" role="meter" aria-valuemin="0" aria-valuemax="${quota.limit}" aria-valuenow="${quota.used}" aria-label="${quota.label}"><i style="width:${(share * 100).toFixed(1)}%"></i></div>` : ""}</div>
       <div class="tile"><small>This month</small><b>${fmt(me.used_this_month)}</b><span>prompts scored</span></div>
       <div class="tile"><small>Rate limit</small><b>${fmt(p.rpm)}/min</b><span>per key · batches up to ${fmt(p.batch_max)}</span></div>
-      <div class="tile"><small>Plan</small><b style="text-transform:capitalize">${esc(p.name)}</b><span>${me.active_keys} of ${me.max_keys} keys active</span></div>`;
+      <div class="tile"><small>Plan</small><b style="text-transform:capitalize">${esc(p.name)} · $0</b><span>${me.active_keys} of ${me.max_keys} keys active · limits rising soon</span></div>`;
   }
 
   let showRevoked = false;

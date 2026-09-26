@@ -48,7 +48,7 @@ CONSTRAINT = (
     r"\b(under|at most|no more than|maximum|max|minimum|at least|only|without|avoid|don'?t|do not|never|"
     r"must|within|budget|deadline|by (monday|tuesday|wednesday|thursday|friday|tomorrow|tonight)|"
     r"tone|formal|casual|friendly|professional|playful|polite|firm|simple words|no jargon|limit)\b|"
-    r"[₹$€£]\s?\d|\b\d+\s*(words?|characters?|minutes?|hours?|lines?|sentences?)\b"
+    r"[$€£]\s?\d|\b\d+\s*(words?|characters?|minutes?|hours?|lines?|sentences?)\b"
 )
 AUDIENCE = (
     r"\b(for (a |an |my |our |the )?(\d+[- ]year[- ]olds?|beginners?|kids|children|students?|class|"
@@ -101,7 +101,7 @@ TASK_RULES = (
     ),
     (
         "math",
-        r"\b(solve|equation|probability|integral|derivative|calculate|percentage|prove|how much|how many|interest|emi)\b|\d+\s*[x×*/+−-]\s*\d+",
+        r"\b(solve|equation|probability|integral|derivative|calculate|percentage|prove|how much|how many|interest|mortgage|loan payment)\b|\d+\s*[x×*/+−-]\s*\d+",
     ),
     (
         "extraction_transformation",
