@@ -236,17 +236,29 @@
       <details class="data"><summary>Show as a table</summary><div class="table-scroll"><table class="keys"><thead><tr><th>Model</th><th>Picked</th><th>Sent</th><th>Tokens in / out</th><th>Spent</th></tr></thead><tbody>
         ${u.models.map((m) => `<tr><td>${esc(m.name)}<br><span class="muted">${esc(m.provider || "")}</span></td><td>${fmt(m.recommended)}</td><td>${fmt(m.sent)}</td>
           <td class="muted">${fmt(m.input_tokens)} / ${fmt(m.output_tokens)}</td><td>${usd(m.spent_usd)}</td></tr>`).join("")}</tbody></table></div></details>`;
-    html += `<h3>By API key</h3><div class="table-scroll"><table class="keys"><thead><tr><th>Key</th><th>Routed</th><th>Used your LLM keys?</th><th>Router's picks</th><th>Spent</th><th>Saved</th></tr></thead><tbody>
-      ${u.keys.map((k) => `<tr>
-        <td><b>${esc(k.name)}</b><br><code>${esc(k.masked)}</code>${k.revoked ? ' <span class="muted">revoked</span>' : ""}</td>
-        <td>${fmt(k.checks)}</td>
-        <td>${k.sent || k.failed ? `<span class="yes">Yes</span>: ${fmt(k.sent)} sent${k.failed ? `, ${fmt(k.failed)} failed` : ""}<br><span class="muted">${esc(k.providers_used.join(", ") || "—")}${k.sent_to.length ? " · " + k.sent_to.map((x) => `${esc(x.name)} ×${fmt(x.calls)}`).join(", ") : ""}</span>`
-          : `<span class="no">${k.checks ? "No, recommendations only" : "Not used yet"}</span>`}</td>
-        <td class="muted">${k.recommended.slice(0, 3).map((x) => `${esc(x.name)} ×${fmt(x.count)}`).join("<br>") || "—"}</td>
-        <td>${usd(k.spent_usd)}</td>
-        <td>${k.saved_usd ? `<b>${usd(k.saved_usd)}</b><br><span class="muted">est. ${usd(k.est_saved_usd)}</span>` : `<span class="muted">est. ${usd(k.est_saved_usd)}</span>`}</td></tr>`).join("")}
-      </tbody></table></div>
-      <p class="sub" style="margin:12px 0 0">"Saved" compares what your real calls cost with the same tokens on the comparison model, at list prices. "Est." compares expected costs for every routed prompt, including recommendation-only checks.</p>`;
+    const keyCard = (k) => {
+      const used = k.sent || k.failed;
+      const status = k.revoked ? `<span class="kpill off">Revoked</span>`
+        : used ? `<span class="kpill on">Uses your LLM keys</span>`
+        : k.checks ? `<span class="kpill">Recommendations only</span>` : `<span class="kpill">Not used yet</span>`;
+      const chips = (list, label) => (list.length
+        ? `<div class="kc-row"><span class="kc-label">${label}</span><div class="kc-chips">${list.join("")}</div></div>` : "");
+      return `<article class="kcard">
+        <header><div class="kc-name"><b>${esc(k.name)}</b><code>${esc(k.masked)}</code></div>${status}</header>
+        <div class="kc-stats">
+          <div><small>Routed</small><b>${fmt(k.checks)}</b></div>
+          <div><small>Sent</small><b>${fmt(k.sent)}</b>${k.failed ? `<span class="bad">${fmt(k.failed)} failed</span>` : ""}</div>
+          <div><small>Spent</small><b>${usd(k.spent_usd)}</b></div>
+          <div class="save"><small>Saved</small><b>${usd(k.saved_usd)}</b><span>est. ${usd(k.est_saved_usd)}</span></div>
+        </div>
+        ${chips(k.recommended.slice(0, 6).map((x) => `<span class="chipx">${esc(x.name)}<i>×${fmt(x.count)}</i></span>`), "Router picked")}
+        ${chips(k.sent_to.map((x) => `<span class="chipx sent">${esc(x.name)}<i>×${fmt(x.calls)}</i></span>`), "Sent to")}
+        ${k.providers_used.length ? `<p class="kc-foot">Providers used: ${esc(k.providers_used.join(", "))}</p>` : ""}
+      </article>`;
+    };
+    html += `<h3>By API key</h3>
+      ${u.keys.length ? `<div class="kcards">${u.keys.map(keyCard).join("")}</div>` : `<p class="sub">No keys yet.</p>`}
+      <p class="sub" style="margin:14px 0 0">"Saved" compares what your real calls cost with the same tokens on the comparison model, at list prices. "Est." compares expected costs for every routed prompt, including recommendation-only checks.</p>`;
     box.innerHTML = html;
   }
 
