@@ -614,3 +614,48 @@ def test_band_floor_only_widens_the_band():
         decide((0.1, 0.8, 0.1), fits=fits, price_band=2.0, band_floor={"mid": 0.01}).chosen.candidate.id
         == "mid-b"
     )
+
+
+def test_endpoint_quality_rating_can_be_set_and_changed(client):
+    h = account(client)
+    ep = {"provider": "openai_compatible", "label": "Openrouter", "base_url": "https://openrouter.ai/api/v1",
+          "model": "openrouter/free", "tier": "mid", "input_price": 0.0001, "output_price": 0.0001}  # fmt: skip
+    r = client.post("/v1/providers", json=ep, headers=CSRF)
+    assert r.status_code == 201 and r.json()["quality"] is None
+    pid = r.json()["id"]
+    assert client.get("/v1/providers").json()["default_quality"] == 0.8
+    body = {"prompt": "x", "routing": {"candidates": ["gemini-3.8-flash", "claude-sonnet-5"]}}
+    # unknown quality (0.8): Claude fits writing clearly better, so balanced picks it
+    rt = client.post("/v1/score", json=body, headers=h).json()["routing"]
+    assert rt["recommended"]["id"] == "claude-sonnet-5"
+    # rate the endpoint as excellent: now it's as good a fit and far cheaper
+    r = client.patch(f"/v1/providers/{pid}", json={"quality": 1.0}, headers=CSRF)
+    assert r.status_code == 200 and r.json()["quality"] == 1.0
+    rt = client.post("/v1/score", json=body, headers=h).json()["routing"]
+    assert rt["recommended"]["id"] == "openrouter/free" and rt["recommended"]["task_fit"] == 1.0
+    # reset to unknown, validation, and ownership
+    assert (
+        client.patch(f"/v1/providers/{pid}", json={"quality": None}, headers=CSRF).json()["quality"] is None
+    )
+    assert client.patch(f"/v1/providers/{pid}", json={"quality": 1.5}, headers=CSRF).status_code == 400
+    assert client.patch(f"/v1/providers/{pid}", json={"tier": None}, headers=CSRF).status_code == 400
+    assert client.patch("/v1/providers/999999", json={"quality": 0.9}, headers=CSRF).status_code == 404
+    assert client.patch(f"/v1/providers/{pid}", json={"quality": 0.9}).status_code in (
+        401,
+        403,
+    )  # no CSRF header
+
+
+def test_per_request_custom_model_quality(client):
+    h = account(client)
+    free = {"id": "cheap-llm", "tier": "mid", "input_price": 0.01, "output_price": 0.01,
+            "base_url": "https://api.example.com/v1"}  # fmt: skip
+    body = {"prompt": "x", "routing": {"candidates": [free, "claude-sonnet-5"]}}
+    assert (
+        client.post("/v1/score", json=body, headers=h).json()["routing"]["recommended"]["id"]
+        == "claude-sonnet-5"
+    )
+    free["quality"] = 0.95  # within 0.1 of Claude's 1.0 for writing: the cheap model stays
+    assert (
+        client.post("/v1/score", json=body, headers=h).json()["routing"]["recommended"]["id"] == "cheap-llm"
+    )

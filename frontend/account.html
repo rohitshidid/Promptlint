@@ -6,8 +6,8 @@
 <title>Account · PromptLint</title>
 <meta name="description" content="Create a free PromptLint API key, manage keys, and see your usage.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.6">
-<link rel="stylesheet" href="assets/report.css?v=1.2.6">
+<link rel="stylesheet" href="assets/site.css?v=1.2.9">
+<link rel="stylesheet" href="assets/report.css?v=1.2.9">
 <style>
   .acct-head { padding: 40px 0 8px; position: relative; }
   .acct-head::before {
@@ -120,6 +120,13 @@
   table.keys th { text-align: left; font-size: .72rem; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; padding: 0 6px 8px; border-bottom: 1px solid var(--line); }
   table.keys td { padding: 10px 6px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
   tr.revoked-row td { opacity: .6; }
+  .qual { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .qual select { font: inherit; font-size: .78rem; padding: 3px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg-tint); color: var(--ink); max-width: 100%; }
+  .qual span { font-size: .74rem; color: var(--ink-faint); }
+  .qual button { font: inherit; font-size: .76rem; font-weight: 600; padding: 3px 10px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+  .qual button:disabled { background: var(--bg-tint); border-color: var(--line); color: var(--ink-faint); cursor: default; }
+  .qual span.ok { color: var(--good-ink); }
+  .qual span.err { color: var(--bad-ink); }
   .show-revoked { margin-top: 10px; color: var(--ink-soft) !important; }
   table.keys code { font-size: .76rem; }
   table.keys .muted { color: var(--ink-faint); font-size: .8rem; }
@@ -283,9 +290,14 @@
             <label class="f" for="prov-model">Model name<input class="t" id="prov-model" spellcheck="false" placeholder="llama-3.3-70b-versatile"></label>
             <label class="f" for="prov-tier">Strength
               <select class="t" id="prov-tier"><option value="small">Small (simple tasks)</option><option value="mid" selected>Mid (most tasks)</option><option value="frontier">Frontier (hardest tasks)</option></select></label>
-            <label class="f" for="prov-in">Input price ($ / 1M tokens)<input class="t" id="prov-in" type="number" min="0" step="0.01" value="0"></label>
-            <label class="f" for="prov-out">Output price ($ / 1M tokens)<input class="t" id="prov-out" type="number" min="0" step="0.01" value="0"></label>
+            <label class="f" for="prov-in">Input price ($ / 1M tokens)<input class="t" id="prov-in" type="number" min="0" step="any" value="0"></label>
+            <label class="f" for="prov-out">Output price ($ / 1M tokens)<input class="t" id="prov-out" type="number" min="0" step="any" value="0"></label>
+            <label class="f" for="prov-quality">Quality for routing
+              <select class="t" id="prov-quality"><option value="">Unknown (default, 0.80)</option><option value="0.85">Basic (0.85)</option><option value="0.9">Good (0.90)</option><option value="0.95">Very good (0.95)</option><option value="1">Excellent (1.00)</option></select></label>
           </div>
+          <p class="hint">How good this model is, in your experience. The router compares it with the built-in models' task fit
+            (for example Claude Sonnet 5 is 1.00 for coding and writing, Gemini 3.8 Flash 0.85). Unknown means we can't vouch for
+            it, so under "balanced" a clearly better-fitting built-in model wins. You can change and save it any time in the list below.</p>
           <p class="hint">An online server can't reach <code>localhost</code> on your computer. For a local Ollama, expose it with a public HTTPS address (for example a tunnel) and use that.</p>
         </div>
         <button class="btn btn-fill btn-md" type="submit" style="margin-top:16px">Add provider</button>
@@ -319,7 +331,7 @@
   </div>
 </footer>
 
-<script src="assets/report.js?v=1.2.6"></script>
-<script src="assets/account.js?v=1.2.6"></script>
+<script src="assets/report.js?v=1.2.9"></script>
+<script src="assets/account.js?v=1.2.9"></script>
 </body>
 </html>

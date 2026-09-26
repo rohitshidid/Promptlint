@@ -61,6 +61,7 @@ from app.schemas import (
     Execution,
     NotConnected,
     ProviderKeyIn,
+    ProviderKeyUpdate,
     RoutedModel,
     RouteRequest,
     RouteResponse,
@@ -297,6 +298,7 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                         source="connected",
                         base_url=r.base_url,
                         api_model=r.model,
+                        quality=r.quality,
                     )
                 )
         return out
@@ -619,6 +621,7 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             "tier": r.tier,
             "input_price": r.input_price,
             "output_price": r.output_price,
+            "quality": r.quality,
             "created_at": r.created_at.isoformat(),
             "last_used_at": r.last_used_at.isoformat() if r.last_used_at else None,
         }
@@ -630,6 +633,7 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
         return {
             "providers": [_provider_out(r) for r in await _saved_providers(db, user.id)],
             "storage_enabled": _vault(request) is not None,
+            "default_quality": request.app.state.config.routing.custom_strength,
         }
 
     @router.post("/providers", status_code=201)
@@ -688,8 +692,37 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             tier=body.tier if body.provider == "openai_compatible" else None,
             input_price=body.input_price if body.provider == "openai_compatible" else None,
             output_price=body.output_price if body.provider == "openai_compatible" else None,
+            quality=body.quality if body.provider == "openai_compatible" else None,
         )
         db.add(row)
+        await db.commit()
+        return _provider_out(row)
+
+    @router.patch("/providers/{provider_id}")
+    async def update_provider(
+        request: Request,
+        provider_id: int,
+        body: ProviderKeyUpdate,
+        user: User = Depends(require_user),
+        db: AsyncSession = Depends(get_db),
+    ):
+        """Edit a saved custom endpoint: its quality rating for routing, tier, prices or name."""
+        check_csrf(request)
+        row = await db.scalar(
+            select(ProviderKey).where(ProviderKey.id == provider_id, ProviderKey.user_id == user.id)
+        )
+        if row is None:
+            raise ApiError(404, "not_found", "No such provider.")
+        if row.provider != "openai_compatible":
+            raise ApiError(
+                400, "invalid_request", "Only custom endpoints have a tier, prices and a quality rating."
+            )
+        changes = body.model_dump(exclude_unset=True)
+        for field in ("tier", "input_price", "output_price", "label"):
+            if field in changes and changes[field] is None:
+                raise ApiError(400, "invalid_request", f"{field} can't be empty.")
+        for field, value in changes.items():
+            setattr(row, field, value.strip()[:80] if field == "label" else value)
         await db.commit()
         return _provider_out(row)
 

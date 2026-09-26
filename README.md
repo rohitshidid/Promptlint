@@ -130,7 +130,7 @@ curl http://localhost:8787/v1/score \
 | `POST /v1/score/batch` | API key | Up to 10 (free) or 50 prompts; per-item errors |
 | `POST /v1/route` | API key | Score + routing, then (with `execute: true` and a provider key) call the recommended model and return its answer |
 | `GET /v1/usage/routing?days=30` | key or session | Where the router sent prompts, per key and per model; spend and money saved |
-| `GET/POST/DELETE /v1/providers` | session | Connected LLM providers: save an encrypted OpenAI / Anthropic / Gemini key, or a custom OpenAI-compatible endpoint |
+| `GET/POST/PATCH/DELETE /v1/providers` | session | Connected LLM providers: save an encrypted OpenAI / Anthropic / Gemini key, or a custom OpenAI-compatible endpoint |
 | `GET /v1/pricing` | public | Price table + `last_verified` |
 | `GET /v1/usage?days=30` | key or session | Usage per UTC day, used today / this month |
 | `GET /v1/health` | public | Database, backends, pinned Jev model |
@@ -171,7 +171,7 @@ How it picks: Jev's complexity answer (low / medium / high, with probabilities) 
 
 **`/v1/route`** runs the same routing, then calls the model when `execute` is true (the default) and a key exists: `provider_keys` in the request (never stored), then keys saved on the account page (encrypted with `PROVIDER_KEY_SECRET`). With no keys, or `execute: false`, you get the recommendation only. If only some models have keys, it picks among those. Up to three models are tried in order; `execution` holds the answer, tokens, cost and each attempt. Answers are returned whole (no streaming yet).
 
-**Task fit.** [`config/routing.yaml`](backend/config/routing.yaml) rates each provider 0–1 for each task type (by default Claude leads on coding, writing and conversation; OpenAI on math; Gemini on factual Q&A and extraction). `cheapest` ignores it. `balanced` switches from the cheapest capable model to a better-fitting one when it's at least 0.1 better and costs at most 3× as much, so a medium coding or writing prompt goes to Claude Sonnet 5 with Gemini 3.8 Flash as the backup. `quality` takes the best fit in the strongest tier. Models you add yourself (custom or connected endpoints) get `custom_strength` (0.8) because their quality is unknown to us, and balanced's 3× band is measured from at least the cheapest built-in model of that tier, so a free "mid" endpoint wins under `cheapest` but can't block a clearly better fit under `balanced`. These ratings are editable opinions, not measurements. Each routed model in the response carries its `task_fit`. Once you've connected any provider, each model also carries `connected`; if the best fit is a model you have no key for, `routing.not_connected` names it, the best of your connected models (`instead`), and a plain-English `note`. Real calls through `/v1/route` only ever use connected models.
+**Task fit.** [`config/routing.yaml`](backend/config/routing.yaml) rates each provider 0–1 for each task type (by default Claude leads on coding, writing and conversation; OpenAI on math; Gemini on factual Q&A and extraction). `cheapest` ignores it. `balanced` switches from the cheapest capable model to a better-fitting one when it's at least 0.1 better and costs at most 3× as much, so a medium coding or writing prompt goes to Claude Sonnet 5 with Gemini 3.8 Flash as the backup. `quality` takes the best fit in the strongest tier. Models you add yourself (custom or connected endpoints) get `custom_strength` (0.8) because their quality is unknown to us, unless you rate them: set `quality` (0–1) on a custom model in the request, or on a saved endpoint from the account page (`PATCH /v1/providers/{id}`), and balanced's 3× band is measured from at least the cheapest built-in model of that tier, so a free "mid" endpoint wins under `cheapest` but can't block a clearly better fit under `balanced`. These ratings are editable opinions, not measurements. Each routed model in the response carries its `task_fit`. Once you've connected any provider, each model also carries `connected`; if the best fit is a model you have no key for, `routing.not_connected` names it, the best of your connected models (`instead`), and a plain-English `note`. Real calls through `/v1/route` only ever use connected models.
 
 **Savings**, measured by `eval/run_routing.py` on the 480 test prompts: balanced routing averages $0.00155 per request, **89% cheaper** than always using GPT-6 Astra and 72% cheaper than the average frontier model. It is *more* expensive than always using Gemini 3.8 Flash or GPT-6 Luna, because it sends harder prompts to stronger models and writing/coding to Claude; `cheapest` ($0.00083) avoids that. The home page calculator uses these numbers.
 
@@ -184,7 +184,7 @@ The website uses `POST /api/analyze` (per-IP limit, no key; takes `strategy`) an
 ## Tests
 
 ```sh
-cd backend && .venv/bin/pytest -q        # 181 tests, no network or secrets needed
+cd backend && .venv/bin/pytest -q        # 185 tests, no network or secrets needed
 ```
 
 | Layer | Covers |
@@ -253,7 +253,7 @@ backend/
                   scoring.py (lint + PQS), cost.py, tokens.py, tips.py, router.py (model routing),
                   providers.py (calls OpenAI / Anthropic / Gemini / compatible), quiz.py, db.py, security.py, cli.py
   config/         questions.yaml · weights.yaml · pqs_scoring.yaml · prices.yaml · tips.yaml · plans.yaml · quiz.yaml · routing.yaml
-  migrations/     Alembic, SQLite and Postgres (0001 accounts · 0002 provider keys + quiz · 0003 routing stats · 0004 connected model)
+  migrations/     Alembic, SQLite and Postgres (0001 accounts · 0002 provider keys + quiz · 0003 routing stats · 0004 connected model · 0005 endpoint quality)
   tests/          unit, contract (recorded Jev fixtures), API, /v1, resilience, load/
   scripts/        build_demo_data.py (landing demo + API example from recorded fixtures)
   Dockerfile

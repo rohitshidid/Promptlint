@@ -331,6 +331,7 @@ class Analyzer:
                             base_url=item.base_url,
                             api_model=item.model,
                             inline_key=item.api_key,
+                            quality=item.quality,
                         )
                     )
         if opts.include_connected and connected:
@@ -363,7 +364,10 @@ class Analyzer:
             baseline_id=opts.baseline_model,
             max_cost_usd=opts.max_cost_usd,
             fits={
-                c.id: self.cfg.routing.strength(a.task_type, c.id, c.provider, c.source) for c in candidates
+                c.id: c.quality
+                if c.quality is not None
+                else self.cfg.routing.strength(a.task_type, c.id, c.provider, c.source)
+                for c in candidates
             },
             min_edge=self.cfg.routing.min_edge,
             price_band=self.cfg.routing.balanced_price_band,

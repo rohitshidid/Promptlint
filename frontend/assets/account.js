@@ -148,6 +148,16 @@
 
   /* -------------------------------------------------- connected providers */
   const PROVIDER_LABEL = { anthropic: "Anthropic", openai: "OpenAI", gemini: "Google Gemini", openai_compatible: "Custom endpoint" };
+  const QUALITY = [["", "Unknown (default)"], ["0.85", "Basic"], ["0.9", "Good"], ["0.95", "Very good"], ["1", "Excellent"]];
+  const qualitySelect = (p, def) => {
+    const cur = p.quality == null ? "" : String(+p.quality);
+    const known = QUALITY.some(([v]) => v === cur);
+    return `<div class="qual"><label for="q-${p.id}">Quality for routing</label>
+      <select id="q-${p.id}" data-quality-id="${p.id}" data-saved="${cur}">${
+        QUALITY.map(([v, label]) => `<option value="${v}" ${v === cur ? "selected" : ""}>${label} (${(v === "" ? def : +v).toFixed(2)})</option>`).join("")
+      }${known ? "" : `<option value="${cur}" selected>Custom (${(+cur).toFixed(2)})</option>`}</select>
+      <button type="button" data-save-quality="${p.id}" disabled>Save</button><span></span></div>`;
+  };
   function syncProviderForm() {
     const custom = $("prov-kind").value === "openai_compatible";
     $("prov-custom").hidden = !custom;
@@ -163,7 +173,7 @@
     $("prov-rows").innerHTML = d.providers.length
       ? d.providers.map((p) => `<tr>
           <td>${esc(PROVIDER_LABEL[p.provider] || p.provider)}${p.provider === "openai_compatible" ? `<br><span class="muted">${esc(p.label)}</span>` : ""}</td>
-          <td>${p.model ? `<code>${esc(p.model)}</code> <span class="muted">· ${esc(p.tier)}</span><br>` : ""}${p.has_key ? `<code>${esc(p.key_hint)}</code>` : '<span class="muted">no key</span>'}</td>
+          <td>${p.model ? `<code>${esc(p.model)}</code> <span class="muted">· ${esc(p.tier)}</span><br>` : ""}${p.has_key ? `<code>${esc(p.key_hint)}</code>` : '<span class="muted">no key</span>'}${p.provider === "openai_compatible" ? qualitySelect(p, d.default_quality ?? 0.8) : ""}</td>
           <td class="muted">${day(p.created_at)}</td>
           <td class="muted">${p.last_used_at ? day(p.last_used_at) : "Never"}</td>
           <td style="text-align:right"><button class="linkbtn" data-del-prov="${p.id}">Remove</button></td></tr>`).join("")
@@ -179,6 +189,7 @@
       Object.assign(body, {
         label: $("prov-label").value.trim() || null, base_url: $("prov-url").value.trim(), model: $("prov-model").value.trim(),
         tier: $("prov-tier").value, input_price: Number($("prov-in").value || 0), output_price: Number($("prov-out").value || 0),
+        quality: $("prov-quality").value === "" ? null : Number($("prov-quality").value),
       });
     }
     try {
@@ -190,7 +201,33 @@
     } catch (err) { show($("prov-msg"), err.message, "err"); }
   });
 
+  // Your own endpoints only: pick a quality rating, then Save it (used from the next request).
+  $("prov-rows").addEventListener("change", (e) => {
+    const sel = e.target.closest("[data-quality-id]");
+    if (!sel) return;
+    const wrap = sel.closest(".qual"), btn = wrap.querySelector("[data-save-quality]"), note = wrap.querySelector("span");
+    btn.disabled = sel.value === sel.dataset.saved;
+    note.className = ""; note.textContent = btn.disabled ? "" : "Not saved yet";
+  });
+  async function saveQuality(btn) {
+    const wrap = btn.closest(".qual"), sel = wrap.querySelector("select"), note = wrap.querySelector("span");
+    btn.disabled = true; sel.disabled = true;
+    note.className = ""; note.textContent = "Saving…";
+    try {
+      await api(`/v1/providers/${btn.dataset.saveQuality}`, {
+        method: "PATCH", headers: CSRF, body: JSON.stringify({ quality: sel.value === "" ? null : Number(sel.value) }),
+      });
+      sel.dataset.saved = sel.value;
+      note.className = "ok"; note.textContent = "Saved. Used from the next request.";
+    } catch (err) {
+      btn.disabled = false;
+      note.className = "err"; note.textContent = err.message || "Couldn't save. Try again.";
+    } finally { sel.disabled = false; }
+  }
+
   $("prov-rows").addEventListener("click", async (e) => {
+    const save = e.target.closest("[data-save-quality]");
+    if (save) { saveQuality(save); return; }
     const b = e.target.closest("[data-del-prov]");
     if (!b) return;
     if (b.dataset.armed !== "1") {

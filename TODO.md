@@ -41,5 +41,6 @@ PromptLint is live at https://promptlint.onrender.com and is **completely free**
 - **Lint:** two scores (Lint and PQS), eleven checks, cost estimates on seven models, fix-it tips, "clarify first".
 - **Website:** landing page with a savings calculator, analyzer, account page, API docs, API tester, prompt quiz with a leaderboard, Jev playground.
 - **Public API** with sign-up, API keys, daily limits, usage tracking, and a fallback when Jev is down.
-- **Quality:** 181 automated tests; evaluations on 480 prompts (240 pairs) and 100 labeled prompts, re-run on 26 Sept 2026 after the US localization.
+- **Endpoint quality:** users rate their own endpoints (Unknown … Excellent) on the account page and press Save; the router uses it as the model's task fit.
+- **Quality:** 185 automated tests; evaluations on 480 prompts (240 pairs) and 100 labeled prompts, re-run on 26 Sept 2026 after the US localization.
 - **Hosting:** Docker setup, live on Render + Neon, free.

@@ -33,6 +33,12 @@ class CustomModel(BaseModel):
     api_key: str | None = Field(
         None, max_length=500, description="Per-request key for this model (never stored)"
     )
+    quality: float | None = Field(
+        None,
+        ge=0,
+        le=1,
+        description="Your 0–1 rating of this model for routing (task fit). Default: unknown quality (0.8).",
+    )
 
 
 class RoutingOptions(BaseModel):
@@ -404,3 +410,16 @@ class ProviderKeyIn(BaseModel):
     tier: Literal["small", "mid", "frontier"] | None = None
     input_price: float | None = Field(None, ge=0)
     output_price: float | None = Field(None, ge=0)
+    quality: float | None = Field(
+        None, ge=0, le=1, description="Custom endpoints: your 0–1 rating for routing"
+    )
+
+
+class ProviderKeyUpdate(BaseModel):
+    """Edit a saved custom endpoint. Send only what changes; `quality: null` resets it to 'unknown'."""
+
+    label: str | None = Field(None, max_length=80)
+    tier: Literal["small", "mid", "frontier"] | None = None
+    input_price: float | None = Field(None, ge=0)
+    output_price: float | None = Field(None, ge=0)
+    quality: float | None = Field(None, ge=0, le=1)

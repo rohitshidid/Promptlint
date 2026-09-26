@@ -66,7 +66,7 @@ Jev Ai/
 ├── backend/              The server (Python)
 │   ├── app/              The code
 │   ├── config/           Settings you can change without touching code
-│   ├── migrations/       Database table definitions, versioned (0001–0004)
+│   ├── migrations/       Database table definitions, versioned (0001–0005)
 │   ├── tests/            Automated tests
 │   ├── scripts/          Helper scripts
 │   └── Dockerfile        Recipe for the container that runs online
@@ -116,7 +116,7 @@ Jev Ai/
 | `tips.yaml` | Every tip's text, ID and when it appears. |
 | `prices.yaml` | AI model prices (with the date checked) and answer-length ranges. |
 | `plans.yaml` | Free, dev and pro plans (all free of charge): checks per minute, per day and per batch. Raise the free numbers here as capacity grows. |
-| `routing.yaml` | How well each AI company's models fit each kind of task (coding, writing, math…). The router uses it to pick Claude for writing and coding, for example. Your own endpoints get a lower "unknown quality" rating, so a free one is used by the cheapest strategy but not over a clearly better model in balanced. Opinions you can edit. |
+| `routing.yaml` | How well each AI company's models fit each kind of task (coding, writing, math…). The router uses it to pick Claude for writing and coding, for example. Your own endpoints get a lower "unknown quality" rating (unless you set their quality on the account page and press Save), so a free one is used by the cheapest strategy but not over a clearly better model in balanced. Opinions you can edit. |
 | `quiz.yaml` | The quiz: five weak prompts to rewrite (New York scenarios, amounts in USD), and the grade cut-offs (A+ at 90 … F below 50). |
 
 ### `frontend/`: the website
@@ -125,7 +125,7 @@ Jev Ai/
 |---|---|
 | `index.html` | The landing page, routing and savings first: the hero, measured savings with a calculator, how routing works, use cases, the API, then the prompt lint, accuracy numbers, and Pricing (completely free, current limits). |
 | `app.html` | The analyzer: paste a prompt, get the report card and the recommended model. Has compare mode, the Jev/heuristic switch and the routing strategy. |
-| `account.html` | Sign up, log in, create and revoke API keys, see usage, connect AI provider keys, and see routing stats: which models got your prompts, per key, and how much routing saved. |
+| `account.html` | Sign up, log in, create and revoke API keys, see usage, connect AI provider keys (and rate your own endpoints' quality for routing), and see routing stats: which models got your prompts, per key, and how much routing saved. |
 | `quiz.html` | The prompt quiz: rewrite five weak prompts, get a grade, see the leaderboard. |
 | `docs.html` | API reference for developers, with a real example response. |
 | `tester.html` | Try an API key in the browser: checks a prompt through `/v1/route`, explains the result in plain words, shows the recommended model and savings, and (if switched on) the AI's answer. |
@@ -134,7 +134,7 @@ Jev Ai/
 
 The friendly **API tester** is `frontend/tester.html` (served at `/tester.html`, linked from the account dashboard). It calls `/v1/route` with your key and explains the answer in plain words, including which model to use. Opened straight from disk, it talks to the live server instead.
 
-### `backend/tests/`: automated checks (181 of them)
+### `backend/tests/`: automated checks (185 of them)
 
 Run with `cd backend && .venv/bin/pytest -q`. No internet or secrets needed.
 

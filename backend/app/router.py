@@ -53,6 +53,7 @@ class Candidate:
     inline_key: str | None = field(
         default=None, repr=False, compare=False
     )  # per-request key for a custom model
+    quality: float | None = None  # your own 0–1 rating for a custom/connected model; overrides task fit
 
     def cost(self, input_tokens: int, output_tokens: int) -> float:
         return (input_tokens * self.input + output_tokens * self.output) / 1_000_000

@@ -6,7 +6,7 @@
 <title>API docs · PromptLint</title>
 <meta name="description" content="PromptLint public API: score prompts, batch, pricing, usage. Authentication, limits, errors and response fields.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.6">
+<link rel="stylesheet" href="assets/site.css?v=1.2.9">
 <style>
   .doc-head { padding: 40px 0 12px; position: relative; }
   .doc-head::before {
@@ -192,7 +192,7 @@
         <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
           <tr><td><code>routing.strategy</code></td><td><code>balanced</code> | <code>cheapest</code> | <code>quality</code></td><td><b>balanced</b> (default): the lowest-cost model that's strong enough, with a safety margin, unless another capable model fits this kind of task clearly better for at most 3× the price. <b>cheapest</b>: less margin, price only. <b>quality</b>: the strongest tier available, best fit for the task within it.</td></tr>
-          <tr><td><code>routing.candidates</code></td><td>array</td><td>The models you have. Mix IDs from <a href="#pricing">/v1/pricing</a> with your own: <code>{"id", "tier": "small|mid|frontier", "input_price", "output_price", "provider", "base_url", "model"}</code>. Default: all priced models.</td></tr>
+          <tr><td><code>routing.candidates</code></td><td>array</td><td>The models you have. Mix IDs from <a href="#pricing">/v1/pricing</a> with your own: <code>{"id", "tier": "small|mid|frontier", "input_price", "output_price", "provider", "base_url", "model", "quality"}</code>, where <code>quality</code> (0–1, optional) is your rating of the model for routing; without it your models count as unknown quality (0.8). Saved endpoints can be rated on the account page. Default: all priced models.</td></tr>
           <tr><td><code>routing.baseline_model</code></td><td>string</td><td>What you'd use without routing, for the savings numbers. Default: your priciest candidate.</td></tr>
           <tr><td><code>routing.max_cost_usd</code></td><td>number</td><td>Skip models whose p90 cost for this prompt is above this.</td></tr>
           <tr><td><code>routing.include_connected</code></td><td>bool, default true</td><td>Also consider custom endpoints saved on your account.</td></tr>

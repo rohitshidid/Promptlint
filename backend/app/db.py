@@ -158,6 +158,7 @@ class ProviderKey(Base):
     tier: Mapped[str | None] = mapped_column(String(16), nullable=True)
     input_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     output_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    quality: Mapped[float | None] = mapped_column(Float, nullable=True)  # your 0–1 rating for routing
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     last_used_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
