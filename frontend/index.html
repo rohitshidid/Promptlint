@@ -100,10 +100,14 @@
   .hero-save b { color: var(--good-ink); font-size: 1rem; }
 
   /* ---- free badge + section */
-  .free-badge { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 18px; padding: 6px 14px 6px 8px; border-radius: 999px;
-                background: var(--accent-soft); border: 1px solid rgba(4,120,87,.22); color: var(--accent); font-size: .88rem; font-weight: 600; text-decoration: none; }
-  .free-badge b { background: var(--accent); color: #fff; border-radius: 999px; padding: 2px 9px; font-size: .78rem; letter-spacing: .02em; }
-  .free-badge:hover { text-decoration: none; background: #d9f7ea; }
+  .free-badge { display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin-bottom: 18px; padding: 7px 16px;
+                border-radius: 999px; background: rgba(255,255,255,.7); border: 1px solid rgba(4,120,87,.18); box-shadow: 0 1px 2px rgba(15,23,42,.04);
+                color: var(--ink-soft); font-size: .86rem; font-weight: 500; text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+  .free-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(4,120,87,.14); }
+  .free-badge .sep { width: 1px; height: 14px; background: rgba(4,120,87,.2); }
+  .free-badge b { color: var(--accent); font-weight: 600; }
+  .free-badge:hover { text-decoration: none; border-color: rgba(4,120,87,.4); box-shadow: 0 2px 8px rgba(4,120,87,.1); }
+  @media (max-width: 520px) { .free-badge { border-radius: 16px; } .free-badge .sep { display: none; } }
   .free-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 48px; }
   @media (max-width: 860px) { .free-grid { grid-template-columns: minmax(0, 1fr); } }
   .limit-num { display: block; font-size: 2.2rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1.1; color: var(--ink); margin: 6px 0 2px; }
@@ -164,7 +168,7 @@
 <header class="hero">
   <div class="wrap">
     <img class="hero-icon reveal" style="--i:0" src="assets/icon.svg" alt="PromptLint icon">
-    <div class="reveal" style="--i:1"><a class="free-badge" href="#free"><b>FREE</b> Completely free · limits rising as we add capacity</a></div>
+    <div class="reveal" style="--i:1"><a class="free-badge" href="account.html"><span class="dot"></span>Limits rising as we add capacity<span class="sep"></span><b>Get your free API key now →</b></a></div>
     <h1 class="reveal" style="--i:1">Stop paying frontier prices for every prompt.</h1>
     <p class="lede reveal" style="--i:2">
       PromptLint is an <strong>LLM router</strong>. It reads each prompt, sends it to the
