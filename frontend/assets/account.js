@@ -255,12 +255,22 @@
     const base = u.baselines[0];
     const baseName = base ? (u.baselines.length > 1 ? `your priciest model (mostly ${base.name})` : base.name) : "the priciest model";
     const pctOf = (saved, cost) => (saved + cost > 0 ? Math.round((saved / (saved + cost)) * 100) : 0);
+    // Hover (or tap) explanations for the two savings numbers, filled in with this account's own figures.
+    const info = (html) => `<button type="button" class="info" aria-label="What does this mean?" data-tip="${esc(html)}">i</button>`;
+    const plural = (n, word) => `${fmt(n)} ${word}${n === 1 ? "" : "s"}`;
+    const savedTip = (x) => x.sent
+      ? `<b>Real money saved.</b> Only counts the ${plural(x.sent, "prompt")} that were actually sent to your LLMs through /v1/route. `
+        + `Those answers really cost <b>${usd(x.spent_usd)}</b>; the same tokens on ${esc(baseName)} would have cost <b>${usd(x.spent_usd + x.saved_usd)}</b>.`
+      : `<b>Real money saved.</b> Only counts prompts actually sent to your LLMs through /v1/route. None have been sent yet, so this is $0.`;
+    const estTip = (x) => `<b>An estimate, not money you've saved.</b> ${plural(x.checks, "prompt")} ${x.checks === 1 ? "was" : "were"} routed, but `
+      + `${x.sent ? `only ${fmt(x.sent)} ${x.sent === 1 ? "was" : "were"}` : "none were"} actually sent to an LLM; the rest only got a recommendation. `
+      + `If all ${fmt(x.checks)} had been sent to the models the router picked instead of ${esc(baseName)}, you would have saved about <b>${usd(x.est_saved_usd)}</b>.`;
     let html = `<div class="saved">
-      <div class="save-hero"><small>Money saved on real LLM calls</small><b>${usd(t.saved_usd)}</b>
+      <div class="save-hero"><small>Money saved on real LLM calls ${info(savedTip(t))}</small><b>${usd(t.saved_usd)}</b>
         <span>${t.sent ? `You paid <b>${usd(t.spent_usd)}</b> for ${fmt(t.sent)} answer${t.sent === 1 ? "" : "s"} through <code>/v1/route</code>. The same tokens on ${esc(baseName)} would have cost <b>${usd(t.spent_usd + t.saved_usd)}</b>${t.saved_usd > 0 ? ` (${pctOf(t.saved_usd, t.spent_usd)}% less)` : ""}.`
           : "No prompts were sent to your LLMs yet. Turn on execute in <code>/v1/route</code> (or the tester) with your provider keys connected."}</span></div>
-      <div><small>Estimated savings on every routed prompt</small><b>${usd(t.est_saved_usd)}</b>
-        <span>${fmt(t.checks)} prompt${t.checks === 1 ? "" : "s"} routed. Picks cost about <b>${usd(t.est_cost_usd)}</b> vs <b>${usd(t.est_baseline_usd)}</b> if every one went to ${esc(baseName)} (expected cost, recommendations included).</span></div>
+      <div><small>Would have saved (estimate) ${info(estTip(t))}</small><b>${usd(t.est_saved_usd)}</b>
+        <span>If all ${plural(t.checks, "routed prompt")} had been sent to the router's picks: about <b>${usd(t.est_cost_usd)}</b> instead of <b>${usd(t.est_baseline_usd)}</b> on ${esc(baseName)}. Most of these were recommendation-only, so this money wasn't actually spent or saved.</span></div>
     </div>
     <div class="rt-facts">
       <div><small>Prompts routed</small><b>${fmt(t.checks)}</b></div>
@@ -310,7 +320,7 @@
           <div><small>Routed</small><b>${fmt(k.checks)}</b></div>
           <div><small>Sent</small><b>${fmt(k.sent)}</b>${k.failed ? `<span class="bad">${fmt(k.failed)} failed</span>` : ""}</div>
           <div><small>Spent</small><b>${usd(k.spent_usd)}</b></div>
-          <div class="save"><small>Saved</small><b>${usd(k.saved_usd)}</b><span>est. ${usd(k.est_saved_usd)}</span></div>
+          <div class="save"><small>Saved ${info(savedTip(k))}</small><b>${usd(k.saved_usd)}</b><span>if all sent: ${usd(k.est_saved_usd)} ${info(estTip(k))}</span></div>
         </div>
         ${k.checks ? `<div class="kc-lists">
           ${list("Router picked", picks, "Nothing routed yet.")}
@@ -321,7 +331,8 @@
     };
     html += `<h3>By API key</h3>
       ${u.keys.length ? `<div class="kcards">${u.keys.map(keyCard).join("")}</div>` : `<p class="sub">No keys yet.</p>`}
-      <p class="sub" style="margin:14px 0 0">"Saved" compares what your real calls cost with the same tokens on the comparison model, at list prices. "Est." compares expected costs for every routed prompt, including recommendation-only checks.</p>`;
+      <p class="sub" style="margin:14px 0 0"><b>Saved</b> is real money: only prompts actually sent to your LLMs, what they cost vs the same tokens on your priciest model.
+        <b>If all sent</b> is an estimate: what you would have saved if every routed prompt, including recommendation-only ones, had been sent to the router's pick. Hover or tap <span class="info" aria-hidden="true">i</span> for the details.</p>`;
     box.innerHTML = html;
   }
 

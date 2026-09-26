@@ -263,11 +263,13 @@
   function placeTip(target, x, y) {
     const t = ensureTip();
     t.innerHTML = target.getAttribute("data-tip");
+    t.style.left = "0px";  // measure at full width, not squeezed against where it last was
     t.classList.add("show");
     const w = t.offsetWidth, h = t.offsetHeight;
     let left = x + 14, top = y - h - 10;
     if (left + w > window.innerWidth - 8) left = x - w - 14;
     if (top < 8) top = y + 16;
+    left = Math.min(left, window.innerWidth - w - 8);  // never past the right edge (narrow phones)
     t.style.left = Math.max(8, left) + "px";
     t.style.top = top + "px";
   }

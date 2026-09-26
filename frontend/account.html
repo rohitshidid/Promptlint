@@ -6,8 +6,8 @@
 <title>Account · PromptLint</title>
 <meta name="description" content="Create a free PromptLint API key, manage keys, and see your usage.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.10">
-<link rel="stylesheet" href="assets/report.css?v=1.2.10">
+<link rel="stylesheet" href="assets/site.css?v=1.2.13">
+<link rel="stylesheet" href="assets/report.css?v=1.2.13">
 <style>
   .acct-head { padding: 40px 0 8px; position: relative; }
   .acct-head::before {
@@ -89,6 +89,10 @@
   .mbar em { font-style: normal; color: var(--ink-faint); font-size: .8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .mbar span.nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   @media (max-width: 600px) { .mbar { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; } .mbar .track { grid-column: 1 / -1; grid-row: 2; } }
+  button.info, span.info { display: inline-grid; place-items: center; width: 15px; height: 15px; padding: 0; margin-left: 4px; border-radius: 50%;
+    border: 1.3px solid currentColor; background: transparent; color: var(--ink-faint); font: 700 .62rem/1 var(--mono); letter-spacing: 0;
+    text-transform: none; vertical-align: 1px; cursor: help; }
+  button.info:hover, button.info:focus-visible { color: var(--accent); outline: none; }
   .kcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 14px; margin-top: 10px; }
   .kcard { border: 1px solid var(--line); border-radius: 16px; padding: 16px; background: #fff; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
   .kcard header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
@@ -337,7 +341,7 @@
   </div>
 </footer>
 
-<script src="assets/report.js?v=1.2.10"></script>
-<script src="assets/account.js?v=1.2.10"></script>
+<script src="assets/report.js?v=1.2.13"></script>
+<script src="assets/account.js?v=1.2.13"></script>
 </body>
 </html>

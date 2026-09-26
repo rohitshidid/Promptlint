@@ -141,7 +141,7 @@
 
 /* --------------------------------------------------------------- tooltip */
 .pl-tip {
-  position: fixed; z-index: 100; pointer-events: none; max-width: 260px;
+  position: fixed; z-index: 100; pointer-events: none; max-width: min(280px, calc(100vw - 16px));
   background: #16181d; color: #fff; font-size: .78rem; line-height: 1.4; padding: 7px 10px; border-radius: 8px;
   box-shadow: 0 6px 20px rgba(0,0,0,.2); opacity: 0; transform: translateY(4px); transition: opacity .12s, transform .12s;
 }
