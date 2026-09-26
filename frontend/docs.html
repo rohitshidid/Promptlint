@@ -53,9 +53,10 @@
 <nav class="nav" id="nav">
   <div class="wrap nav-in">
     <a class="nav-brand" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
-    <span class="nav-ver">API v1</span>
+    <span class="nav-ver">API v1.2</span>
     <div class="nav-links">
       <a class="opt" href="app.html">Analyzer</a>
+      <a class="opt" href="quiz.html">Quiz</a>
       <a href="docs.html" aria-current="page">API docs</a>
       <a class="btn btn-fill btn-sm" href="account.html">Get a free key</a>
     </div>
@@ -79,6 +80,8 @@
     <b>Endpoints</b>
     <a href="#score">POST /v1/score</a>
     <a href="#batch">POST /v1/score/batch</a>
+    <a href="#routing">Model routing</a>
+    <a href="#route">POST /v1/route</a>
     <a href="#pricing">GET /v1/pricing</a>
     <a href="#usage">GET /v1/usage</a>
     <a href="#health">GET /v1/health</a>
@@ -174,6 +177,72 @@
 // A failed item has "error": { "type", "message" } instead of "result".</span></pre>
     </section>
 
+    <section id="routing">
+      <h2>Model routing</h2>
+      <p>Every <code>/v1/score</code> response includes <code>routing</code>: <strong>which model should answer this
+        prompt</strong>, a fallback, why, and what it saves compared with a baseline. Add a <code>routing</code> object to
+        the request to control it.</p>
+      <div class="scroll"><table class="ref">
+        <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>routing.strategy</code></td><td><code>balanced</code> | <code>cheapest</code> | <code>quality</code></td><td><b>balanced</b> (default): the lowest-cost model that's strong enough, with a safety margin. <b>cheapest</b>: less margin, lower cost. <b>quality</b>: the strongest tier available, cheapest within it.</td></tr>
+          <tr><td><code>routing.candidates</code></td><td>array</td><td>The models you have. Mix IDs from <a href="#pricing">/v1/pricing</a> with your own: <code>{"id", "tier": "small|mid|frontier", "input_price", "output_price", "provider", "base_url", "model"}</code>. Default: all priced models.</td></tr>
+          <tr><td><code>routing.baseline_model</code></td><td>string</td><td>What you'd use without routing, for the savings numbers. Default: your priciest candidate.</td></tr>
+          <tr><td><code>routing.max_cost_usd</code></td><td>number</td><td>Skip models whose p90 cost for this prompt is above this.</td></tr>
+          <tr><td><code>routing.include_connected</code></td><td>bool, default true</td><td>Also consider custom endpoints saved on your account.</td></tr>
+        </tbody>
+      </table></div>
+      <p>How it decides: Jev rates how hard the prompt is (low, medium, high). The strategy turns that into a required
+        tier (small, mid, frontier), and the router ranks your models by tier and expected cost for <em>this</em> prompt.
+        If the prompt is likely to fail anyway, <code>routing.action</code> is <code>"clarify_first"</code> with a
+        <code>clarify_reason</code>: ask the user for the missing details before paying for a call.</p>
+<pre class="codeblock"><span class="c">// "routing" in the response for "write me a poem"</span>
+{
+  <span class="k">"strategy"</span>: <span class="s">"balanced"</span>, <span class="k">"action"</span>: <span class="s">"send"</span>, <span class="k">"required_tier"</span>: <span class="s">"mid"</span>,
+  <span class="k">"recommended"</span>: { <span class="k">"id"</span>: <span class="s">"gemini-3.8-flash"</span>, <span class="k">"tier"</span>: <span class="s">"mid"</span>, <span class="k">"est_cost_usd_p50"</span>: 0.000783 },
+  <span class="k">"fallback"</span>:    { <span class="k">"id"</span>: <span class="s">"claude-sonnet-5"</span>, … },
+  <span class="k">"baseline"</span>:    { <span class="k">"id"</span>: <span class="s">"gpt-6-astra"</span>, … },
+  <span class="k">"savings_percent"</span>: 92.5,
+  <span class="k">"reason"</span>: <span class="s">"A medium-difficulty writing prompt needs a mid-tier model or better; Gemini 3.8 Flash is the best-value one…"</span>,
+  <span class="k">"alternatives"</span>: [ …every candidate, ranked… ]
+}</pre>
+    </section>
+
+    <section id="route">
+      <h2>Route and call the model</h2>
+      <div class="endpoint"><span class="method">POST</span>/v1/route <span class="auth-tag">API key</span></div>
+      <p>Same request as <code>/v1/score</code>, plus the fields below. PromptLint scores the prompt, picks the model, and,
+        if you have a key for it, <strong>calls it and returns the answer</strong> in <code>execution.output</code>. If that
+        model fails, it tries the next capable one. You pay your provider directly; PromptLint never marks up LLM calls.</p>
+      <div class="scroll"><table class="ref">
+        <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>execute</code></td><td>bool, default true</td><td><code>false</code> = recommendation only (the routing toggle off).</td></tr>
+          <tr><td><code>provider_keys</code></td><td>object</td><td>Per-request keys, never stored: <code>{"anthropic": "…", "openai": "…", "gemini": "…"}</code>. Otherwise the keys saved on your <a href="account.html">account page</a> are used.</td></tr>
+          <tr><td><code>max_output_tokens</code></td><td>int</td><td>Cap on the answer length (default 16,000).</td></tr>
+          <tr><td><code>send_anyway</code></td><td>bool, default false</td><td>Call a model even when routing says <code>clarify_first</code>.</td></tr>
+        </tbody>
+      </table></div>
+      <p>It routes among the models you have keys for. With no usable key, <code>execute: false</code>, or a prompt to clarify
+        first, you get the recommendation with <code>execution.executed: false</code> and a <code>reason</code>.
+        Supported: Anthropic, OpenAI, Google Gemini, and any OpenAI-compatible <code>/chat/completions</code> endpoint
+        (Ollama, Groq, OpenRouter, Together, vLLM…) as a custom candidate or a saved provider.</p>
+<pre class="codeblock"><span class="c"># Recommend + call, with a key sent just for this request</span>
+curl https://<span class="n">your-host</span>/v1/route \
+  -H <span class="s">"Authorization: Bearer $PQS_KEY"</span> -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"prompt": "Summarize this email in 3 bullets: …",
+       "provider_keys": {"anthropic": "sk-ant-…"},
+       "routing": {"candidates": ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5-5"]}}'</span>
+
+<span class="c">// → shape of the answer (illustrative values):
+//   "execution": { "executed": true, "model_used": "claude-haiku-4-5", "output": "• …",
+//                  "input_tokens": 212, "output_tokens": 64, "cost_usd": 0.00053,
+//                  "attempts": [{ "model": "claude-haiku-4-5", "ok": true }] }</span></pre>
+      <div class="note"><b>Your keys, your bill.</b> Saved provider keys are encrypted at rest, shown only as their last 4
+        characters, used only for your <code>/v1/route</code> calls, and deleted with your account. Custom endpoints must be
+        public HTTPS addresses: an online server can't reach <code>localhost</code> on your computer.</div>
+    </section>
+
     <section id="pricing">
       <h2>Pricing table</h2>
       <div class="endpoint"><span class="method get">GET</span>/v1/pricing <span class="auth-tag">public</span></div>
@@ -214,7 +283,8 @@
           <tr><td><code>tokens</code></td><td>Input tokens per tokenizer/model (<code>input_exact</code> says which are exact) and output estimates <code>output_p50</code>, <code>output_p90</code>.</td></tr>
           <tr><td><code>cost_estimates</code></td><td>Per model: <code>usd_p50</code>, <code>usd_p90</code> and the full <code>usd_low</code>–<code>usd_high</code> range, with <code>pricing_verified</code>.</td></tr>
           <tr><td><code>suggestions</code></td><td>Up to five <code>{id, text, impact}</code> from a fixed template library; <code>id</code> is stable (e.g. <code>add_output_format</code>).</td></tr>
-          <tr><td><code>tier_hint</code>, <code>suggested_model</code></td><td><code>small</code> / <code>mid</code> / <code>frontier</code>, and the cheapest priced model at that tier.</td></tr>
+          <tr><td><code>tier_hint</code>, <code>suggested_model</code></td><td><code>small</code> / <code>mid</code> / <code>frontier</code>, and the routed model (same as <code>routing.recommended.id</code>).</td></tr>
+          <tr><td><code>routing</code></td><td>The model recommendation: see <a href="#routing">Model routing</a>.</td></tr>
           <tr><td><code>backend</code></td><td><code>{name, version, degraded, fallback_reason}</code>.</td></tr>
         </tbody>
       </table></div>
@@ -246,7 +316,7 @@
       <div class="scroll"><table class="ref">
         <thead><tr><th>Status</th><th>type</th><th>When</th></tr></thead>
         <tbody>
-          <tr><td>400</td><td><code>invalid_request</code>, <code>unknown_model</code>, <code>batch_too_large</code></td><td>Bad input</td></tr>
+          <tr><td>400</td><td><code>invalid_request</code>, <code>unknown_model</code>, <code>invalid_routing</code>, <code>batch_too_large</code></td><td>Bad input</td></tr>
           <tr><td>401</td><td><code>missing_api_key</code>, <code>invalid_api_key</code></td><td>No key, a malformed key, or a revoked key</td></tr>
           <tr><td>403</td><td><code>account_disabled</code></td><td>The account was disabled</td></tr>
           <tr><td>413</td><td><code>prompt_too_long</code></td><td><code>prompt</code> or <code>system</code> over 32,000 characters</td></tr>

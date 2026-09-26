@@ -9,12 +9,86 @@ Tier = Literal["small", "mid", "frontier"]
 
 
 Backend = Literal["auto", "jev", "heuristic"]
+Strategy = Literal["cheapest", "balanced", "quality"]
+Adapter = Literal["anthropic", "openai", "gemini", "openai_compatible"]
+
+
+class CustomModel(BaseModel):
+    """A model the caller has that isn't in our price table (or has its own prices)."""
+
+    id: str = Field(
+        ..., min_length=1, max_length=100, description="Your name for it; echoed back when chosen."
+    )
+    name: str | None = Field(None, max_length=100)
+    provider: Adapter = "openai_compatible"
+    tier: Literal["small", "mid", "frontier"]
+    input_price: float = Field(..., ge=0, description="USD per 1M input tokens")
+    output_price: float = Field(..., ge=0, description="USD per 1M output tokens")
+    base_url: str | None = Field(
+        None, max_length=500, description="openai_compatible: e.g. https://api.groq.com/openai/v1"
+    )
+    model: str | None = Field(
+        None, max_length=200, description="Model name the provider expects; defaults to id"
+    )
+    api_key: str | None = Field(
+        None, max_length=500, description="Per-request key for this model (never stored)"
+    )
+
+
+class RoutingOptions(BaseModel):
+    strategy: Strategy = "balanced"
+    candidates: list[str | CustomModel] | None = Field(
+        None,
+        description="Models to choose from: price-table IDs and/or custom models. Default: the whole price table.",
+    )
+    include_connected: bool = Field(True, description="Also consider custom endpoints saved on your account.")
+    baseline_model: str | None = Field(
+        None, description="Model to compare savings against. Default: the priciest candidate."
+    )
+    max_cost_usd: float | None = Field(
+        None, gt=0, description="Skip models whose p90 cost for this prompt exceeds this."
+    )
+
+    @field_validator("candidates")
+    @classmethod
+    def _limit(cls, v):
+        if v is not None and not 1 <= len(v) <= 30:
+            raise ValueError("candidates must list 1 to 30 models")
+        return v
+
+
+class RoutedModel(BaseModel):
+    id: str
+    name: str
+    provider: str
+    tier: str
+    source: str
+    capable: bool
+    est_cost_usd_p50: float
+    est_cost_usd_p90: float
+
+
+class Routing(BaseModel):
+    strategy: Strategy
+    action: Literal["send", "clarify_first"]
+    required_tier: str
+    complexity: str
+    recommended: RoutedModel | None
+    fallback: RoutedModel | None
+    reason: str
+    clarify_reason: str | None = None
+    baseline: RoutedModel | None
+    savings_usd: float
+    savings_percent: float
+    alternatives: list[RoutedModel]
+    warnings: list[str] = []
 
 
 class AnalyzeRequest(BaseModel):
     prompt: str = Field(..., description="The prompt to lint (1–20,000 characters).")
     models: list[str] | None = Field(None, description="Price-table model IDs; defaults apply when empty.")
     backend: Backend = Field("auto", description="auto = Jev with heuristic fallback")
+    strategy: Strategy = "balanced"
 
     @field_validator("prompt")
     @classmethod
@@ -115,6 +189,7 @@ class AnalyzeResponse(BaseModel):
     tokens: Tokens
     costs: list[ModelCost]
     tips: list[TipOut]
+    routing: Routing | None = None
     meta: Meta
 
 
@@ -139,6 +214,7 @@ class ScoreRequest(BaseModel):
     models: list[str] | None = Field(None, description="Model IDs from GET /v1/pricing for cost estimates.")
     backend: Backend = "auto"
     options: ScoreOptions = ScoreOptions()
+    routing: RoutingOptions = RoutingOptions()
 
     @field_validator("prompt")
     @classmethod
@@ -164,6 +240,7 @@ class BatchRequest(BaseModel):
     models: list[str] | None = None
     backend: Backend = "auto"
     options: ScoreOptions = ScoreOptions()
+    routing: RoutingOptions = RoutingOptions()
 
 
 class Labelled(BaseModel):
@@ -245,6 +322,7 @@ class ScoreResponse(BaseModel):
     tier_hint: Tier
     suggested_model: str | None
     backend: BackendInfo
+    routing: Routing | None = None
     stored: bool = False
     cached: bool = False
     latency_ms: int
@@ -262,3 +340,53 @@ class BatchResponse(BaseModel):
     results: list[BatchResult]
     scored: int
     failed: int
+
+
+# ---------------------------------------------------------------- routing pipeline (/v1/route)
+class RouteRequest(ScoreRequest):
+    execute: bool = Field(
+        True, description="Call the recommended model when you have a key for it. false = recommend only."
+    )
+    provider_keys: dict[Literal["anthropic", "openai", "gemini"], str] | None = Field(
+        None,
+        description="Per-request provider keys (never stored). Saved keys on your account are used otherwise.",
+    )
+    max_output_tokens: int | None = Field(None, ge=1, le=64000)
+    send_anyway: bool = Field(False, description="Call a model even when routing says to clarify first.")
+
+
+class Attempt(BaseModel):
+    model: str
+    ok: bool
+    error: str | None = None
+
+
+class Execution(BaseModel):
+    executed: bool
+    reason: str | None = None  # why it wasn't executed
+    model_used: str | None = None
+    provider: str | None = None
+    output: str | None = None
+    stop_reason: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    cost_usd: float | None = None
+    latency_ms: int | None = None
+    attempts: list[Attempt] = []
+
+
+class RouteResponse(ScoreResponse):
+    execution: Execution
+
+
+class ProviderKeyIn(BaseModel):
+    provider: Adapter
+    label: str | None = Field(None, max_length=80)
+    api_key: str | None = Field(
+        None, max_length=500, description="Optional only for keyless openai_compatible endpoints"
+    )
+    base_url: str | None = Field(None, max_length=500)
+    model: str | None = Field(None, max_length=200)
+    tier: Literal["small", "mid", "frontier"] | None = None
+    input_price: float | None = Field(None, ge=0)
+    output_price: float | None = Field(None, ge=0)

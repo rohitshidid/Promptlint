@@ -512,3 +512,14 @@ The pairs are too easy to separate the backends; the checklist does (the heurist
 
 Avoided: Render free Postgres (deleted 30 days after creation), Fly.io (no free tier), SQLite on Render (disk wiped on deploy).
 Keeping it inside the free limits: metadata-only tables, 90-day retention with a daily prune, and quotas per account. **Not free:** TypeSafe Jev itself is usage-billed; `backend: "heuristic"` runs at zero Jev cost if ever needed. Free tiers change — re-check before relying on them.
+
+## 22. Model routing and the quiz (v1.2)
+
+PromptLint is also a **routing middle layer**: it recommends which model should answer each prompt, and can call it.
+
+- **Tier needed.** Jev's three-level complexity question gives P(low), P(medium), P(high). The needed tier is the smallest one whose cumulative probability reaches the strategy's confidence: `cheapest` 0.5, `balanced` 0.75 (default), `quality` 0.9. low → small, medium → mid, high → frontier.
+- **Pick.** Candidates (the price table, the caller's `candidates`, and saved custom endpoints) that reach the tier are *capable*. `cheapest`/`balanced` pick the capable model with the lowest expected cost (input tokens × price + p50 output × price); `quality` picks the cheapest model in the strongest tier needed. The fallback is the next capable model, from another provider when possible. `max_cost_usd` removes models by p90 cost.
+- **Clarify first.** `likely_to_fail` and first-try < 0.4 → `action: clarify_first`; `/v1/route` then doesn't call a model unless `send_anyway: true`.
+- **Savings** are measured against `baseline_model` (default: the priciest candidate). `eval/run_routing.py` routes the 480 pair prompts: balanced averages $0.000943/request, 93.4% cheaper than always GPT-6 Astra, 83.0% cheaper than the frontier average, but 564% more than always GPT-6 Luna (the smallest model). 23.5% of prompts (47.1% of weak ones) get `clarify_first`.
+- **Execution** (`POST /v1/route`): keys come from `provider_keys` (per request, never stored), then saved keys (`/v1/providers`, Fernet-encrypted with `PROVIDER_KEY_SECRET`). Adapters: Anthropic (official SDK), OpenAI chat completions, Gemini `generateContent`, and any OpenAI-compatible `/chat/completions` (Ollama, Groq, OpenRouter…). Up to three models are tried in order; non-retryable errors (bad key) move on immediately. Custom endpoint URLs must be public HTTPS in production (SSRF guard). No keys, or `execute: false` → recommendation only. No streaming in v1.2.
+- **Quiz** (`/quiz.html`, `/api/quiz`): five weak prompts from `config/quiz.yaml` to rewrite. Each rewrite gets the Lint Score, capped at 20 if a one-question Jev check says it no longer asks for the round's task. Grades A+ ≥ 90 … F < 50. Only runs fully judged by Jev are ranked; the leaderboard shows each nickname's best (all time or this week). 5 submissions per IP per hour.

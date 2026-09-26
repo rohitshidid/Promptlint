@@ -91,6 +91,11 @@
   details.data td, details.data th { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line-soft); }
   details.data td:first-child, details.data th:first-child { text-align: left; }
 
+  .prov-form { margin-top: 6px; max-width: 760px; }
+  .prov-form select.t { width: 100%; font: inherit; font-size: .98rem; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-tint); color: var(--ink); margin-top: 6px; }
+  .prov-form label.f input.t { margin-top: 6px; }
+  .prov-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+  @media (max-width: 640px) { .prov-grid { grid-template-columns: minmax(0, 1fr); } }
   .danger { margin-top: 18px; border-color: rgba(208,59,59,.25); }
   .danger summary { cursor: pointer; font-weight: 600; color: var(--bad-ink); }
   .danger form { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
@@ -107,7 +112,7 @@
 <nav class="nav" id="nav">
   <div class="wrap nav-in">
     <a class="nav-brand" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
-    <span class="nav-ver">v1.1</span>
+    <span class="nav-ver">v1.2</span>
     <div class="nav-links">
       <a class="opt" href="app.html">Analyzer</a>
       <a class="opt" href="docs.html">API docs</a>
@@ -192,6 +197,42 @@
         <p class="sub">Paste a key and a prompt in the tester to see the full API result explained in plain words. No terminal needed.</p>
       </div>
       <a class="btn btn-fill btn-md" href="tester.html">Open the tester <span class="arrow">→</span></a>
+    </div>
+
+    <div class="box" style="margin-top:18px" id="providers-box">
+      <h2>Connected LLM providers <span class="pill" style="font-size:.72rem;vertical-align:3px">optional</span></h2>
+      <p class="sub">Add the LLM accounts you use, and <code>POST /v1/route</code> will pick the best model for each prompt,
+        call it with your key, and return the answer. Without keys, you still get the recommendation as JSON.
+        Keys are encrypted on our server, never shown again (only the last 4 characters), and you can delete them any time.</p>
+      <div class="msg" id="prov-disabled" hidden></div>
+      <form class="prov-form" id="prov-form">
+        <label class="f" for="prov-kind">Provider
+          <select class="t" id="prov-kind">
+            <option value="anthropic">Anthropic (Claude)</option>
+            <option value="openai">OpenAI (GPT)</option>
+            <option value="gemini">Google (Gemini)</option>
+            <option value="openai_compatible">Other: OpenAI-compatible (Ollama, Groq, OpenRouter…)</option>
+          </select>
+        </label>
+        <label class="f" for="prov-key">API key <span id="prov-key-opt" hidden>(optional for keyless endpoints like Ollama)</span>
+          <input class="t" id="prov-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste the provider's key">
+        </label>
+        <div id="prov-custom" hidden>
+          <div class="prov-grid">
+            <label class="f" for="prov-label">Display name<input class="t" id="prov-label" maxlength="80" placeholder="e.g. Groq Llama 70B"></label>
+            <label class="f" for="prov-url">Base URL<input class="t" id="prov-url" spellcheck="false" placeholder="https://api.groq.com/openai/v1"></label>
+            <label class="f" for="prov-model">Model name<input class="t" id="prov-model" spellcheck="false" placeholder="llama-3.3-70b-versatile"></label>
+            <label class="f" for="prov-tier">Strength
+              <select class="t" id="prov-tier"><option value="small">Small (simple tasks)</option><option value="mid" selected>Mid (most tasks)</option><option value="frontier">Frontier (hardest tasks)</option></select></label>
+            <label class="f" for="prov-in">Input price ($ / 1M tokens)<input class="t" id="prov-in" type="number" min="0" step="0.01" value="0"></label>
+            <label class="f" for="prov-out">Output price ($ / 1M tokens)<input class="t" id="prov-out" type="number" min="0" step="0.01" value="0"></label>
+          </div>
+          <p class="hint">An online server can't reach <code>localhost</code> on your computer. For a local Ollama, expose it with a public HTTPS address (for example a tunnel) and use that.</p>
+        </div>
+        <button class="btn btn-fill btn-md" type="submit" style="margin-top:16px">Add provider</button>
+      </form>
+      <div class="msg" id="prov-msg" role="alert"></div>
+      <div class="table-scroll"><table class="keys"><thead><tr><th>Provider</th><th>Model / key</th><th>Added</th><th>Last used</th><th></th></tr></thead><tbody id="prov-rows"></tbody></table></div>
     </div>
 
     <div class="box" style="margin-top:18px">

@@ -18,6 +18,7 @@ from tests.conftest import fixture_judge, load_fixture, make_router  # noqa: E40
 
 from app.analyze import Analyzer  # noqa: E402
 from app.config import load_config  # noqa: E402
+from app.schemas import RoutingOptions  # noqa: E402
 from app.tokens import TokenCounter  # noqa: E402
 
 ASSETS = ROOT.parent / "frontend" / "assets"
@@ -39,6 +40,9 @@ async def main() -> None:
                 include_suggestions=True,
                 include_confidence=False,
                 stored=False,
+                routing=analyzer.routing_out(
+                    analyzer.decide(a, RoutingOptions(), analyzer.catalog_candidates())
+                ),
             )
             example_json = example.model_dump(mode="json", exclude_none=True)
             example_json["latency_ms"] = a.judged.answers.latency_ms  # the recorded Jev time, not the replay

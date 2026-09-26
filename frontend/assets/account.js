@@ -140,6 +140,62 @@
     catch { $("copy-key").textContent = "Select and copy"; }
   };
 
+  /* -------------------------------------------------- connected providers */
+  const PROVIDER_LABEL = { anthropic: "Anthropic", openai: "OpenAI", gemini: "Google Gemini", openai_compatible: "Custom endpoint" };
+  function syncProviderForm() {
+    const custom = $("prov-kind").value === "openai_compatible";
+    $("prov-custom").hidden = !custom;
+    $("prov-key-opt").hidden = !custom;
+  }
+  $("prov-kind").addEventListener("change", syncProviderForm);
+
+  async function loadProviders() {
+    const d = await api("/v1/providers");
+    const off = $("prov-disabled");
+    off.hidden = d.storage_enabled;
+    if (!d.storage_enabled) { off.className = "msg err"; off.textContent = "This server isn't set up to store provider keys (PROVIDER_KEY_SECRET is missing). You can still send keys per request."; }
+    $("prov-rows").innerHTML = d.providers.length
+      ? d.providers.map((p) => `<tr>
+          <td>${esc(PROVIDER_LABEL[p.provider] || p.provider)}${p.provider === "openai_compatible" ? `<br><span class="muted">${esc(p.label)}</span>` : ""}</td>
+          <td>${p.model ? `<code>${esc(p.model)}</code> <span class="muted">· ${esc(p.tier)}</span><br>` : ""}${p.has_key ? `<code>${esc(p.key_hint)}</code>` : '<span class="muted">no key</span>'}</td>
+          <td class="muted">${day(p.created_at)}</td>
+          <td class="muted">${p.last_used_at ? day(p.last_used_at) : "Never"}</td>
+          <td style="text-align:right"><button class="linkbtn" data-del-prov="${p.id}">Remove</button></td></tr>`).join("")
+      : `<tr><td colspan="5" class="muted">No providers yet. Add one to let /v1/route call models for you.</td></tr>`;
+  }
+
+  $("prov-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    show($("prov-msg"), "");
+    const kind = $("prov-kind").value;
+    const body = { provider: kind, api_key: $("prov-key").value.trim() || null };
+    if (kind === "openai_compatible") {
+      Object.assign(body, {
+        label: $("prov-label").value.trim() || null, base_url: $("prov-url").value.trim(), model: $("prov-model").value.trim(),
+        tier: $("prov-tier").value, input_price: Number($("prov-in").value || 0), output_price: Number($("prov-out").value || 0),
+      });
+    }
+    try {
+      await api("/v1/providers", { method: "POST", headers: CSRF, body: JSON.stringify(body) });
+      $("prov-key").value = "";
+      ["prov-label", "prov-url", "prov-model"].forEach((id) => { $(id).value = ""; });
+      show($("prov-msg"), `Added ${PROVIDER_LABEL[kind]}.${kind !== "openai_compatible" ? " It replaces any earlier key for the same provider." : ""}`, "ok");
+      await loadProviders();
+    } catch (err) { show($("prov-msg"), err.message, "err"); }
+  });
+
+  $("prov-rows").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-del-prov]");
+    if (!b) return;
+    if (b.dataset.armed !== "1") {
+      b.dataset.armed = "1"; b.textContent = "Confirm remove";
+      setTimeout(() => { if (b.isConnected) { b.dataset.armed = ""; b.textContent = "Remove"; } }, 4000);
+      return;
+    }
+    try { await api(`/v1/providers/${b.dataset.delProv}`, { method: "DELETE", headers: CSRF }); await loadProviders(); }
+    catch (err) { show($("prov-msg"), err.message, "err"); }
+  });
+
   function chart(days) {
     const W = 560, H = 170, L = 34, R = 6, T = 10, B = 22;
     const max = Math.max(4, ...days.map((d) => d.prompts));
@@ -185,7 +241,13 @@ curl ${esc(host)}/v1/score \\
   -H <span class="s">"Content-Type: application/json"</span> \\
   -d <span class="s">'{"prompt": "write me a poem", "models": ["claude-sonnet-5"]}'</span>
 
-<span class="c"># 3. Your usage</span>
+<span class="c"># 3. Let PromptLint pick the model and call it with your connected keys</span>
+curl ${esc(host)}/v1/route \\
+  -H <span class="s">"Authorization: Bearer $PQS_KEY"</span> \\
+  -H <span class="s">"Content-Type: application/json"</span> \\
+  -d <span class="s">'{"prompt": "Summarize this email in 3 bullets: …", "routing": {"strategy": "balanced"}}'</span>
+
+<span class="c"># 4. Your usage</span>
 curl ${esc(host)}/v1/usage -H <span class="s">"Authorization: Bearer $PQS_KEY"</span>`;
   }
 
@@ -221,7 +283,8 @@ curl ${esc(host)}/v1/usage -H <span class="s">"Authorization: Bearer $PQS_KEY"</
     $("subtitle").innerHTML = `Signed in as <b>${esc(me.email)}</b>`;
     tiles(me);
     quickstart();
-    const [, usage] = await Promise.all([loadKeys(), api("/v1/usage?days=30")]);
+    syncProviderForm();
+    const [, usage] = await Promise.all([loadKeys(), api("/v1/usage?days=30"), loadProviders()]);
     chart(usage.days);
   }
 

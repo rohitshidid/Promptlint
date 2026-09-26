@@ -34,7 +34,9 @@
         <div class="gauge-wrap">${gaugeSVG(r.lint_score, r.verdict)}<div class="gauge-num">${r.lint_score}<small>/100</small></div></div>
         <div>
           <span class="verdict ${r.verdict}">${v.icon}${v.label}</span>
-          <div class="pills"><span class="pill">Specificity: ${esc(r.specificity.label)}</span></div>
+          <div class="pills"><span class="pill">Specificity: ${esc(r.specificity.label)}</span>${
+            r.routing && r.routing.recommended ? `<span class="pill accent">Send to ${esc(r.routing.recommended.name)}${
+              r.routing.savings_percent > 0 ? ` · ${Math.round(r.routing.savings_percent)}% cheaper` : ""}</span>` : ""}</div>
         </div>
       </div>
       <div>
@@ -105,6 +107,59 @@
       </table></div>
       <p class="table-note">Output estimated at ${olo}–${ohi} tokens. Prices last checked ${esc(r.meta.prices_last_updated)}.</p>`;
   }
+
+  /* ------------------------------------------------------------ savings */
+  const money = (x) => {
+    const a = Math.abs(x);
+    const s = a >= 100 ? Math.round(a).toLocaleString("en-US") : a >= 1 ? a.toFixed(2) : a.toFixed(a >= 0.01 ? 3 : 4);
+    return (x < 0 ? "−$" : "$") + s;
+  };
+  fetch("assets/routing-summary.json", { cache: "no-cache" })
+    .then((r) => (r.ok ? r.json() : Promise.reject()))
+    .then((rs) => {
+      const h = rs.headline;
+      const priciest = rs.baselines[h.priciest_model];
+      $("sv-n").textContent = rs.n_prompts.toLocaleString();
+      $("sv-frontier").textContent = Math.round(h.balanced_vs_frontier_avg) + "%";
+      $("sv-priciest").textContent = Math.round(h.balanced_vs_priciest) + "%";
+      $("sv-priciest-label").textContent = `cheaper than always using ${priciest.name}, the priciest model we price`;
+      $("sv-small").textContent = Math.round(rs.strategies.balanced.tier_mix.small * 100) + "%";
+      $("sv-clarify").textContent = Math.round(h.clarify_first_weak_share * 100) + "%";
+
+      const sel = $("calc-baseline");
+      const models = Object.entries(rs.baselines).sort((a, b) => b[1].avg_cost_usd - a[1].avg_cost_usd);
+      sel.innerHTML = models.map(([id, m]) => `<option value="${esc(id)}">Always ${esc(m.name)}</option>`).join("");
+      sel.value = h.priciest_model;
+
+      function calc() {
+        const n = Math.max(0, Math.round(Number($("calc-requests").value) || 0));
+        const base = rs.baselines[sel.value];
+        const strat = rs.strategies[$("calc-strategy").value];
+        const calls = n * base.avg_cost_usd;
+        const routed = n * strat.avg_cost_usd;
+        // Retries: prompts that "clarify first" flags would, today, cost one extra wasted call each.
+        const retries = $("calc-retries").checked ? n * h.clarify_first_share * base.avg_cost_usd : 0;
+        const today = calls + retries;
+        const total = today - routed;
+        $("calc-month").textContent = total >= 0 ? money(total) + " / month" : "No savings";
+        $("calc-year").textContent = total >= 0
+          ? `about ${money(total * 12)} a year${today > 0 ? `, or ${Math.round((total / today) * 100)}% of today's bill` : ""}`
+          : `Routing would cost ${money(-total)} more a month than always using ${base.name}.`;
+        const top = strat.top_picks.slice(0, 2).map((p) => `${p.name} ${Math.round(p.share * 100)}%`).join(", ");
+        $("calc-rows").innerHTML = `
+          <div class="calc-row"><span>Today, always ${esc(base.name)}</span><b>${money(calls)}</b></div>
+          ${retries ? `<div class="calc-row"><span>+ wasted retries on unclear prompts (${Math.round(h.clarify_first_share * 100)}% of prompts)</span><b>${money(retries)}</b></div>` : ""}
+          <div class="calc-row"><span>With ${esc($("calc-strategy").selectedOptions[0].text.split(" (")[0].toLowerCase())} routing</span><b>${money(routed)}</b></div>
+          <div class="calc-row"><span>Most-picked models</span><b style="font-weight:500">${esc(top)}</b></div>`;
+        $("calc-note").textContent = total < 0
+          ? `${base.name} is cheaper because it's a small model; routing sends prompts that need more reasoning to stronger ones. If ${base.name} is good enough for everything you do, keep it.`
+          : `Estimate from routing our ${rs.n_prompts} test prompts over 7 models (prices checked ${rs.prices_last_updated}). ` +
+            `Your savings depend on your own mix of prompts. "Wasted retries" assumes each prompt that routing flags as unclear costs one extra call today.`;
+      }
+      ["calc-requests", "calc-baseline", "calc-strategy", "calc-retries"].forEach((id) => $(id).addEventListener("input", calc));
+      calc();
+    })
+    .catch(() => { $("sv-stats").insertAdjacentHTML("afterend", '<p class="acc-note">Savings data not published yet. Run eval/run_routing.py.</p>'); });
 
   /* ----------------------------------------------------------- accuracy */
   fetch("assets/eval-summary.json", { cache: "no-cache" })

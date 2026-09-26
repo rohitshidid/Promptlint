@@ -25,6 +25,8 @@ from app.backends import BackendRouter, HeuristicJudge
 from app.config import AppConfig, load_config
 from app.db import make_engine, make_sessionmaker, prune
 from app.jev_client import JevError, JevJudge, Judge
+from app.providers import ProviderClient
+from app.quiz import build_quiz_router
 from app.schemas import AnalyzeRequest, AnalyzeResponse, TokensRequest
 from app.security import new_request_id
 from app.settings import BACKEND_DIR, Settings, get_settings
@@ -53,6 +55,7 @@ def create_app(
     judge: Judge | None = None,
     counter: TokenCounter | None = None,
     config: AppConfig | None = None,
+    providers: ProviderClient | None = None,
 ) -> FastAPI:
     """App factory. Tests pass a fake judge; production builds the real Jev judge from settings."""
     settings = settings or get_settings()
@@ -92,6 +95,7 @@ def create_app(
             cache_ttl_s=settings.cache_ttl_s,
         )
         app.state.http = httpx.AsyncClient(timeout=15)
+        app.state.providers = providers or ProviderClient(timeout_s=settings.provider_timeout_s)
 
         if (
             not settings.database_url.startswith("sqlite")
@@ -125,6 +129,7 @@ def create_app(
             await pruner
         await engine.dispose()
         await app.state.http.aclose()
+        await app.state.providers.aclose()
         await counter.aclose()
         if owns_judge and isinstance(judge, JevJudge):
             await judge.aclose()
@@ -250,7 +255,9 @@ def create_app(
                 status_code=422, content={"error": f"Unknown model: {unknown[0]}", "detail": None}
             )
         analyzer: Analyzer = request.app.state.analyzer
-        return analyzer.web_report(await analyzer.analyze(body.prompt, body.models, backend=body.backend))
+        return analyzer.web_report(
+            await analyzer.analyze(body.prompt, body.models, backend=body.backend), strategy=body.strategy
+        )
 
     @app.post("/api/tokens")
     @limiter.limit(lambda: settings.tokens_rate_limit)
@@ -264,6 +271,7 @@ def create_app(
 
     # ------------------------------------------------------------ public API
     app.include_router(build_v1_router(limiter, settings))
+    app.include_router(build_quiz_router(limiter, settings))
 
     # ------------------------------------------------ Jev playground (/playground)
     @app.get("/api/config")
@@ -307,7 +315,7 @@ def create_app(
     # Key-authenticated /v1 endpoints can be called from any website (they use Bearer keys, not cookies,
     # so there's nothing for another origin to borrow). Account and key-management endpoints stay
     # same-origin only; no Allow-Credentials is ever sent, so browsers never attach cookies cross-site.
-    public_api = ("/v1/score", "/v1/pricing", "/v1/health", "/v1/usage")
+    public_api = ("/v1/score", "/v1/route", "/v1/pricing", "/v1/health", "/v1/usage")
     cors_headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",

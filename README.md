@@ -2,9 +2,11 @@
 
 > Lint your prompt before you send it.
 
-Paste a prompt, or send one from your app through the **public API**, and get a report card: a **0–100 Lint Score** and a **PQS score**, the odds an LLM gets it **right on the first try**, how **generic or specific** it is, a **checklist** of what's missing, **fix-it tips**, and the **token count and cost range** on seven models.
+Paste a prompt, or send one from your app through the **public API**, and get a report card: a **0–100 Lint Score** and a **PQS score**, the odds an LLM gets it **right on the first try**, how **generic or specific** it is, a **checklist** of what's missing, **fix-it tips**, the **token count and cost range** on seven models, and **which model to send it to** (a router that picks the cheapest model that's good enough, and shows how much that saves).
 
-All judgments come from **one call to TypeSafe's Jev**, a System One decision model, with a rule-based **heuristic backend** as the baseline and automatic fallback. Everything else (tokens, cost, scoring, tips) is deterministic code. No generative LLM runs in the product.
+It's two things in one API: a **prompt quality scorer**, and a **routing middle layer** for apps that use several LLMs. `POST /v1/route` recommends a model for every prompt; if you connect your own OpenAI, Anthropic, Gemini or OpenAI-compatible (Ollama, Groq, OpenRouter…) keys, it also calls that model and returns the answer, with a backup model if the first one fails. There's also a [prompt quiz](frontend/quiz.html) with grades and a leaderboard.
+
+All judgments come from **one call to TypeSafe's Jev**, a System One decision model, with a rule-based **heuristic backend** as the baseline and automatic fallback. Everything else (tokens, cost, scoring, tips, routing) is deterministic code. The only generative LLM calls are the ones `/v1/route` makes **with the caller's own provider keys**, when they ask for it.
 
 The public API follows the [Prompt Quality Scorer design](prompt-quality-scorer.md) (Phase 0–1): self-serve accounts, hashed API keys, plans and quotas, usage metering. It is built to **host for free** on Render + Neon ([Deploy](#deploy-free)).
 
@@ -122,6 +124,8 @@ curl http://localhost:8787/v1/score \
 | --- | --- | --- |
 | `POST /v1/score` | API key | Score one prompt: `prompt`, optional `system`, `models`, `backend` (`auto`/`jev`/`heuristic`), `options {include_suggestions, include_confidence, store}` |
 | `POST /v1/score/batch` | API key | Up to 10 (free) or 50 prompts; per-item errors |
+| `POST /v1/route` | API key | Score + routing, then (with `execute: true` and a provider key) call the recommended model and return its answer |
+| `GET/POST/DELETE /v1/providers` | session | Connected LLM providers: save an encrypted OpenAI / Anthropic / Gemini key, or a custom OpenAI-compatible endpoint |
 | `GET /v1/pricing` | public | Price table + `last_verified` |
 | `GET /v1/usage?days=30` | key or session | Usage per UTC day, used today / this month |
 | `GET /v1/health` | public | Database, backends, pinned Jev model |
@@ -140,18 +144,38 @@ Real response for "write me a poem" (abridged; full one in `frontend/assets/api-
   "tokens": { "input": { "o200k_base": 4, "claude-sonnet-5": 4 }, "output_p50": 208, "output_p90": 584 },
   "cost_estimates": [{ "model": "claude-sonnet-5", "usd_p50": 0.0021, "usd_p90": 0.0058, "pricing_verified": "2026-09-25" }],
   "suggestions": [{ "id": "add_specifics", "text": "Add the specifics: …", "impact": 0.15 }],
-  "backend": { "name": "jev", "version": "jev-1.13.0", "degraded": false }
+  "backend": { "name": "jev", "version": "jev-1.13.0", "degraded": false },
+  "suggested_model": "gemini-3.8-flash",
+  "routing": { "strategy": "balanced", "action": "send", "required_tier": "mid",
+               "recommended": { "id": "gemini-3.8-flash", "tier": "mid", "est_cost_usd_p50": 0.000783 },
+               "fallback": { "id": "claude-sonnet-5" }, "baseline": { "id": "gpt-6-astra" },
+               "savings_percent": 92.5, "reason": "A medium-difficulty writing prompt needs a mid-tier model or better; …",
+               "alternatives": [ "…every candidate, ranked…" ] }
 }
 ```
 
+### Routing
+
+Every `/v1/score` and `/v1/route` response includes `routing`. Options go in `"routing": {…}`:
+
+- `strategy`: `cheapest` (cheapest model that can probably do it), `balanced` (default: cheapest model that's very likely good enough), or `quality` (cheapest model in the strongest tier needed).
+- `candidates`: model IDs from `/v1/pricing` and/or your own models (`{"id", "tier", "input", "output", "adapter", "base_url", "api_model"}`). Default: all seven priced models, plus endpoints saved on your account.
+- `baseline_model`: what the savings are measured against (default: the priciest candidate). `max_cost_usd`: skip models whose p90 cost is higher.
+
+How it picks: Jev's complexity answer (low / medium / high, with probabilities) sets the tier a prompt needs (small / mid / frontier); each strategy needs a different confidence (50% / 75% / 90%). Among models in that tier or above, it picks the lowest expected cost, with a backup from another provider. If the prompt is likely to fail and the first-try chance is under 40%, `action` is `clarify_first`: fix the prompt before paying any model.
+
+**`/v1/route`** runs the same routing, then calls the model when `execute` is true (the default) and a key exists: `provider_keys` in the request (never stored), then keys saved on the account page (encrypted with `PROVIDER_KEY_SECRET`). With no keys, or `execute: false`, you get the recommendation only. If only some models have keys, it picks among those. Up to three models are tried in order; `execution` holds the answer, tokens, cost and each attempt. Answers are returned whole (no streaming yet).
+
+**Savings**, measured by `eval/run_routing.py` on the 480 test prompts: balanced routing averages $0.00094 per request, **93% cheaper** than always using GPT-6 Astra and 83% cheaper than the average frontier model. It is *more* expensive than always using the smallest model (GPT-6 Luna), because it sends harder prompts to stronger models. The home page calculator uses these numbers.
+
 Errors are `{"error": {"type", "message", "request_id"}}` with 400 / 401 / 403 / 413 / 429 / 503. Plans (`config/plans.yaml`): **free** 20 req/min, 1,000 prompts/day, batch 10 · **dev** 120/min, 50,000/month, batch 50 · **pro** 600/min. Scoring responses carry `X-RateLimit-*` and `X-Quota-*` headers.
 
-The website uses `POST /api/analyze` (per-IP limit, no key), which returns the report-card shape documented in PromptLint.md §10.
+The website uses `POST /api/analyze` (per-IP limit, no key; takes `strategy`) and `/api/quiz` (the quiz; graded on the server, only Jev-graded runs are ranked), which returns the report-card shape documented in PromptLint.md §10.
 
 ## Tests
 
 ```sh
-cd backend && .venv/bin/pytest -q        # 128 tests, no network or secrets needed
+cd backend && .venv/bin/pytest -q        # 176 tests, no network or secrets needed
 ```
 
 | Layer | Covers |
@@ -161,6 +185,8 @@ cd backend && .venv/bin/pytest -q        # 128 tests, no network or secrets need
 | API (website) | Happy path, validation, cache, rate limit, static pages, backend toggle, fallback |
 | API (/v1) | Sign-up → key → score → batch → usage → revoke; both scores; system prompt; opt-in storage; quotas across keys; rate-limit headers; forgery protection; cross-account isolation; account deletion; Turnstile |
 | Resilience | 429/529 retried, persistent 429 → fallback or 503, auth errors not retried, timeouts, overall deadline, malformed responses |
+| Routing | Tier choice per strategy, ranking, budgets, custom models, clarify-first, `/v1/route` with fake providers, fallback order, saved + per-request keys, SSRF blocking, each provider's request format |
+| Quiz | Rounds, grading, off-task rewrites, leaderboard ranking, rate limit |
 | Migrations | `alembic upgrade head` on a fresh database |
 | Load | `tests/load/locustfile.py` |
 
@@ -172,6 +198,7 @@ CI (`.github/workflows/ci.yml`) runs lint, tests and a Docker build on every pus
 backend/.venv/bin/python eval/run_pairwise.py     # 480 prompts: main + hard pairs
 backend/.venv/bin/python eval/run_checklist.py    # 100 hand-labeled prompts × 7 checks
 backend/.venv/bin/python eval/run_injection.py    # 20 injection pairs
+backend/.venv/bin/python eval/run_routing.py      # routing savings (reuses the cached Jev answers)
 backend/.venv/bin/python eval/check_regression.py # floors used by CI
 backend/.venv/bin/python eval/build_report.py     # executes eval/report.ipynb with charts
 ```
@@ -190,7 +217,7 @@ backend/.venv/bin/python eval/run_first_try.py --provider groq --model <model> -
 Free forever as of Sept 2026 (free tiers change, so re-check): **Render** free web service runs the Docker image, **Neon** free Postgres holds accounts, keys and usage. No Redis.
 
 1. **Neon** → create a free project → copy the connection string (`postgresql://…?sslmode=require`). Paste it as-is; the app converts it for asyncpg.
-2. **Render** → New → **Blueprint** → pick this repo. `render.yaml` creates a free Docker web service with a health check on `/v1/health` and a generated `PROMPT_HASH_SALT`.
+2. **Render** → New → **Blueprint** → pick this repo. `render.yaml` creates a free Docker web service with a health check on `/v1/health` and a generated `PROMPT_HASH_SALT` and `PROVIDER_KEY_SECRET` (encrypts saved LLM keys; never change it afterwards). An existing service needs `PROVIDER_KEY_SECRET` added by hand.
 3. In the Render dashboard set `TYPESAFE_API_KEY` and `DATABASE_URL` (the Neon string). Optional: `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` for a free captcha on sign-up.
 4. Deploy. Migrations run on startup. Open `/v1/health`: `"database": "ok"`.
 
@@ -202,6 +229,8 @@ What to expect on free tiers: the service sleeps after 15 minutes idle and the f
 - **API keys** are `pqs_live_<prefix>_<secret>`; only the prefix and SHA-256 of the secret are stored, and the full key is shown once.
 - **Passwords** are hashed with scrypt; login timing doesn't reveal whether an email exists. Sessions are HttpOnly, SameSite=Lax cookies, and cookie-authenticated writes need a custom header plus a same-origin `Origin` (blocks cross-site forgery).
 - **No prompt storage** unless an API caller sends `options.store: true`. Events keep a salted hash, length, backend, scores and latency, and are deleted after 90 days. Deleting an account deletes everything.
+- **LLM provider keys** saved on the account page are encrypted (Fernet, key from `PROVIDER_KEY_SECRET`); only the last 4 characters are ever shown. Per-request keys are used once and never stored or logged.
+- **Custom endpoints** must be public `https://` addresses in production (private and local IPs are blocked, so nobody can use your server to reach its own network). `ALLOW_PRIVATE_PROVIDER_URLS=true` allows `http://localhost` (for Ollama) when self-hosting.
 - Per-IP limits on the website, sign-up and login; per-key limits and per-account quotas on the API; 20,000 / 32,000-character caps.
 - CORS is same-origin by default. Set `ALLOWED_ORIGINS` only if a frontend on another domain calls the API.
 - Not built yet: email verification and password reset (need an email provider).
@@ -212,15 +241,17 @@ What to expect on free tiers: the service sleeps after 15 minutes idle and the f
 backend/
   app/            main.py (app + website API), api_v1.py (public API, accounts, keys), auth.py,
                   analyze.py (report), backends.py (jev / heuristic / fallback), jev_client.py,
-                  scoring.py (lint + PQS), cost.py, tokens.py, tips.py, db.py, security.py, cli.py
-  config/         questions.yaml · weights.yaml · pqs_scoring.yaml · prices.yaml · tips.yaml · plans.yaml
+                  scoring.py (lint + PQS), cost.py, tokens.py, tips.py, router.py (model routing),
+                  providers.py (calls OpenAI / Anthropic / Gemini / compatible), quiz.py, db.py, security.py, cli.py
+  config/         questions.yaml · weights.yaml · pqs_scoring.yaml · prices.yaml · tips.yaml · plans.yaml · quiz.yaml
   migrations/     Alembic (SQLite and Postgres)
   tests/          unit, contract (recorded Jev fixtures), API, /v1, resilience, load/
   scripts/        build_demo_data.py (landing demo + API example from recorded fixtures)
   Dockerfile
 frontend/
-  index.html  app.html  account.html  docs.html  playground/
-  assets/         site.css, report.css/js, app.js, landing.js, account.js, icon.svg, *.json
+  index.html  app.html  account.html  docs.html  tester.html  quiz.html  playground/
+  assets/         site.css, report.css/js, app.js, landing.js, account.js, quiz.js, icon.svg, *.json
+                  (routing-summary.json feeds the savings section)
 eval/
   data/           prompt_pairs.jsonl (200), prompt_pairs_hard.jsonl (40), checklist_labels.jsonl (100), injection.jsonl (20)
   run_*.py        evaluations (Jev and heuristic)      report.ipynb   charts
@@ -236,6 +267,7 @@ render.yaml       free deploy (Render + Neon)
 - v1 targets everyday chat prompts. A `system` prompt is accepted as context, but there's no separate system-prompt rubric yet.
 - Jev reads questions literally. "write me a poem" gets a high first-try probability because any poem satisfies it; the other signals catch it as generic.
 - Output-token and cost figures are estimates, always shown as ranges.
+- Routing savings assume the cheaper model is good enough. Tiers come from the price table and Jev's complexity answer, not from measuring each model's answers yet.
 - The eval sets are AI-drafted and easy enough that the heuristic nearly matches Jev on ranking. A human gold set is needed before claiming more.
 - Not built: PQS Phase 2 (own trained model), email verification and password reset, billing for paid plans, shareable report links.
 

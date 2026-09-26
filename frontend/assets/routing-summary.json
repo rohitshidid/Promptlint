@@ -1,0 +1,138 @@
+{
+  "generated_at": "2026-09-26T00:20:11+00:00",
+  "n_prompts": 480,
+  "prices_last_updated": "2026-09-25",
+  "strategies": {
+    "cheapest": {
+      "avg_cost_usd": 0.000838034583333333,
+      "tier_mix": {
+        "small": 0.3645833333333333,
+        "mid": 0.6333333333333333,
+        "frontier": 0.0020833333333333333
+      },
+      "top_picks": [
+        {
+          "model": "gemini-3.8-flash",
+          "name": "Gemini 3.8 Flash",
+          "share": 0.6333333333333333
+        },
+        {
+          "model": "gpt-6-luna",
+          "name": "GPT-6 Luna",
+          "share": 0.3645833333333333
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "name": "Gemini 3.1 Pro",
+          "share": 0.0020833333333333333
+        }
+      ]
+    },
+    "balanced": {
+      "avg_cost_usd": 0.0009428259375000003,
+      "tier_mix": {
+        "small": 0.25,
+        "mid": 0.74375,
+        "frontier": 0.00625
+      },
+      "top_picks": [
+        {
+          "model": "gemini-3.8-flash",
+          "name": "Gemini 3.8 Flash",
+          "share": 0.74375
+        },
+        {
+          "model": "gpt-6-luna",
+          "name": "GPT-6 Luna",
+          "share": 0.25
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "name": "Gemini 3.1 Pro",
+          "share": 0.00625
+        }
+      ]
+    },
+    "quality": {
+      "avg_cost_usd": 0.003399245833333331,
+      "tier_mix": {
+        "small": 0.0,
+        "mid": 0.0,
+        "frontier": 1.0
+      },
+      "top_picks": [
+        {
+          "model": "gemini-3.1-pro-preview",
+          "name": "Gemini 3.1 Pro",
+          "share": 1.0
+        }
+      ]
+    }
+  },
+  "baselines": {
+    "claude-opus-5-5": {
+      "name": "Claude Opus 5.5",
+      "avg_cost_usd": 0.00568284166666667
+    },
+    "claude-sonnet-5": {
+      "name": "Claude Sonnet 5",
+      "avg_cost_usd": 0.002841420833333335
+    },
+    "claude-haiku-4-5": {
+      "name": "Claude Haiku 4.5",
+      "avg_cost_usd": 0.0014207104166666675
+    },
+    "gpt-6-astra": {
+      "name": "GPT-6 Astra",
+      "avg_cost_usd": 0.014207104166666672
+    },
+    "gpt-6-luna": {
+      "name": "GPT-6 Luna",
+      "avg_cost_usd": 0.00014207104166666663
+    },
+    "gemini-3.1-pro-preview": {
+      "name": "Gemini 3.1 Pro",
+      "avg_cost_usd": 0.003399245833333331
+    },
+    "gemini-3.8-flash": {
+      "name": "Gemini 3.8 Flash",
+      "avg_cost_usd": 0.0010655328125000001
+    }
+  },
+  "savings_percent": {
+    "cheapest": {
+      "claude-opus-5-5": 85.3,
+      "claude-sonnet-5": 70.5,
+      "claude-haiku-4-5": 41.0,
+      "gpt-6-astra": 94.1,
+      "gpt-6-luna": -489.9,
+      "gemini-3.1-pro-preview": 75.3,
+      "gemini-3.8-flash": 21.4
+    },
+    "balanced": {
+      "claude-opus-5-5": 83.4,
+      "claude-sonnet-5": 66.8,
+      "claude-haiku-4-5": 33.6,
+      "gpt-6-astra": 93.4,
+      "gpt-6-luna": -563.6,
+      "gemini-3.1-pro-preview": 72.3,
+      "gemini-3.8-flash": 11.5
+    },
+    "quality": {
+      "claude-opus-5-5": 40.2,
+      "claude-sonnet-5": -19.6,
+      "claude-haiku-4-5": -139.3,
+      "gpt-6-astra": 76.1,
+      "gpt-6-luna": -2292.6,
+      "gemini-3.1-pro-preview": 0.0,
+      "gemini-3.8-flash": -219.0
+    }
+  },
+  "headline": {
+    "balanced_vs_frontier_avg": 83.0,
+    "balanced_vs_priciest": 93.4,
+    "priciest_model": "gpt-6-astra",
+    "clarify_first_share": 0.23541666666666666,
+    "clarify_first_weak_share": 0.4708333333333333
+  }
+}

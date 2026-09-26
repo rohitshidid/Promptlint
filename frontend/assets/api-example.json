@@ -216,8 +216,120 @@
       "version": "jev-1.13.0",
       "degraded": false
     },
+    "routing": {
+      "strategy": "balanced",
+      "action": "send",
+      "required_tier": "mid",
+      "complexity": "medium-difficulty",
+      "recommended": {
+        "id": "gemini-3.8-flash",
+        "name": "Gemini 3.8 Flash",
+        "provider": "Google",
+        "tier": "mid",
+        "source": "catalog",
+        "capable": true,
+        "est_cost_usd_p50": 0.000783,
+        "est_cost_usd_p90": 0.002193
+      },
+      "fallback": {
+        "id": "claude-sonnet-5",
+        "name": "Claude Sonnet 5",
+        "provider": "Anthropic",
+        "tier": "mid",
+        "source": "catalog",
+        "capable": true,
+        "est_cost_usd_p50": 0.002088,
+        "est_cost_usd_p90": 0.005848
+      },
+      "reason": "A medium-difficulty writing prompt needs a mid-tier model or better; Gemini 3.8 Flash is the best-value one that qualifies, about 93% cheaper than GPT-6 Astra.",
+      "baseline": {
+        "id": "gpt-6-astra",
+        "name": "GPT-6 Astra",
+        "provider": "OpenAI",
+        "tier": "frontier",
+        "source": "catalog",
+        "capable": true,
+        "est_cost_usd_p50": 0.01044,
+        "est_cost_usd_p90": 0.02924
+      },
+      "savings_usd": 0.009657,
+      "savings_percent": 92.5,
+      "alternatives": [
+        {
+          "id": "gemini-3.8-flash",
+          "name": "Gemini 3.8 Flash",
+          "provider": "Google",
+          "tier": "mid",
+          "source": "catalog",
+          "capable": true,
+          "est_cost_usd_p50": 0.000783,
+          "est_cost_usd_p90": 0.002193
+        },
+        {
+          "id": "claude-sonnet-5",
+          "name": "Claude Sonnet 5",
+          "provider": "Anthropic",
+          "tier": "mid",
+          "source": "catalog",
+          "capable": true,
+          "est_cost_usd_p50": 0.002088,
+          "est_cost_usd_p90": 0.005848
+        },
+        {
+          "id": "gemini-3.1-pro-preview",
+          "name": "Gemini 3.1 Pro",
+          "provider": "Google",
+          "tier": "frontier",
+          "source": "catalog",
+          "capable": true,
+          "est_cost_usd_p50": 0.002504,
+          "est_cost_usd_p90": 0.007016
+        },
+        {
+          "id": "claude-opus-5-5",
+          "name": "Claude Opus 5.5",
+          "provider": "Anthropic",
+          "tier": "frontier",
+          "source": "catalog",
+          "capable": true,
+          "est_cost_usd_p50": 0.004176,
+          "est_cost_usd_p90": 0.011696
+        },
+        {
+          "id": "gpt-6-astra",
+          "name": "GPT-6 Astra",
+          "provider": "OpenAI",
+          "tier": "frontier",
+          "source": "catalog",
+          "capable": true,
+          "est_cost_usd_p50": 0.01044,
+          "est_cost_usd_p90": 0.02924
+        },
+        {
+          "id": "gpt-6-luna",
+          "name": "GPT-6 Luna",
+          "provider": "OpenAI",
+          "tier": "small",
+          "source": "catalog",
+          "capable": false,
+          "est_cost_usd_p50": 0.0001044,
+          "est_cost_usd_p90": 0.0002924
+        },
+        {
+          "id": "claude-haiku-4-5",
+          "name": "Claude Haiku 4.5",
+          "provider": "Anthropic",
+          "tier": "small",
+          "source": "catalog",
+          "capable": false,
+          "est_cost_usd_p50": 0.001044,
+          "est_cost_usd_p90": 0.002924
+        }
+      ],
+      "warnings": []
+    },
     "stored": false,
     "cached": false,
-    "latency_ms": 11
+    "latency_ms": 1
   }
 }

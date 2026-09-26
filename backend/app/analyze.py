@@ -14,6 +14,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 
 from app import cost, scoring, tips
+from app import router as model_router
 from app.backends import HEURISTIC_VERSION, BackendRouter, Judged
 from app.config import AppConfig
 from app.schemas import (
@@ -26,6 +27,9 @@ from app.schemas import (
     Meta,
     MissingComponent,
     ModelCost,
+    RoutedModel,
+    Routing,
+    RoutingOptions,
     ScoreResponse,
     Signals,
     Specificity,
@@ -39,6 +43,13 @@ from app.schemas import (
 from app.tokens import TokenCount, TokenCounter, tiktoken_count
 
 log = logging.getLogger("promptlint.analyze")
+
+PROVIDER_NAMES = {
+    "anthropic": "Anthropic",
+    "openai": "OpenAI",
+    "gemini": "Google",
+    "openai_compatible": "Custom endpoint",
+}
 
 # (id, label, kind) — kind: "good" passes when high, "bad" passes when low,
 # "info*" is shown but never moves the Lint Score (PromptLint.md §7).
@@ -275,8 +286,119 @@ class Analyzer:
             return None
         return min(candidates, key=lambda m: (m.output, m.input)).id
 
+    # ------------------------------------------------------------ routing
+    def catalog_candidates(self) -> list[model_router.Candidate]:
+        return [
+            model_router.Candidate(
+                id=m.id,
+                name=m.name,
+                provider=m.provider,
+                adapter=model_router.ADAPTER_FOR_PROVIDER.get(m.provider.lower(), "openai_compatible"),
+                tier=m.tier,
+                input=m.input,
+                output=m.output,
+            )
+            for m in self.cfg.prices.models
+        ]
+
+    def resolve_candidates(
+        self, opts: RoutingOptions, connected: list[model_router.Candidate] | None = None
+    ) -> list[model_router.Candidate]:
+        """The models routing may choose from. Raises ValueError for an unknown price-table ID."""
+        catalog = {c.id: c for c in self.catalog_candidates()}
+        if opts.candidates is None:
+            chosen = list(catalog.values())
+        else:
+            chosen = []
+            for item in opts.candidates:
+                if isinstance(item, str):
+                    if item not in catalog:
+                        raise ValueError(
+                            f"Unknown model {item!r}. Use an ID from GET /v1/pricing or a custom model object."
+                        )
+                    chosen.append(catalog[item])
+                else:
+                    chosen.append(
+                        model_router.Candidate(
+                            id=item.id,
+                            name=item.name or item.id,
+                            provider=PROVIDER_NAMES[item.provider],
+                            adapter=item.provider,
+                            tier=item.tier,
+                            input=item.input_price,
+                            output=item.output_price,
+                            source="custom",
+                            base_url=item.base_url,
+                            api_model=item.model,
+                            inline_key=item.api_key,
+                        )
+                    )
+        if opts.include_connected and connected:
+            seen = {c.id for c in chosen}
+            chosen += [c for c in connected if c.id not in seen]
+        ids = [c.id for c in chosen]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Candidate model IDs must be unique.")
+        return chosen
+
+    def decide(
+        self, a: Analysis, opts: RoutingOptions, candidates: list[model_router.Candidate]
+    ) -> model_router.RouteDecision:
+        answers = a.judged.answers
+        missing = sorted(
+            (c for c, p in a.pqs.missing.items() if p >= self.cfg.pqs.missing_threshold),
+            key=lambda c: -a.pqs.missing[c],
+        )
+        return model_router.route(
+            candidates=candidates,
+            complexity_probs=answers.scores["complexity"].probabilities,
+            input_tokens=a.input_o200k,
+            output_p50=a.output_p50,
+            output_p90=a.output_p90,
+            verdict=a.lint.verdict,
+            first_try=a.raw["first_try_success"],
+            missing=missing,
+            task_type=a.task_type,
+            strategy=opts.strategy,
+            baseline_id=opts.baseline_model,
+            max_cost_usd=opts.max_cost_usd,
+        )
+
+    @staticmethod
+    def _routed(r: model_router.Ranked | None) -> RoutedModel | None:
+        if r is None:
+            return None
+        c = r.candidate
+        return RoutedModel(
+            id=c.id,
+            name=c.name,
+            provider=c.provider,
+            tier=c.tier,
+            source=c.source,
+            capable=r.capable,
+            est_cost_usd_p50=round(r.cost_p50, 8),
+            est_cost_usd_p90=round(r.cost_p90, 8),
+        )
+
+    def routing_out(self, d: model_router.RouteDecision) -> Routing:
+        return Routing(
+            strategy=d.strategy,
+            action=d.action,
+            required_tier=d.required_tier,
+            complexity=d.complexity,
+            recommended=self._routed(d.chosen),
+            fallback=self._routed(d.fallback),
+            reason=d.reason,
+            clarify_reason=d.clarify_reason,
+            baseline=self._routed(d.baseline),
+            savings_usd=round(d.savings_usd, 8),
+            savings_percent=round(d.savings_percent, 1),
+            alternatives=[self._routed(r) for r in d.ranked],
+            warnings=d.warnings,
+        )
+
     # ------------------------------------------------------------ renderers
-    def web_report(self, a: Analysis) -> AnalyzeResponse:
+    def web_report(self, a: Analysis, strategy: str = "balanced") -> AnalyzeResponse:
         answers = a.judged.answers
         first = a.costs[0]
         return AnalyzeResponse(
@@ -311,6 +433,9 @@ class Analyzer:
                 for r in a.costs
             ],
             tips=[TipOut(id=t.id, signal=t.signal, text=t.text, impact=t.impact) for t in a.tips],
+            routing=self.routing_out(
+                self.decide(a, RoutingOptions(strategy=strategy), self.catalog_candidates())
+            ),
             meta=Meta(
                 backend=a.judged.backend,
                 degraded=a.judged.degraded,
@@ -333,6 +458,7 @@ class Analyzer:
         include_suggestions: bool,
         include_confidence: bool,
         stored: bool,
+        routing: Routing | None = None,
     ) -> ScoreResponse:
         answers = a.judged.answers
         cfg = self.cfg
@@ -410,13 +536,14 @@ class Analyzer:
             else None,
             confidence=confidence,
             tier_hint=a.tier,
-            suggested_model=a.suggested_model,
+            suggested_model=routing.recommended.id if routing and routing.recommended else a.suggested_model,
             backend=BackendInfo(
                 name=a.judged.backend,
                 version=version,
                 degraded=a.judged.degraded,
                 fallback_reason=a.judged.fallback_reason,
             ),
+            routing=routing,
             stored=stored,
             cached=a.cached,
             latency_ms=a.elapsed_ms,

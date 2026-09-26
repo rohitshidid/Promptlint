@@ -18,6 +18,8 @@ dependencies = [
   "alembic>=1.13",
   "aiosqlite>=0.20",   # local dev and tests
   "asyncpg>=0.29",     # Postgres in production (Neon free tier)
+  "cryptography>=43",  # encrypts users' saved LLM provider keys
+  "httpx2>=2.0",       # provider calls (also used by the Anthropic and TypeSafe SDKs)
 ]
 
 [project.optional-dependencies]

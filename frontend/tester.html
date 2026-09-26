@@ -125,6 +125,25 @@
   .notice ul { margin: 8px 0 0; padding-left: 20px; }
   .notice .more { margin-top: 8px; font-size: .85rem; opacity: .9; }
 
+  /* ---- routing */
+  .route-card { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; padding: 16px 18px; border-radius: 16px;
+                background: linear-gradient(180deg, var(--accent-soft), #fff); border: 1px solid rgba(4,120,87,.25); }
+  @media (max-width: 640px) { .route-card { grid-template-columns: 1fr; } .route-card .save { justify-self: start; } }
+  .route-card small { display: block; font-size: .72rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); }
+  .route-card b { display: block; font-size: 1.35rem; letter-spacing: -0.02em; margin-top: 2px; }
+  .route-card span { color: var(--ink-soft); font-size: .86rem; }
+  .save { display: inline-block; background: var(--good-soft); color: var(--good-ink); border-radius: 999px; padding: 6px 12px; font-weight: 650; font-size: .88rem; white-space: nowrap; }
+  .save.none { background: var(--bg-tint); color: var(--ink-soft); }
+  .why { margin: 14px 0 0; line-height: 1.55; color: var(--ink-soft); font-size: .95rem; }
+  .why b { color: var(--ink); }
+  table.cost tr.pick td { background: var(--accent-soft); }
+  table.cost .tag { display: inline-block; font-size: .7rem; font-weight: 650; border-radius: 999px; padding: 1px 8px; margin-left: 6px; background: var(--bg-tint); color: var(--ink-soft); }
+  table.cost tr.pick .tag { background: var(--accent); color: #fff; }
+  .answer { background: var(--bg-tint); border: 1px solid var(--line-soft); border-radius: 12px; padding: 14px 16px; white-space: pre-wrap; line-height: 1.6; font-size: .95rem; max-height: 520px; overflow: auto; }
+  .attempts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .attempts span { font-size: .78rem; font-family: var(--mono); border-radius: 999px; padding: 3px 10px; background: var(--good-soft); color: var(--good-ink); }
+  .attempts span.fail { background: var(--bad-soft); color: var(--bad-ink); }
+
   details.raw { margin-top: 6px; }
   details.raw summary { cursor: pointer; color: var(--ink-soft); padding: 8px 0; font-size: .9rem; }
   details.raw pre { margin: 6px 0 0; max-height: 480px; overflow: auto; }
@@ -138,7 +157,7 @@
 <nav class="nav" id="nav">
   <div class="wrap nav-in">
     <a class="nav-brand" id="linkSite" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
-    <span class="nav-ver">v1.1</span>
+    <span class="nav-ver">v1.2</span>
     <div class="nav-links">
       <a class="opt" id="linkApp" href="app.html">Analyzer</a>
       <a class="opt" id="linkDocs" href="docs.html">API docs</a>
@@ -151,7 +170,7 @@
 <header class="t-head">
   <div class="narrow">
     <h1>Check a prompt with your key</h1>
-    <p>Paste a prompt you're about to send to ChatGPT, Claude or Gemini. PromptLint checks it through the API with your key and explains, in plain words, whether an AI will understand it and what to add.</p>
+    <p>Paste a prompt you're about to send to ChatGPT, Claude or Gemini. PromptLint checks it through the API with your key and explains, in plain words, whether an AI will understand it, what to add, and which AI model to send it to.</p>
     <div class="status waking" id="status" role="status"><i></i><span id="statusText">Connecting to the server…</span></div>
   </div>
 </header>
@@ -198,6 +217,29 @@
         <span class="f">Show the cost on</span>
         <div class="chips" id="models"><span class="hint">Loading models…</span></div>
       </div>
+    </div>
+
+    <div class="two-cols">
+      <div class="fg">
+        <label class="f" for="strategySelect">Pick the AI model for</label>
+        <select class="t" id="strategySelect">
+          <option value="balanced">Balance of price and quality (recommended)</option>
+          <option value="cheapest">Lowest price</option>
+          <option value="quality">Best quality</option>
+        </select>
+        <p class="hint" id="strategyHint"></p>
+      </div>
+      <div class="fg">
+        <label class="f" for="baselineSelect">Show savings compared with</label>
+        <select class="t" id="baselineSelect"><option value="">The most expensive model</option></select>
+        <p class="hint">What you'd pay if you always sent every prompt to this one model.</p>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label class="check" style="margin-top:0"><input type="checkbox" id="executeToggle"> Also send the prompt to the recommended AI and show its answer</label>
+      <p class="hint">Uses the AI provider keys connected on your <a id="providersLink" href="account.html#providers-box">account page</a> (OpenAI, Anthropic, Gemini or your own endpoint).
+        Off, or with no keys connected, you only get the recommendation. Nothing is sent to an AI and nothing is charged by a provider.</p>
     </div>
 
     <details class="adv"><summary>Advanced</summary>
@@ -273,6 +315,8 @@
         quota_exceeded: ["You've used today's free checks", ["The free plan resets every day at midnight UTC."]],
         prompt_too_long: ["The prompt is too long", ["Prompts can be up to 32,000 characters. Shorten it and try again."]],
         unknown_model: ["One of the selected models isn't known", ["Pick models from the list on this page."]],
+        invalid_routing: ["The model-picking settings aren't valid", ["Pick a different \"Show savings compared with\" model and try again."]],
+        invalid_base_url: ["A connected AI endpoint's address isn't allowed", ["Check the custom endpoint on your account page. It must be a public https:// address."]],
         invalid_request: ["Something in the request isn't right", ["Make sure the prompt box isn't empty."]],
         backend_unavailable: ["The Jev AI judge is down right now", ["Switch \"Who checks the prompt\" to Automatic or Simple rules and try again."]],
         account_disabled: ["This account is disabled", ["Contact whoever runs this PromptLint server."]],
@@ -292,6 +336,12 @@
     };
     const fallbackText = (reason) => FALLBACK[reason] || "The Jev AI judge wasn't available.";
 
+    const STRATEGY_HINT = {
+        balanced: "The cheapest model that is very likely good enough for this prompt.",
+        cheapest: "The cheapest model that can probably handle it. Saves the most, with a bit more risk.",
+        quality: "The strongest kind of model for this prompt, and the cheapest one of those.",
+    };
+    const PROVIDER = { anthropic: "Anthropic", openai: "OpenAI", google: "Google", gemini: "Google", custom: "Your endpoint", openai_compatible: "Your endpoint" };
     const BACKEND_HINT = {
         auto: "Uses the Jev AI judge. If it's unavailable, simple rules take over so you still get an answer.",
         jev: "Always the Jev AI judge. Shows an error if it's unavailable.",
@@ -317,6 +367,12 @@
     const syncBackendHint = () => { $("backendHint").textContent = BACKEND_HINT[$("backendSelect").value]; };
     $("backendSelect").addEventListener("change", syncBackendHint);
     syncBackendHint();
+    const syncStrategyHint = () => { $("strategyHint").textContent = STRATEGY_HINT[$("strategySelect").value]; };
+    $("strategySelect").value = store.get("pl_live_strategy") || "balanced";
+    $("strategySelect").addEventListener("change", () => { store.set("pl_live_strategy", $("strategySelect").value); syncStrategyHint(); });
+    syncStrategyHint();
+    $("executeToggle").checked = store.get("pl_live_execute") === "1";
+    $("executeToggle").addEventListener("change", () => store.set("pl_live_execute", $("executeToggle").checked ? "1" : null));
     document.querySelectorAll("[data-example]").forEach((b) => b.onclick = () => { $("promptText").value = EXAMPLES[b.dataset.example]; $("promptText").focus(); });
 
     // Free servers sleep after 15 idle minutes; wake it as soon as the page opens.
@@ -350,7 +406,7 @@
 
     async function loadModels() {
         if (server() !== location.origin) {
-            for (const [id, path] of [["accountLink", "/account.html"], ["linkAccount", "/account.html"], ["linkDocs", "/docs.html"], ["linkApp", "/app.html"], ["linkSite", "/"]]) $(id).href = server() + path;
+            for (const [id, path] of [["accountLink", "/account.html"], ["providersLink", "/account.html#providers-box"], ["linkAccount", "/account.html"], ["linkDocs", "/docs.html"], ["linkApp", "/app.html"], ["linkSite", "/"]]) $(id).href = server() + path;
         }
         const box = $("models");
         try {
@@ -359,6 +415,11 @@
             const chosen = new Set(JSON.parse(store.get("pl_live_models") || "null") || p.default_models);
             box.innerHTML = p.models.map((m) =>
                 `<button type="button" class="chip" data-model="${esc(m.id)}" aria-pressed="${chosen.has(m.id)}" title="$${m.input}/M input · $${m.output}/M output">${esc(m.name)}</button>`).join("");
+            const base = $("baselineSelect"), savedBase = store.get("pl_live_baseline") || "";
+            base.innerHTML = `<option value="">The most expensive model</option>` + p.models.map((m) =>
+                `<option value="${esc(m.id)}">Always ${esc(m.name)}</option>`).join("");
+            base.value = p.models.some((m) => m.id === savedBase) ? savedBase : "";
+            base.onchange = () => store.set("pl_live_baseline", base.value || null);
             box.querySelectorAll("[data-model]").forEach((b) => b.onclick = () => {
                 b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true");
                 store.set("pl_live_models", JSON.stringify(selectedModels()));
@@ -409,7 +470,60 @@
         return parts.join(" ");
     }
 
-    function render(d, headers, elapsed) {
+    const pctText = (x) => Math.floor(x + 0.5) + "%";
+    function routingBox(rt) {
+        if (!rt) return "";
+        let html = "";
+        if (rt.action === "clarify_first") {
+            html += `<div class="notice warn"><b>Fix the prompt before sending it to any AI.</b>
+                ${esc(rt.clarify_reason || "It's so unclear that any model would probably have to guess, and you'd pay for a second try.")}
+                <div class="more">The model below is what we'd pick once it's clearer.</div></div>`;
+        }
+        const r = rt.recommended;
+        if (!r) {
+            return html + `<div class="box"><h2>Which AI to send it to</h2><p class="sub" style="margin:0">${esc(rt.reason || "No model fits these settings.")}</p></div>`;
+        }
+        const saves = rt.baseline && rt.baseline.id !== r.id && rt.savings_usd > 0;
+        html += `<div class="box"><h2>Which AI to send it to</h2>
+            <p class="sub">PromptLint picks the model for each prompt, so easy prompts don't go to expensive models.</p>
+            <div class="route-card"><div><small>Recommended</small><b>${esc(r.name)}</b>
+                <span>${esc(PROVIDER[r.provider] || r.provider)} · ${esc(r.tier)} model · about ${money(r.est_cost_usd_p50)} per request</span></div>
+                ${saves ? `<span class="save">${pctText(rt.savings_percent)} cheaper than ${esc(rt.baseline.name)}</span>`
+                    : `<span class="save none">${rt.baseline && rt.baseline.id === r.id ? "Same as your comparison model" : "No savings here"}</span>`}</div>
+            <p class="why">${esc(rt.reason)}${rt.fallback ? ` If it fails, try <b>${esc(rt.fallback.name)}</b>.` : ""}</p>
+            ${saves ? `<p class="why">Sending 1,000 prompts like this one would cost about <b>${money(r.est_cost_usd_p50 * 1000)}</b> instead of <b>${money((r.est_cost_usd_p50 + rt.savings_usd) * 1000)}</b>.</p>` : ""}
+            ${(rt.warnings || []).map((w) => `<p class="hint">⚠ ${esc(w)}</p>`).join("")}`;
+        if (rt.alternatives && rt.alternatives.length) {
+            const rows = [r, ...rt.alternatives.filter((m) => m.id !== r.id)];
+            html += `<h2 style="margin-top:20px;font-size:1rem">All the models we compared</h2>
+                <div class="table-scroll"><table class="cost" style="margin-top:8px"><thead><tr><th>AI model</th><th>Good enough?</th><th class="r">One request</th></tr></thead><tbody>
+                ${rows.map((m, k) => `<tr class="${k === 0 ? "pick" : ""}"><td>${esc(m.name)}${k === 0 ? '<span class="tag">pick</span>' : rt.fallback && m.id === rt.fallback.id ? '<span class="tag">backup</span>' : ""}
+                    <small>${esc(PROVIDER[m.provider] || m.provider)} · ${esc(m.tier)}${m.source !== "catalog" ? " · yours" : ""}</small></td>
+                    <td>${m.capable ? "Yes" : "Probably not"}</td>
+                    <td class="r">${money(m.est_cost_usd_p50)}<small>up to ${money(m.est_cost_usd_p90)}</small></td></tr>`).join("")}
+                </tbody></table></div>`;
+        }
+        return html + "</div>";
+    }
+
+    function executionBox(x, wanted, clarify) {
+        if (!x || (!wanted && !x.executed)) return "";
+        if (!x.executed) {
+            return `<div class="box"><h2>The AI's answer</h2><p class="sub" style="margin:0">${clarify
+                    ? "Not sent, because the prompt should be made clearer first (see the note above). Fix it and check again."
+                    : `${/^No key/.test(x.reason || "") || !x.reason ? "Not sent: you haven't connected an AI provider key yet." : /^Every/.test(x.reason) ? "Not sent: every model we tried returned an error (details below)." : esc(x.reason)}
+                Connect a key on your <a href="${esc(server())}/account.html#providers-box">account page</a> to get answers here.`}</p>
+                ${x.attempts && x.attempts.length ? `<div class="attempts">${x.attempts.map((a) => `<span class="${a.ok ? "" : "fail"}" title="${esc(a.error || "")}">${esc(a.model)} ${a.ok ? "✓" : "✕"}</span>`).join("")}</div>` : ""}</div>`;
+        }
+        return `<div class="box"><h2>The AI's answer</h2>
+            <p class="sub">From <b>${esc(x.model_used)}</b>${x.provider ? ` (${esc(PROVIDER[x.provider] || x.provider)})` : ""}
+            · ${(x.input_tokens ?? 0).toLocaleString()} tokens in, ${(x.output_tokens ?? 0).toLocaleString()} out
+            ${x.cost_usd != null ? `· cost about ${money(x.cost_usd)}` : ""}${x.latency_ms != null ? ` · ${(x.latency_ms / 1000).toFixed(1)} s` : ""}</p>
+            <div class="answer">${esc(x.output || "")}</div>
+            ${x.attempts && x.attempts.length > 1 ? `<p class="hint">The first choice failed, so the backup was used:</p><div class="attempts">${x.attempts.map((a) => `<span class="${a.ok ? "" : "fail"}" title="${esc(a.error || "")}">${esc(a.model)} ${a.ok ? "✓" : "✕"}</span>`).join("")}</div>` : ""}</div>`;
+    }
+
+    function render(d, headers, elapsed, wanted) {
         const s = d.signals, v = VERDICT[d.scores.verdict];
         const firstTry = s.first_try_success;
         const missingSet = new Set(s.missing_components);
@@ -426,6 +540,9 @@
             <p class="plain">${summarize(d)}</p>
             <p class="second-score">Second opinion: <b>PQS score ${d.scores.pqs_score}/100</b>, a different formula that puts more weight on
             how complete and clear the prompt is. When both are low, the prompt really needs more detail.</p></div></div></div>`;
+
+        html += routingBox(d.routing);
+        html += executionBox(d.execution, wanted, d.routing && d.routing.action === "clarify_first");
 
         html += `<div class="box"><h2>The key numbers</h2><p class="sub">Each bar is 0–100%. Green is good, orange is so-so, red needs attention.</p><div class="meters">
             ${meter("Chance it works first time", firstTry, firstTry >= 0.7 ? "The AI will probably get it right without you having to ask again." : "You'll probably need to send a follow-up message to get what you want.")}
@@ -464,7 +581,7 @@
                 <p class="sub">Your prompt is about <b>${d.tokens.input.o200k_base}</b> tokens (a token is roughly ¾ of a word). A typical answer would be
                 about <b>${d.tokens.output_p50.toLocaleString()}</b> tokens, sometimes up to ${d.tokens.output_p90.toLocaleString()}. Prices are the AI companies' own.</p>
                 <div class="table-scroll"><table class="cost"><thead><tr><th>AI model</th><th class="r">One request</th><th class="r">1,000 requests</th></tr></thead><tbody>
-                ${d.cost_estimates.map((c) => `<tr><td>${esc(c.name)}<small>${esc(c.provider)}${c.model === d.suggested_model ? " · good fit for this prompt" : ""}</small></td>
+                ${d.cost_estimates.map((c) => `<tr><td>${esc(c.name)}<small>${esc(c.provider)}${c.model === d.suggested_model ? " · recommended for this prompt" : ""}</small></td>
                     <td class="r">${money(c.usd_p50)}<small>up to ${money(c.usd_p90)}</small></td>
                     <td class="r">${money(c.usd_p50 * 1000)}<small>up to ${money(c.usd_p90 * 1000)}</small></td></tr>`).join("")}
                 </tbody></table></div>
@@ -511,11 +628,15 @@
         if (system) payload.system = system;
         const models = selectedModels();
         if (models.length) payload.models = models;
+        const wanted = $("executeToggle").checked;
+        payload.execute = wanted;
+        payload.routing = { strategy: $("strategySelect").value };
+        if ($("baselineSelect").value) payload.routing.baseline_model = $("baselineSelect").value;
 
-        $("submitBtn").disabled = true; $("btnText").textContent = "Checking…"; $("btnLoader").style.display = "block";
+        $("submitBtn").disabled = true; $("btnText").textContent = wanted ? "Checking and asking the AI…" : "Checking…"; $("btnLoader").style.display = "block";
         const t0 = performance.now();
         try {
-            const response = await fetch(server() + "/v1/score", {
+            const response = await fetch(server() + "/v1/route", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
                 body: JSON.stringify(payload),
@@ -524,7 +645,7 @@
             let data = null;
             try { data = await response.json(); } catch { /* not JSON */ }
             results.style.display = "block";
-            results.innerHTML = response.ok ? render(data, response.headers, elapsed) : renderError(response.status, data, elapsed);
+            results.innerHTML = response.ok ? render(data, response.headers, elapsed, wanted) : renderError(response.status, data, elapsed);
             const copy = $("copyTemplate"), use = $("useTemplate");
             if (copy) copy.onclick = async () => { try { await navigator.clipboard.writeText($("template").innerText); copy.textContent = "Copied"; } catch { copy.textContent = "Select and copy"; } };
             if (use) use.onclick = () => { $("promptText").value = $("template").innerText; $("promptText").focus(); window.scrollTo({ top: 0, behavior: "smooth" }); };

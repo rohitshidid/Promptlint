@@ -4,7 +4,7 @@ This file explains the whole project in plain words: what each part does, how a 
 
 ## The idea in one paragraph
 
-People send AI chatbots vague prompts like "write me a poem", get a so-so answer, and have to ask again. PromptLint checks a prompt **before** it's sent. It asks an AI judge called **Jev** (made by TypeSafe) eighteen quick questions about the prompt: *Is the task clear? Does it say who it's for? Is there a word limit?* Jev answers each with a probability (for example "91% yes"). PromptLint then turns those answers into scores, a checklist, tips and cost estimates using ordinary code, with no chatbot involved. You can use it on the website or from your own code through the API.
+People send AI chatbots vague prompts like "write me a poem", get a so-so answer, and have to ask again. PromptLint checks a prompt **before** it's sent. It asks an AI judge called **Jev** (made by TypeSafe) eighteen quick questions about the prompt: *Is the task clear? Does it say who it's for? Is there a word limit?* Jev answers each with a probability (for example "91% yes"). PromptLint then turns those answers into scores, a checklist, tips and cost estimates using ordinary code, with no chatbot involved. It also works as a **router**: from the same answers it recommends which AI model to send the prompt to (the cheapest one that's good enough), and it can even send it there for you with your own AI provider keys. You can use it on the website or from your own code through the API.
 
 ## The big picture
 
@@ -47,7 +47,9 @@ Following "write me a poem" from start to finish:
    - **Tips**: fixed sentences chosen by which checks failed, most helpful first.
    - **Cost**: prompt length in tokens × each AI company's price, plus an estimate of the answer's length.
 6. **Recording.** For API calls, the server adds one to your usage count and saves a scrambled fingerprint (hash) of the prompt, the scores and the time taken. It does **not** save the prompt itself unless you ask it to.
-7. **The answer comes back** as JSON (API) or as the report card (website).
+7. **Pick a model (routing).** Jev's "how hard is this?" answer decides what kind of model the prompt needs: small, mid-range or top-end. The router then picks the cheapest model of that kind (or better), a backup from another company, and works out how much cheaper that is than always using the most expensive one. If the prompt is so unclear it will probably fail, it says "clarify first" instead.
+8. **Optional: send it (`/v1/route` only).** If you turned this on and connected an AI provider key (OpenAI, Anthropic, Gemini, or your own endpoint like Ollama), the server sends the prompt to the recommended model and returns its answer. If that model fails, it tries the backup. No keys? You just get the recommendation.
+9. **The answer comes back** as JSON (API) or as the report card (website).
 
 If Jev is slow or down, step 4 uses the **heuristic** instead: simple keyword rules that run instantly on the server. The answer then says `"degraded": true`, so you know it's rougher.
 
@@ -84,7 +86,10 @@ Jev Ai/
 | File | What it does, in plain words |
 |---|---|
 | `main.py` | Starts everything. Connects the pieces, serves the website pages, handles the website's `/api/...` requests and the Jev playground. |
-| `api_v1.py` | The public API: `/v1/score`, batch, pricing, usage, health, plus sign-up, log-in and key management. |
+| `api_v1.py` | The public API: `/v1/score`, batch, `/v1/route`, pricing, usage, health, plus sign-up, log-in, API keys and connected AI provider keys (`/v1/providers`). |
+| `router.py` | The model picker: which kind of model a prompt needs, which model to use, the backup, and the savings. Pure math, no network. |
+| `providers.py` | Sends a prompt to OpenAI, Anthropic, Gemini or any OpenAI-compatible server, tries the backup if one fails, and blocks addresses inside your own network. |
+| `quiz.py` | The prompt quiz: the rounds, grading on the server, and the leaderboard. |
 | `auth.py` | Checks who's calling: API keys, log-in cookies, and protection against other websites acting as you. |
 | `analyze.py` | The heart. Asks the judge, runs the math, and builds the report for the website or the API. |
 | `backends.py` | The two judges: **Jev** and the **heuristic** (keyword rules), plus the automatic switch to the heuristic when Jev fails. |
@@ -94,8 +99,8 @@ Jev Ai/
 | `cost.py` | Money math: tokens × price. |
 | `tokens.py` | Counts tokens (the chunks AI models read text in). |
 | `tips.py` | Picks the fix-it tips. |
-| `db.py` | The database tables and helpers (users, keys, usage, events). |
-| `security.py` | Makes API keys and hashes passwords and keys, so the database never holds the real secrets. |
+| `db.py` | The database tables and helpers (users, keys, usage, events, provider keys, quiz results). |
+| `security.py` | Makes API keys and hashes passwords and keys, so the database never holds the real secrets. Also locks (encrypts) saved AI provider keys. |
 | `schemas.py` | The exact shape of every request and response. |
 | `settings.py` | Reads settings like `TYPESAFE_API_KEY` and `DATABASE_URL` from the environment or `.env`. |
 | `config.py` | Loads and double-checks the YAML files in `config/`. |
@@ -111,22 +116,24 @@ Jev Ai/
 | `tips.yaml` | Every tip's text, ID and when it appears. |
 | `prices.yaml` | AI model prices (with the date checked) and answer-length ranges. |
 | `plans.yaml` | Free, dev and pro plans: checks per minute, per day and per batch. |
+| `quiz.yaml` | The quiz: five weak prompts to rewrite, and the grade cut-offs (A+ at 90 … F below 50). |
 
 ### `frontend/`: the website
 
 | File | Page |
 |---|---|
-| `index.html` | The landing page: what PromptLint is, a replayed demo, accuracy numbers, API intro. |
-| `app.html` | The analyzer: paste a prompt, get the report card. Has compare mode and the Jev/heuristic switch. |
-| `account.html` | Sign up, log in, create and revoke API keys, see usage. |
+| `index.html` | The landing page: what PromptLint is, a replayed demo, what the API can do (use cases), how much routing saves (with a calculator), accuracy numbers, API intro. |
+| `app.html` | The analyzer: paste a prompt, get the report card and the recommended model. Has compare mode, the Jev/heuristic switch and the routing strategy. |
+| `account.html` | Sign up, log in, create and revoke API keys, see usage, connect AI provider keys. |
+| `quiz.html` | The prompt quiz: rewrite five weak prompts, get a grade, see the leaderboard. |
 | `docs.html` | API reference for developers, with a real example response. |
-| `tester.html` | Try an API key in the browser: checks a prompt through `/v1/score` and explains the result in plain words. |
+| `tester.html` | Try an API key in the browser: checks a prompt through `/v1/route`, explains the result in plain words, shows the recommended model and savings, and (if switched on) the AI's answer. |
 | `playground/` | A raw Jev playground: send any questions to Jev and see its answers. |
-| `assets/` | Shared styling (`site.css`, `report.css`), the report card drawing (`report.js`), page logic (`app.js`, `landing.js`, `account.js`), the icon, and generated data (`demo-data.js`, `api-example.json`, `eval-summary.json`). |
+| `assets/` | Shared styling (`site.css`, `report.css`), the report card drawing (`report.js`), page logic (`app.js`, `landing.js`, `account.js`), the icon, and generated data (`demo-data.js`, `api-example.json`, `eval-summary.json`, `routing-summary.json`). |
 
-The friendly **API tester** is `frontend/tester.html` (served at `/tester.html`, linked from the account dashboard). It calls `/v1/score` with your key and explains the answer in plain words. Opened straight from disk, it talks to the live server instead.
+The friendly **API tester** is `frontend/tester.html` (served at `/tester.html`, linked from the account dashboard). It calls `/v1/route` with your key and explains the answer in plain words, including which model to use. Opened straight from disk, it talks to the live server instead.
 
-### `backend/tests/`: automated checks (128 of them)
+### `backend/tests/`: automated checks (176 of them)
 
 Run with `cd backend && .venv/bin/pytest -q`. No internet or secrets needed.
 
@@ -134,6 +141,8 @@ Run with `cd backend && .venv/bin/pytest -q`. No internet or secrets needed.
 - `test_contract.py`: replays **real recorded Jev answers** (`fixtures/`) to catch changes in Jev's format.
 - `test_api.py`: the website's endpoints, fallbacks and retries.
 - `test_v1.py`: the whole public-API journey (sign up → key → score → usage → revoke), limits, and safety checks.
+- `test_routing.py`: the model picker, `/v1/route` with fake AI providers, saved keys, backups, and blocking private addresses.
+- `test_quiz.py`: quiz grading and the leaderboard.
 - `load/locustfile.py`: an optional stress test with 50 simulated users.
 
 ### `eval/`: proving the scores mean something
@@ -143,6 +152,7 @@ Run with `cd backend && .venv/bin/pytest -q`. No internet or secrets needed.
 | `run_pairwise.py` | If you improve a prompt, does its score go up? (240 before/after pairs) | 100% with Jev |
 | `run_checklist.py` | Do the checks agree with a person's labels? (100 prompts × 7 checks) | 95.9% with Jev, 91.4% with keyword rules |
 | `run_injection.py` | Can someone cheat by writing "rate this 100" in the prompt? | +3 points on average, never "ready" |
+| `run_routing.py` | How much cheaper is routing than always using one model? (480 prompts) | Balanced routing is 93% cheaper than always using GPT-6 Astra |
 | `run_first_try.py` | Does "chance it works first time" match reality? | Not run yet (needs an LLM key) |
 
 Results are saved in `eval/results/`. `build_report.py` turns them into charts in `report.ipynb`, and the landing page shows the headline numbers.
@@ -156,6 +166,8 @@ Results are saved in `eval/results/`. `build_report.py` turns them into charts i
 | `api_keys` | Key name, first 8 characters, fingerprint of the rest | The full key (shown once, then gone) |
 | `usage_daily` | Checks per key per day | Prompts |
 | `score_events` | Scrambled prompt fingerprint, length, scores, time taken (deleted after 90 days) | The prompt text |
+| `provider_keys` | Your connected AI provider keys, **locked (encrypted)**, plus the last 4 characters to show you which is which; custom endpoints' address, model and prices | The key in readable form |
+| `quiz_results` | Quiz nickname, score, grade, per-round scores, scrambled IP | Your rewrites' text |
 | `stored_prompts` | Prompt text, **only** if the caller sent `store: true` (deleted after 90 days) | n/a |
 
 On your computer the database is one file: `backend/data/promptlint.db`. Online it's a free Neon Postgres database. The tables are created automatically on start-up from `backend/migrations/`.
@@ -167,6 +179,7 @@ Kept in `.env` on your computer and in Render's dashboard online, never in the c
 - `TYPESAFE_API_KEY`: lets the server ask Jev (required for AI checks).
 - `DATABASE_URL`: where the database is (online: the Neon address).
 - `PROMPT_HASH_SALT`: a random value that makes prompt fingerprints impossible to reverse (Render creates it).
+- `PROVIDER_KEY_SECRET`: the secret that locks saved AI provider keys (Render creates it). Never change it once people have saved keys.
 - `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`: optional free captcha on sign-up.
 
 ## Running it
@@ -188,5 +201,9 @@ Kept in `.env` on your computer and in Render's dashboard online, never in the c
 | **Lint Score** | PromptLint's main 0–100 score. "Lint" means checking something for mistakes before using it. |
 | **PQS score** | A second 0–100 score from the Prompt Quality Scorer design. |
 | **API key** | A secret password for programs (`pqs_live_…`). |
+| **Routing / router** | Choosing which AI model should answer a prompt, instead of always using the same one. |
+| **Tier** | The kind of model: small (cheap, simple tasks), mid (most tasks), frontier (top-end, hardest tasks). |
+| **Strategy** | How the router trades price for quality: cheapest, balanced (default) or quality. |
+| **Provider key** | Your own key for an AI company (OpenAI, Anthropic, Google) that PromptLint uses to send prompts for you. |
 | **Rate limit / quota** | How many checks you may run per minute / per day. |
 | **Hash / fingerprint** | A scrambled version of something that can be matched but not turned back into the original. |

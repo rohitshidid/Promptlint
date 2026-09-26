@@ -7,14 +7,19 @@ Last updated: 25 September 2026.
 
 These matter because once it's public, strangers can sign up and every check they run costs you a little money on TypeSafe (the Jev AI judge).
 
+- [ ] **Fix the Jev key on Render.** The live site's `TYPESAFE_API_KEY` is being rejected (every check falls back to simple rules). Paste a fresh key from TypeSafe into Render → Environment.
+- [ ] **Check `PROVIDER_KEY_SECRET` is set on Render.** New Blueprint deploys generate it; an existing service needs it added by hand (any long random string). Without it, people can't save LLM keys on their account page.
 - [ ] **Put it online.** Follow "Deploy (free)" in the README: Neon (free database) + Render (free hosting).
-- [ ] **Commit and push the latest work to GitHub.** The public API, accounts, tester fixes and these docs aren't committed yet. Render deploys from GitHub, so it needs them.
 - [ ] **Turn on the captcha for sign-ups.** Without it, a bot could create thousands of accounts. It's free: create a Cloudflare Turnstile widget and set `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` on Render.
 - [ ] **Decide how much Jev spending you're OK with.** Each free account gets 1,000 checks a day. With many friends, that adds up. Lower `daily` in `backend/config/plans.yaml` (for example to 100), and set a spending alert in your TypeSafe dashboard if it has one.
 - [ ] **Revoke the test key that was shared in chat** (`pqs_live_d1gasQeF_…`) on your local account page. It only works locally, but it's good practice.
 - [ ] **Add a short "Terms & privacy" page.** One paragraph: what's stored (email, hashed password, usage counts, no prompts unless someone opts in), that prompts are sent to TypeSafe for checking, and how to delete your account.
 
 ## Soon
+
+- [ ] **Watch the quiz leaderboard for junk nicknames.** There's no moderation yet. Deleting a row needs the database console (`quiz_results` table).
+- [ ] **Measure routing quality, not just cost.** The savings numbers assume the cheaper model is good enough. Run the "first try" test per model to check that the router's picks actually answer well.
+- [ ] **Streaming answers from `/v1/route`.** Right now it waits for the full answer. Streaming would feel faster for long answers.
 
 - [ ] **Email check and password reset.** Right now anyone can sign up with a made-up email, and a forgotten password means a lost account. This needs an email-sending service with a free tier (compare Resend, Brevo, Mailgun and check their current free limits).
 - [ ] **Make the two output-length numbers agree.** The API's `output_range` top can be lower than `output_p90`, which confuses people. Compute both from the same distribution.
@@ -34,5 +39,8 @@ These matter because once it's public, strangers can sign up and every check the
 - Website: landing page, analyzer (single and compare), account page, API docs, API tester, Jev playground.
 - Public API with sign-up, API keys, daily limits, usage tracking, and a fallback when Jev is down.
 - Two scores (Lint and PQS), eleven checks, cost estimates on seven models, fix-it tips.
-- 128 automated tests; accuracy tests on 240 prompt pairs and 100 labeled prompts.
+- Model router: every check says which AI model to use (cheapest / balanced / quality), with savings versus always using one model. `/v1/route` can also call that model with the user's own keys (OpenAI, Anthropic, Gemini, or any OpenAI-compatible endpoint like Ollama), with a backup if it fails.
+- Savings stats and a calculator on the home page, measured on 480 test prompts.
+- Prompt quiz with grades and a leaderboard.
+- 176 automated tests; accuracy tests on 240 prompt pairs and 100 labeled prompts.
 - Docker setup and a free hosting plan (Render + Neon).

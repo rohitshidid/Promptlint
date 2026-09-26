@@ -157,6 +157,30 @@
       Prices from each provider's official page, last updated ${esc(report.meta.prices_last_updated)}.${sugName}</p>`;
   }
 
+  function routingBlock(r) {
+    const rt = r.routing;
+    if (!rt || !rt.recommended) return "";
+    const rec = rt.recommended, fb = rt.fallback, base = rt.baseline;
+    const clarify = rt.action === "clarify_first"
+      ? `<div class="route-clarify" role="note">${ICON.warn}<span><b>Clarify first.</b> ${esc(rt.clarify_reason)}</span></div>` : "";
+    const saves = base && base.id !== rec.id && rt.savings_percent > 0
+      ? `<span class="route-save">${ICON.down} ${Math.round(rt.savings_percent)}% cheaper than ${esc(base.name)}</span>` : "";
+    const alts = rt.alternatives.slice(0, 5).map((m, i) => `<tr class="${m.id === rec.id ? "suggested" : ""}">
+        <td class="model"><b>${i + 1}. ${esc(m.name)}</b><small>${esc(m.provider)} · ${esc(m.tier)}${m.capable ? "" : " · too weak for this prompt"}</small></td>
+        <td class="r">${usd(m.est_cost_usd_p50)}</td></tr>`).join("");
+    return `<div class="rc-block">
+      <p class="rc-label"><span>Recommended model</span><span>${esc(rt.strategy)} routing</span></p>
+      ${clarify}
+      <div class="route-pick">
+        <div><div class="route-name">${esc(rec.name)}</div><div class="route-meta">${esc(rec.provider)} · ${esc(rec.tier)} tier · about ${usd(rec.est_cost_usd_p50)} per request</div></div>
+        ${saves}
+      </div>
+      <p class="route-reason">${esc(rt.reason)}${fb ? ` If it fails, fall back to <b>${esc(fb.name)}</b>.` : ""}</p>
+      <details class="route-alts"><summary>How the ${rt.alternatives.length} models ranked</summary>
+        <div class="table-scroll"><table class="costs" style="min-width:0"><tbody>${alts}</tbody></table></div></details>
+    </div>`;
+  }
+
   function tipsBlock(tips) {
     if (!tips.length) {
       return `<div class="tips-empty">${ICON.check}Nothing to fix. This prompt covers the basics.</div>`;
@@ -215,6 +239,7 @@
         <div class="rc-block"><p class="rc-label"><span>Dimensions</span></p>${radarSVG(dims, radarSeries)}${legend}</div>
         <div class="rc-block"><p class="rc-label"><span>Checklist</span><span>hover for probability</span></p>${checklist(r.checks)}</div>
       </div>
+      ${opts.hideRouting ? "" : routingBlock(r)}
       ${opts.hideCosts ? "" : `<div class="rc-block"><p class="rc-label"><span>Tokens &amp; cost</span><span>${r.tokens.input_exact ? "" : "≈ approx."}</span></p>${costTable(r, opts.modelNames)}</div>`}
       <div class="rc-block"><p class="rc-label"><span>Fix-it tips</span>${r.tips.length ? "<span>+points it could recover</span>" : ""}</p>${tipsBlock(r.tips)}</div>
       <div class="rc-meta">

@@ -168,3 +168,20 @@
              background: #eef4fd; border-color: rgba(42,120,214,.25); font-size: .88rem; color: var(--ink-soft); }
 .rc-notice svg { width: 18px; height: 18px; color: #1c5cab; margin-top: 1px; }
 .rc-notice b { color: var(--ink); }
+
+/* ------------------------------------------------------ routing */
+.route-pick { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+              padding: 14px 16px; border-radius: 12px; background: var(--accent-soft); border: 1px solid rgba(4,120,87,.22); }
+.route-name { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+.route-meta { font-size: .84rem; color: var(--ink-soft); margin-top: 2px; }
+.route-save { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; font-size: .88rem; color: var(--good-ink);
+              background: #fff; border: 1px solid rgba(12,163,12,.3); border-radius: 999px; padding: 5px 12px; }
+.route-save svg { width: 14px; height: 14px; }
+.route-reason { font-size: .9rem; color: var(--ink-soft); margin: 12px 0 0; line-height: 1.55; }
+.route-reason b { color: var(--ink); }
+.route-clarify { display: grid; grid-template-columns: 20px 1fr; gap: 10px; align-items: start; margin-bottom: 12px;
+                 padding: 12px 14px; border-radius: 12px; background: var(--warn-soft); color: var(--warn-ink); font-size: .88rem; line-height: 1.5; }
+.route-clarify svg { width: 16px; height: 16px; margin-top: 2px; }
+.route-clarify b { color: var(--ink); }
+details.route-alts { margin-top: 10px; }
+details.route-alts summary { cursor: pointer; font-size: .82rem; color: var(--ink-faint); }

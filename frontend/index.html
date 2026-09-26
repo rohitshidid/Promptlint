@@ -55,6 +55,35 @@
   .check-card b em { font-style: normal; font-family: var(--mono); font-size: .68rem; font-weight: 500; color: var(--ink-faint); border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; margin-left: auto; }
   .check-card p { margin: 6px 0 0; font-size: .87rem; color: var(--ink-soft); line-height: 1.5; }
 
+  /* ---- use cases */
+  .uc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 54px; }
+  @media (max-width: 900px) { .uc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 580px) { .uc-grid { grid-template-columns: minmax(0, 1fr); } }
+  .uc-ep { display: inline-block; margin-top: 16px; font-family: var(--mono); font-size: .78rem; color: var(--accent); background: var(--accent-soft); border: 1px solid rgba(4,120,87,.18); padding: 3px 9px; border-radius: 7px; white-space: nowrap; }
+  a.uc-ep:hover { text-decoration: none; background: #d9f7ea; }
+
+  /* ---- savings calculator */
+  .calc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 34px; margin-top: 22px; padding: 30px; }
+  @media (max-width: 820px) { .calc { grid-template-columns: minmax(0, 1fr); padding: 22px; } }
+  .calc h3 { font-size: 1.3rem; margin-bottom: 6px; }
+  .calc-in label { display: block; font-size: .84rem; font-weight: 600; color: var(--ink-soft); margin-top: 16px; }
+  .calc-in input[type=number], .calc-in select {
+    display: block; width: 100%; margin-top: 7px; font: inherit; font-size: 1rem; color: var(--ink);
+    padding: 11px 13px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-tint);
+  }
+  .calc-in input:focus, .calc-in select:focus { outline: none; border-color: var(--accent-mid); box-shadow: 0 0 0 4px var(--accent-glow); background: #fff; }
+  .calc-in .calc-check { display: flex; gap: 8px; align-items: center; font-weight: 500; }
+  .calc-check input { accent-color: var(--accent); }
+  .calc-out { background: var(--bg-tint); border-radius: 16px; padding: 22px 24px; min-width: 0; }
+  .calc-big small { display: block; font-size: .8rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
+  .calc-big b { display: block; font-size: clamp(2.2rem, 5vw, 3rem); letter-spacing: -0.04em; line-height: 1.1; margin-top: 4px; color: var(--good-ink); }
+  .calc-big span { display: block; color: var(--ink-soft); font-size: .95rem; margin-top: 2px; }
+  .calc-rows { margin-top: 18px; display: grid; gap: 8px; }
+  .calc-row { display: flex; justify-content: space-between; gap: 12px; font-size: .92rem; padding-bottom: 8px; border-bottom: 1px solid var(--line-soft); }
+  .calc-row span { color: var(--ink-soft); }
+  .calc-row b { font-variant-numeric: tabular-nums; }
+  .calc-note { font-size: .8rem; color: var(--ink-faint); line-height: 1.5; margin: 14px 0 0; }
+
   /* ---- accuracy */
   #acc-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   @media (max-width: 900px) { #acc-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -68,13 +97,13 @@
 <nav class="nav" id="nav">
   <div class="wrap nav-in">
     <a class="nav-brand" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
-    <span class="nav-ver">v1.1</span>
+    <span class="nav-ver">v1.2</span>
     <div class="nav-links">
-      <a class="opt" href="#why">Why</a>
       <a class="opt" href="#how">How it works</a>
-      <a class="opt" href="#checks">Checks</a>
       <a class="opt" href="#accuracy">Accuracy</a>
+      <a class="opt" href="#savings">Savings</a>
       <a class="opt" href="#api">API</a>
+      <a class="opt" href="quiz.html">Quiz</a>
       <a class="opt" href="account.html">Account</a>
       <a class="btn btn-fill btn-sm" href="app.html">Lint a prompt</a>
     </div>
@@ -88,13 +117,13 @@
     <p class="lede reveal" style="--i:2">
       Paste a prompt. PromptLint asks a <strong>decision model</strong> eighteen questions about it in
       <strong>one call</strong>, then hands you a 0–100 score, the odds an LLM gets it <strong>right on the
-      first try</strong>, what's missing, and what it will cost on each model.
+      first try</strong>, what's missing, and <strong>which model to send it to</strong>, with what that saves.
     </p>
     <div class="hero-cta reveal" style="--i:3">
       <a class="btn btn-fill btn-lg" href="app.html">Lint a prompt <span class="arrow">→</span></a>
       <a class="btn btn-ghost btn-lg" href="#how">How it works</a>
     </div>
-    <p class="hero-note reveal" style="--i:4">About 200 ms · no LLM in the loop · nothing stored · no sign-up</p>
+    <p class="hero-note reveal" style="--i:4">About 200 ms · picks the right model per prompt · nothing stored · free API key</p>
 
     <div class="stage reveal" style="--i:5">
       <div class="win" aria-label="PromptLint demo: a vague prompt, then a specific one">
@@ -274,6 +303,97 @@
       <div class="stat pending"><b>…</b><span>median Jev latency across the eval runs</span></div>
     </div>
     <p class="acc-note" id="acc-note">Loading evaluation results…</p>
+  </div>
+</section>
+
+<section id="use-cases">
+  <div class="wrap">
+    <div class="center sec-head">
+      <p class="eyebrow reveal">What you can build</p>
+      <h2 class="reveal" style="--i:1">One API, four jobs.</h2>
+      <p class="lede reveal" style="--i:2">Check a prompt's quality, pick the right model for it, send it there with your own
+        keys, or turn prompting into a game. Each is one HTTP call.</p>
+    </div>
+    <div class="uc-grid">
+      <div class="card reveal" style="--i:0">
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l3.5 3.5L16 5.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Prompt quality scoring</h3>
+        <p>Score, checklist, first-try odds and fix-it tips for any prompt, as JSON. Show it in your app before users hit send.</p>
+        <code class="uc-ep">POST /v1/score</code>
+      </div>
+      <div class="card reveal" style="--i:1">
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3v14M6.5 6.5h5a2 2 0 010 4h-3a2 2 0 000 4H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>Cut wasted LLM spend</h3>
+        <p>When a prompt will probably miss, the API says <strong>clarify first</strong>, so you ask the user one question instead of paying for an answer they'll reject.</p>
+        <code class="uc-ep">routing.action</code>
+      </div>
+      <div class="card reveal" style="--i:2">
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M3 10h5m0 0l4-5h5M8 10l4 5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Model router</h3>
+        <p>Tell it which LLMs you have, from ours or your own with prices. Every request comes back with the model to use, a fallback, and what you save.</p>
+        <code class="uc-ep">routing.recommended</code>
+      </div>
+      <div class="card reveal" style="--i:0">
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M7 9l2 2-2 2m4 0h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Middle layer with your keys</h3>
+        <p>Connect Claude, GPT, Gemini, or any OpenAI-compatible endpoint (Ollama, Groq, OpenRouter). PromptLint picks the model, calls it, falls back if it fails, and returns the answer.</p>
+        <code class="uc-ep">POST /v1/route</code>
+      </div>
+      <div class="card reveal" style="--i:1">
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M4 16V9m4 7V5m4 11v-5m4 5V8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></div>
+        <h3>Prompt analytics</h3>
+        <p>Track how clear your users' prompts are over time, which pieces they usually miss, and what their LLM traffic would cost on each model.</p>
+        <code class="uc-ep">GET /v1/usage</code>
+      </div>
+      <div class="card reveal" style="--i:2">
+        <div class="ico"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3l2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 8.2l5-.7L10 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+        <h3>Quizzes &amp; prompt tests</h3>
+        <p>Rewrite weak prompts, get scored, and climb a leaderboard. Use it to train a team or hire prompt engineers.</p>
+        <a class="uc-ep" href="quiz.html">Take the quiz →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="savings" class="tint">
+  <div class="wrap">
+    <div class="center sec-head">
+      <p class="eyebrow reveal">Savings</p>
+      <h2 class="reveal" style="--i:1">Most prompts don't need your most expensive model.</h2>
+      <p class="lede reveal" style="--i:2">We routed <strong id="sv-n">480</strong> test prompts and compared the cost with sending
+        every one to a single model. The numbers below come from that run, not from guesses.</p>
+    </div>
+    <div class="stats" id="sv-stats" style="margin-top:48px">
+      <div class="stat reveal"><b id="sv-frontier">…</b><span>cheaper than always using a frontier model (average of the three)</span></div>
+      <div class="stat reveal" style="--i:1"><b id="sv-priciest">…</b><span id="sv-priciest-label">cheaper than always using the priciest model</span></div>
+      <div class="stat reveal" style="--i:2"><b id="sv-small">…</b><span>of prompts routed to a small, cheap model; most of the rest go mid-tier</span></div>
+      <div class="stat reveal" style="--i:3"><b id="sv-clarify">…</b><span id="sv-clarify-label">of weak prompts flagged "clarify first" before any money is spent</span></div>
+    </div>
+
+    <div class="calc panel reveal" id="calc">
+      <div class="calc-in">
+        <h3>Estimate your savings</h3>
+        <label>LLM requests per month
+          <input type="number" id="calc-requests" min="1" step="1000" value="100000" inputmode="numeric">
+        </label>
+        <label>What you use today
+          <select id="calc-baseline"></select>
+        </label>
+        <label>Routing strategy
+          <select id="calc-strategy">
+            <option value="balanced">Balanced (best quality for the price)</option>
+            <option value="cheapest">Lowest cost</option>
+            <option value="quality">Best quality</option>
+          </select>
+        </label>
+        <label class="calc-check"><input type="checkbox" id="calc-retries" checked> Count retries avoided by "clarify first"</label>
+      </div>
+      <div class="calc-out" aria-live="polite">
+        <div class="calc-big"><small>You'd save about</small><b id="calc-month">…</b><span id="calc-year"></span></div>
+        <div class="calc-rows" id="calc-rows"></div>
+        <p class="calc-note" id="calc-note"></p>
+      </div>
+    </div>
   </div>
 </section>
 

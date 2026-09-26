@@ -111,12 +111,13 @@
 <nav class="nav" id="nav">
   <div class="wrap nav-in">
     <a class="nav-brand" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
-    <span class="nav-ver">v1.1</span>
+    <span class="nav-ver">v1.2</span>
     <div class="nav-links">
       <a class="opt" href="./#how">How it works</a>
       <a class="opt" href="./#accuracy">Accuracy</a>
       <a class="opt" href="./#privacy">Privacy</a>
       <a class="opt" href="docs.html">API</a>
+      <a class="opt" href="quiz.html">Quiz</a>
       <a class="opt" href="account.html">Account</a>
       <a href="app.html" aria-current="page">Analyzer</a>
     </div>
@@ -157,6 +158,15 @@
       <fieldset class="models">
         <legend>Price it on</legend>
         <div class="model-grid" id="models"><span class="counter">Loading models…</span></div>
+      </fieldset>
+
+      <fieldset class="models">
+        <legend>Route for</legend>
+        <div class="model-grid" id="strategy">
+          <label title="Best quality for the price (default)"><input type="radio" name="strategy" value="balanced" checked>Balanced</label>
+          <label title="Cheapest model that can handle it"><input type="radio" name="strategy" value="cheapest">Lowest cost</label>
+          <label title="Strongest tier, cheapest within it"><input type="radio" name="strategy" value="quality">Best quality</label>
+        </div>
       </fieldset>
 
       <fieldset class="models">

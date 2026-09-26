@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompt quiz · PromptLint</title>
+<meta name="description" content="Rewrite five weak prompts, get graded by the same checks as the PromptLint API, and climb the leaderboard.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/report.css">
+<style>
+  .quiz-head { padding: 44px 0 8px; position: relative; text-align: center; }
+  .quiz-head::before {
+    content: ""; position: absolute; inset: -220px 0 auto; height: 520px; z-index: -1; pointer-events: none;
+    background: radial-gradient(600px 320px at 50% 10%, rgba(16,185,129,.14), transparent 70%),
+                radial-gradient(420px 260px at 80% 0%, rgba(124,58,237,.08), transparent 70%);
+  }
+  .quiz-head h1 { font-size: clamp(2.3rem, 5.4vw, 3.6rem); max-width: 16ch; margin: 0 auto; }
+  .quiz-head .lede { margin: 16px auto 0; max-width: 56ch; }
+  main.wrap { padding: 30px 0 90px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+  @media (max-width: 920px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+  .box { background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-sm); padding: 26px; min-width: 0; }
+  .box h2 { font-size: 1.25rem; letter-spacing: -0.02em; }
+  .muted { color: var(--ink-soft); font-size: .95rem; line-height: 1.55; margin: 8px 0 0; }
+  .how { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; }
+  .how li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; font-size: .95rem; color: var(--ink-soft); line-height: 1.5; }
+  .how b { color: var(--ink); }
+  .how .n { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 700; font-size: .8rem; display: grid; place-items: center; }
+  label.f { display: block; font-size: .84rem; font-weight: 600; color: var(--ink-soft); margin: 20px 0 7px; }
+  input.t, textarea {
+    width: 100%; font: inherit; font-size: 1rem; color: var(--ink); padding: 12px 14px; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--bg-tint); transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  input.t:focus, textarea:focus { outline: none; border-color: var(--accent-mid); background: #fff; box-shadow: 0 0 0 4px var(--accent-glow); }
+  textarea { min-height: 190px; resize: vertical; line-height: 1.55; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 18px; }
+  .row .spacer { flex: 1; }
+  .msg { font-size: .88rem; margin-top: 12px; color: var(--bad-ink); min-height: 1.2em; }
+
+  .progress { display: flex; gap: 6px; margin-bottom: 18px; }
+  .progress i { flex: 1; height: 6px; border-radius: 999px; background: var(--line); }
+  .progress i.done { background: var(--accent-mid); }
+  .progress i.now { background: var(--accent); }
+  .round-k { font-size: .76rem; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  .scenario { margin-top: 14px; background: var(--bg-tint); border-radius: 14px; padding: 14px 16px; font-size: .96rem; line-height: 1.6; color: var(--ink-soft); }
+  .scenario b { color: var(--ink); display: block; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
+  .weak { margin-top: 12px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: .92rem; color: var(--ink-soft); }
+  .weak code { white-space: normal; font-size: .9rem; }
+  .counter { font-size: .78rem; color: var(--ink-faint); margin-top: 6px; text-align: right; }
+
+  .grade-wrap { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; }
+  @media (max-width: 560px) { .grade-wrap { grid-template-columns: 1fr; text-align: center; justify-items: center; } }
+  .grade { width: 128px; height: 128px; border-radius: 30px; display: grid; place-items: center; font-size: 3.4rem; font-weight: 800; letter-spacing: -0.04em; color: #fff;
+           background: linear-gradient(150deg, #10b981, #047857); box-shadow: var(--shadow-lg); }
+  .grade.mid { background: linear-gradient(150deg, #f5b73b, #c47f00); }
+  .grade.low { background: linear-gradient(150deg, #ef6b6b, #b42323); }
+  .grade-title { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+  .grade-sub { color: var(--ink-soft); margin-top: 4px; }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  @media (max-width: 560px) { .pill-row { justify-content: center; } }
+  .rounds { display: grid; gap: 10px; margin-top: 22px; }
+  .rres { display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: start; padding: 14px; border: 1px solid var(--line); border-radius: 14px; }
+  .rres .sc { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em; text-align: center; line-height: 1; padding-top: 4px; }
+  .rres .sc small { display: block; font-size: .68rem; color: var(--ink-faint); font-weight: 500; margin-top: 4px; }
+  .rres b { font-size: .98rem; }
+  .rres p { margin: 4px 0 0; font-size: .88rem; color: var(--ink-soft); line-height: 1.5; }
+
+  .lb-tabs { display: inline-flex; padding: 4px; gap: 4px; background: rgba(22,24,29,.05); border-radius: 999px; margin: 12px 0 14px; }
+  .lb-tabs button { font: inherit; font-size: .84rem; font-weight: 550; border: 0; background: transparent; color: var(--ink-soft); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+  .lb-tabs button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  ol.lb { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  ol.lb li { display: grid; grid-template-columns: 30px 1fr auto auto; gap: 10px; align-items: center; padding: 9px 8px; border-radius: 10px; font-size: .93rem; }
+  ol.lb li:nth-child(-n+3) .r { background: var(--accent); color: #fff; }
+  ol.lb li.me { background: var(--accent-soft); }
+  ol.lb .r { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-weight: 700; font-size: .78rem; background: var(--bg-tint); color: var(--ink-soft); }
+  ol.lb .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
+  ol.lb .g { font-family: var(--mono); font-size: .8rem; color: var(--ink-soft); }
+  ol.lb .s { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .empty-lb { color: var(--ink-faint); font-size: .9rem; padding: 14px 4px; }
+  .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--accent-soft); border-top-color: var(--accent); animation: spin .8s linear infinite; margin: 10px auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="nav-brand" href="./"><img src="assets/icon.svg" alt=""><span class="nav-name">PromptLint</span></a>
+    <span class="nav-ver">v1.2</span>
+    <div class="nav-links">
+      <a class="opt" href="app.html">Analyzer</a>
+      <a class="opt" href="docs.html">API docs</a>
+      <a href="quiz.html" aria-current="page">Quiz</a>
+      <a class="btn btn-fill btn-sm" href="account.html">Get a free key</a>
+    </div>
+  </div>
+</nav>
+
+<header class="quiz-head">
+  <div class="wrap">
+    <p class="eyebrow">Prompt quiz</p>
+    <h1>How good are your prompts, really?</h1>
+    <p class="lede">Five weak prompts. Rewrite each one using the situation you're given, and the same checks the PromptLint API
+      uses grade your work. Takes about five minutes.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="layout">
+    <section style="padding:0">
+      <!-- start -->
+      <div class="box" id="start">
+        <h2>How it works</h2>
+        <ul class="how">
+          <li><span class="n">1</span><span>You get a <b>situation</b> and a <b>weak prompt</b> someone wrote for it.</span></li>
+          <li><span class="n">2</span><span><b>Rewrite the prompt</b> so an AI would nail it on the first try. Use the details from the situation.</span></li>
+          <li><span class="n">3</span><span>After five rounds, get a <b>score, a grade and tips</b>. Good scores go on the leaderboard.</span></li>
+        </ul>
+        <label class="f" for="nickname">Your nickname (shown on the leaderboard)</label>
+        <input class="t" id="nickname" maxlength="24" autocomplete="nickname" placeholder="e.g. PromptNinja">
+        <div class="row"><button class="btn btn-fill btn-md" id="begin">Start the quiz <span class="arrow">→</span></button></div>
+        <div class="msg" id="start-msg" role="alert"></div>
+      </div>
+
+      <!-- rounds -->
+      <div class="box" id="play" hidden>
+        <div class="progress" id="progress"></div>
+        <div class="round-k" id="round-k"></div>
+        <h2 id="round-title" style="margin-top:6px"></h2>
+        <div class="scenario"><b>The situation</b><span id="round-scenario"></span></div>
+        <div class="weak"><span>The weak prompt:</span><code id="round-weak"></code></div>
+        <label class="f" for="rewrite">Your rewrite</label>
+        <textarea id="rewrite" maxlength="4000" placeholder="Write the prompt you'd actually send…"></textarea>
+        <div class="counter" id="rewrite-count"></div>
+        <div class="row">
+          <button class="btn btn-ghost btn-md" id="back">← Back</button>
+          <span class="spacer"></span>
+          <button class="btn btn-fill btn-md" id="next">Next round →</button>
+        </div>
+        <div class="msg" id="play-msg" role="alert"></div>
+      </div>
+
+      <!-- grading -->
+      <div class="box" id="grading" hidden style="text-align:center">
+        <div class="spinner" aria-hidden="true"></div>
+        <h2>Grading your five rewrites…</h2>
+        <p class="muted">Each one gets the full PromptLint check. This takes a few seconds.</p>
+      </div>
+
+      <!-- results -->
+      <div class="box" id="results" hidden>
+        <div class="grade-wrap">
+          <div class="grade" id="grade"></div>
+          <div>
+            <div class="grade-title" id="grade-title"></div>
+            <div class="grade-sub" id="grade-sub"></div>
+            <div class="pill-row" id="grade-pills"></div>
+          </div>
+        </div>
+        <div class="rounds" id="round-results"></div>
+        <div class="row">
+          <button class="btn btn-fill btn-md" id="again">Try again</button>
+          <a class="btn btn-ghost btn-md" href="app.html">Check your own prompts</a>
+        </div>
+      </div>
+    </section>
+
+    <aside class="box" aria-label="Leaderboard">
+      <h2>Leaderboard</h2>
+      <div class="lb-tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-period="all">All time</button>
+        <button role="tab" aria-selected="false" data-period="week">This week</button>
+      </div>
+      <ol class="lb" id="leaderboard"><li class="empty-lb">Loading…</li></ol>
+      <p class="muted" style="font-size:.82rem">Best score per nickname. Only runs graded by the AI judge are ranked.</p>
+    </aside>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <span>PromptLint · judgments by TypeSafe Jev, math by plain code</span>
+    <span class="foot-links"><a href="./">Home</a><a href="app.html">Analyzer</a><a href="docs.html">API docs</a><a href="account.html">Get an API key</a></span>
+  </div>
+</footer>
+
+<script src="assets/report.js"></script>
+<script src="assets/quiz.js"></script>
+</body>
+</html>

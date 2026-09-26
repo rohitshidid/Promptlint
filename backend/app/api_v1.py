@@ -2,6 +2,9 @@
 
 POST   /v1/score            score one prompt                          API key
 POST   /v1/score/batch      score up to 50 prompts (plan limit)       API key
+POST   /v1/route            score + route, and optionally call the    API key
+                            recommended model with the user's keys
+GET/POST/DELETE /v1/providers  saved LLM provider keys (encrypted)    session
 GET    /v1/pricing          price table + last-verified date          public
 GET    /v1/usage            usage by day                              API key or session
 GET    /v1/health           liveness + backend and model versions     public
@@ -21,6 +24,7 @@ from sqlalchemy import delete, func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import router as model_router
 from app.analyze import Analysis
 from app.auth import (
     SESSION_COOKIE,
@@ -37,6 +41,7 @@ from app.auth import (
 from app.backends import HEURISTIC_VERSION
 from app.db import (
     ApiKey,
+    ProviderKey,
     ScoreEvent,
     Session,
     StoredPrompt,
@@ -47,10 +52,26 @@ from app.db import (
     utcnow,
 )
 from app.jev_client import JevError
-from app.schemas import BatchRequest, BatchResponse, BatchResult, ScoreRequest, ScoreResponse
+from app.providers import ProviderError, check_base_url, run_with_fallback
+from app.schemas import (
+    Attempt,
+    BatchRequest,
+    BatchResponse,
+    BatchResult,
+    Execution,
+    ProviderKeyIn,
+    RouteRequest,
+    RouteResponse,
+    Routing,
+    RoutingOptions,
+    ScoreRequest,
+    ScoreResponse,
+)
 from app.security import (
     DUMMY_PASSWORD_HASH,
+    KeyVault,
     hash_password,
+    key_hint,
     mask_key,
     new_api_key,
     new_session_token,
@@ -158,6 +179,57 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             await db.flush()
             db.add(StoredPrompt(event_id=event.id, prompt=prompt, system=system))
 
+    # ------------------------------------------------------------ routing helpers
+    def _vault(request: Request) -> KeyVault | None:
+        secret = request.app.state.settings.effective_provider_key_secret
+        return KeyVault(secret) if secret else None
+
+    async def _saved_providers(db: AsyncSession, user_id: int) -> list[ProviderKey]:
+        return list(
+            (
+                await db.scalars(
+                    select(ProviderKey).where(ProviderKey.user_id == user_id).order_by(ProviderKey.id)
+                )
+            ).all()
+        )
+
+    def _connected_candidates(rows: list[ProviderKey]) -> list[model_router.Candidate]:
+        """Custom endpoints saved on the account become routing candidates."""
+        out = []
+        for r in rows:
+            if r.provider == "openai_compatible" and r.model and r.tier and r.input_price is not None:
+                out.append(
+                    model_router.Candidate(
+                        id=r.model,
+                        name=r.label,
+                        provider="Custom endpoint",
+                        adapter="openai_compatible",
+                        tier=r.tier,
+                        input=r.input_price,
+                        output=r.output_price or 0.0,
+                        source="connected",
+                        base_url=r.base_url,
+                        api_model=r.model,
+                    )
+                )
+        return out
+
+    def _decide(request: Request, a: Analysis, opts: RoutingOptions, candidates):
+        analyzer = request.app.state.analyzer
+        try:
+            return analyzer.decide(a, opts, candidates)
+        except ValueError as e:
+            raise ApiError(400, "invalid_routing", str(e)) from e
+
+    def _candidates(request: Request, opts: RoutingOptions, connected) -> list[model_router.Candidate]:
+        try:
+            return request.app.state.analyzer.resolve_candidates(opts, connected)
+        except ValueError as e:
+            raise ApiError(400, "unknown_model", str(e)) from e
+
+    def _routing(request: Request, a: Analysis, opts: RoutingOptions, candidates) -> Routing:
+        return request.app.state.analyzer.routing_out(_decide(request, a, opts, candidates))
+
     # ------------------------------------------------------------ scoring
     @router.post("/score", response_model=ScoreResponse, response_model_exclude_none=True)
     async def score(
@@ -169,8 +241,11 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
     ):
         _rate_limit(request, response, ctx)
         _check_input(request, body.prompt, body.system, body.models)
+        connected = _connected_candidates(await _saved_providers(db, ctx.user.id))
+        candidates = _candidates(request, body.routing, connected)
         await _quota(db, response, ctx, 1)
         a = await _analyze(request, body.prompt, body.system, body.models, body.backend)
+        routing = _routing(request, a, body.routing, candidates)
         await _record(db, request, ctx, a, body.prompt, body.system, body.options.store)
         await record_usage(
             db, key_id=ctx.key.id, user_id=ctx.user.id, prompts=1, degraded=int(a.judged.degraded)
@@ -182,6 +257,7 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             include_suggestions=body.options.include_suggestions,
             include_confidence=body.options.include_confidence,
             stored=body.options.store,
+            routing=routing,
         )
 
     @router.post("/score/batch", response_model=BatchResponse, response_model_exclude_none=True)
@@ -200,6 +276,8 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
             )
         _rate_limit(request, response, ctx)
         _check_input(request, "", None, body.models)
+        connected = _connected_candidates(await _saved_providers(db, ctx.user.id))
+        candidates = _candidates(request, body.routing, connected)
         await _quota(db, response, ctx, len(body.items))
         sem = asyncio.Semaphore(8)
         rid = _rid(request)
@@ -238,6 +316,7 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
                         include_suggestions=body.options.include_suggestions,
                         include_confidence=body.options.include_confidence,
                         stored=body.options.store,
+                        routing=_routing(request, a, body.routing, candidates),
                     ),
                 )
             )
@@ -247,6 +326,260 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
         return BatchResponse(
             id=rid.replace("req_", "bat_", 1), results=results, scored=scored, failed=len(results) - scored
         )
+
+    # ------------------------------------------------------------ routing pipeline
+    @router.post("/route", response_model=RouteResponse, response_model_exclude_none=True)
+    async def route_prompt(
+        request: Request,
+        response: Response,
+        body: RouteRequest,
+        ctx: KeyContext = Depends(require_api_key),
+        db: AsyncSession = Depends(get_db),
+    ):
+        """Score the prompt, pick a model, and (if you have a key for it) call that model.
+
+        With execute=false, no usable key, or a prompt that should be clarified first, you get the
+        recommendation only: the same JSON as /v1/score plus `execution.executed = false` and why.
+        """
+        s = request.app.state.settings
+        _rate_limit(request, response, ctx)
+        _check_input(request, body.prompt, body.system, body.models)
+        saved = await _saved_providers(db, ctx.user.id)
+        connected = _connected_candidates(saved)
+        candidates = _candidates(request, body.routing, connected)
+        await _quota(db, response, ctx, 1)
+        a = await _analyze(request, body.prompt, body.system, body.models, body.backend)
+        decision = _decide(request, a, body.routing, candidates)
+        routing = request.app.state.analyzer.routing_out(decision)
+
+        execution = Execution(executed=False)
+        if not body.execute:
+            execution.reason = "execute is false: recommendation only."
+        elif decision.action == "clarify_first" and not body.send_anyway:
+            execution.reason = (
+                "Not sent: the prompt should be clarified first (routing.clarify_reason). "
+                "Pass send_anyway: true to call a model regardless."
+            )
+        else:
+            # Keys: per-request first, then saved ones (built-in providers by adapter, endpoints by model).
+            vault = _vault(request)
+            saved_by_adapter: dict[str, ProviderKey] = {}
+            saved_by_model: dict[str, ProviderKey] = {}
+            for row in saved:
+                if row.provider == "openai_compatible":
+                    saved_by_model[row.model or ""] = row
+                else:
+                    saved_by_adapter[row.provider] = row
+            used_rows: dict[str, ProviderKey] = {}
+
+            def key_for(c: model_router.Candidate) -> tuple[bool, str | None]:
+                if c.inline_key:
+                    return True, c.inline_key
+                if body.provider_keys and c.adapter in body.provider_keys:
+                    return True, body.provider_keys[c.adapter]
+                row = (
+                    saved_by_model.get(c.api_model or c.id)
+                    if c.adapter == "openai_compatible"
+                    else saved_by_adapter.get(c.adapter)
+                )
+                if row is not None:
+                    if row.encrypted_key is None:
+                        used_rows[c.id] = row
+                        return True, None  # keyless endpoint (e.g. Ollama)
+                    if vault is not None:
+                        try:
+                            used_rows[c.id] = row
+                            return True, vault.decrypt(row.encrypted_key)
+                        except Exception:  # noqa: BLE001 - wrong/rotated secret: treat as no key
+                            return False, None
+                # A custom endpoint given inline with no key may not need one (Ollama).
+                if c.adapter == "openai_compatible" and c.source == "custom" and c.base_url:
+                    return True, None
+                return False, None
+
+            usable = {c.id: key_for(c) for c in candidates}
+            executable = [c for c in candidates if usable[c.id][0]]
+            if not executable:
+                execution.reason = (
+                    "No key for any candidate model. Add provider keys on your account page, or send "
+                    "provider_keys in the request. Returning the recommendation only."
+                )
+            else:
+                if len(executable) < len(candidates):
+                    decision = _decide(request, a, body.routing, executable)
+                    routing = request.app.state.analyzer.routing_out(decision)
+                    routing.warnings.append(
+                        f"Routed among the {len(executable)} model(s) you have keys for "
+                        f"(out of {len(candidates)} candidates)."
+                    )
+                order = [decision.chosen] + [
+                    r for r in decision.ranked if r is not decision.chosen and r.capable
+                ]
+                attempts = []
+                for r in order[:3]:
+                    c = r.candidate
+                    if c.adapter == "openai_compatible":
+                        try:
+                            await asyncio.to_thread(
+                                check_base_url,
+                                c.base_url or "",
+                                allow_private=s.private_provider_urls_allowed,
+                            )
+                        except ProviderError as e:
+                            execution.attempts.append(Attempt(model=c.id, ok=False, error=e.message))
+                            continue
+                    attempts.append({"candidate": c, "api_key": usable[c.id][1]})
+                won, out, log = (None, None, [])
+                if attempts:
+                    won, out, log = await run_with_fallback(
+                        request.app.state.providers,
+                        attempts,
+                        prompt=body.prompt,
+                        system=body.system,
+                        max_output_tokens=body.max_output_tokens or s.default_max_output_tokens,
+                    )
+                execution.attempts += [Attempt(**x) for x in log]
+                if won is None:
+                    execution.reason = "Every attempted model failed; see attempts."
+                else:
+                    c = won["candidate"]
+                    cost_usd = None
+                    if out.input_tokens is not None and out.output_tokens is not None:
+                        cost_usd = round(c.cost(out.input_tokens, out.output_tokens), 8)
+                    execution = Execution(
+                        executed=True,
+                        model_used=c.id,
+                        provider=c.provider,
+                        output=out.text,
+                        stop_reason=out.stop_reason,
+                        input_tokens=out.input_tokens,
+                        output_tokens=out.output_tokens,
+                        cost_usd=cost_usd,
+                        latency_ms=out.latency_ms,
+                        attempts=execution.attempts,
+                    )
+                    row = used_rows.get(c.id)
+                    if row is not None:
+                        row.last_used_at = utcnow()
+
+        await _record(db, request, ctx, a, body.prompt, body.system, body.options.store)
+        await record_usage(
+            db, key_id=ctx.key.id, user_id=ctx.user.id, prompts=1, degraded=int(a.judged.degraded)
+        )
+        await db.commit()
+        scored = request.app.state.analyzer.v1_response(
+            a,
+            request_id=_rid(request),
+            include_suggestions=body.options.include_suggestions,
+            include_confidence=body.options.include_confidence,
+            stored=body.options.store,
+            routing=routing,
+        )
+        return RouteResponse(**scored.model_dump(), execution=execution)
+
+    # ------------------------------------------------------------ saved provider keys
+    def _provider_out(r: ProviderKey) -> dict:
+        return {
+            "id": r.id,
+            "provider": r.provider,
+            "label": r.label,
+            "key_hint": r.key_hint or None,
+            "has_key": r.encrypted_key is not None,
+            "base_url": r.base_url,
+            "model": r.model,
+            "tier": r.tier,
+            "input_price": r.input_price,
+            "output_price": r.output_price,
+            "created_at": r.created_at.isoformat(),
+            "last_used_at": r.last_used_at.isoformat() if r.last_used_at else None,
+        }
+
+    @router.get("/providers")
+    async def list_providers(
+        request: Request, user: User = Depends(require_user), db: AsyncSession = Depends(get_db)
+    ):
+        return {
+            "providers": [_provider_out(r) for r in await _saved_providers(db, user.id)],
+            "storage_enabled": _vault(request) is not None,
+        }
+
+    @router.post("/providers", status_code=201)
+    async def add_provider(
+        request: Request,
+        body: ProviderKeyIn,
+        user: User = Depends(require_user),
+        db: AsyncSession = Depends(get_db),
+    ):
+        check_csrf(request)
+        s = request.app.state.settings
+        vault = _vault(request)
+        if body.api_key and vault is None:
+            raise ApiError(
+                400,
+                "storage_disabled",
+                "This server can't store provider keys (PROVIDER_KEY_SECRET is not set).",
+            )
+        rows = await _saved_providers(db, user.id)
+        if len(rows) >= s.max_provider_keys_per_user:
+            raise ApiError(
+                400, "too_many_providers", f"You can save up to {s.max_provider_keys_per_user} providers."
+            )
+        key = (body.api_key or "").strip()
+        if body.provider == "openai_compatible":
+            missing = [
+                f
+                for f in ("base_url", "model", "tier", "input_price", "output_price")
+                if getattr(body, f) in (None, "")
+            ]
+            if missing:
+                raise ApiError(400, "invalid_request", f"A custom endpoint needs: {', '.join(missing)}.")
+            try:
+                base_url = await asyncio.to_thread(
+                    check_base_url, body.base_url, allow_private=s.private_provider_urls_allowed
+                )
+            except ProviderError as e:
+                raise ApiError(400, "invalid_base_url", e.message) from e
+            if any(r.provider == "openai_compatible" and r.model == body.model for r in rows):
+                raise ApiError(409, "duplicate_model", f"You already saved a model called {body.model!r}.")
+        else:
+            if not key:
+                raise ApiError(400, "invalid_request", f"An API key is required for {body.provider}.")
+            base_url = None
+            for r in rows:  # one saved key per built-in provider: replace it
+                if r.provider == body.provider:
+                    await db.delete(r)
+        row = ProviderKey(
+            user_id=user.id,
+            provider=body.provider,
+            label=(body.label or body.model or body.provider.replace("_", " ").title()).strip()[:80],
+            encrypted_key=vault.encrypt(key) if key else None,
+            key_hint=key_hint(key) if key else "",
+            base_url=base_url,
+            model=body.model if body.provider == "openai_compatible" else None,
+            tier=body.tier if body.provider == "openai_compatible" else None,
+            input_price=body.input_price if body.provider == "openai_compatible" else None,
+            output_price=body.output_price if body.provider == "openai_compatible" else None,
+        )
+        db.add(row)
+        await db.commit()
+        return _provider_out(row)
+
+    @router.delete("/providers/{provider_id}", status_code=204)
+    async def delete_provider(
+        request: Request,
+        provider_id: int,
+        user: User = Depends(require_user),
+        db: AsyncSession = Depends(get_db),
+    ):
+        check_csrf(request)
+        row = await db.scalar(
+            select(ProviderKey).where(ProviderKey.id == provider_id, ProviderKey.user_id == user.id)
+        )
+        if row is None:
+            raise ApiError(404, "not_found", "No such provider.")
+        await db.delete(row)
+        await db.commit()
+        return Response(status_code=204)
 
     # ------------------------------------------------------------ public info
     @router.get("/pricing")
@@ -486,6 +819,7 @@ def build_v1_router(limiter: Limiter, settings: Settings) -> APIRouter:
         await db.execute(delete(StoredPrompt).where(StoredPrompt.event_id.in_(event_ids)))
         await db.execute(delete(ScoreEvent).where(ScoreEvent.key_id.in_(key_ids)))
         await db.execute(delete(UsageDaily).where(UsageDaily.user_id == user.id))
+        await db.execute(delete(ProviderKey).where(ProviderKey.user_id == user.id))
         await db.execute(delete(ApiKey).where(ApiKey.user_id == user.id))
         await db.execute(delete(Session).where(Session.user_id == user.id))
         await db.execute(delete(User).where(User.id == user.id))

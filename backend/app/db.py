@@ -14,6 +14,7 @@ from sqlalchemy import (
     Boolean,
     Date,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -110,6 +111,48 @@ class StoredPrompt(Base):
     event_id: Mapped[int] = mapped_column(ForeignKey("score_events.id", ondelete="CASCADE"), index=True)
     prompt: Mapped[str] = mapped_column(Text)
     system: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class ProviderKey(Base):
+    """A user's LLM provider credential for the routing pipeline, encrypted at rest.
+
+    Built-in providers (anthropic, openai, gemini) unlock every catalog model from that provider.
+    An openai_compatible entry describes one model at a custom endpoint (Ollama, Groq, OpenRouter…).
+    """
+
+    __tablename__ = "provider_keys"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    provider: Mapped[str] = mapped_column(String(32))  # anthropic | openai | gemini | openai_compatible
+    label: Mapped[str] = mapped_column(String(80))
+    encrypted_key: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )  # None: endpoint needs no key (Ollama)
+    key_hint: Mapped[str] = mapped_column(String(16), default="")
+    # openai_compatible only
+    base_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    model: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    tier: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    input_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    output_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_used_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class QuizResult(Base):
+    """One finished prompt-engineering quiz. Only Jev-scored runs are ranked."""
+
+    __tablename__ = "quiz_results"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nickname: Mapped[str] = mapped_column(String(24), index=True)
+    score: Mapped[int] = mapped_column(Integer, index=True)
+    grade: Mapped[str] = mapped_column(String(4))
+    rounds: Mapped[str] = mapped_column(Text)  # JSON list of per-round scores
+    ranked: Mapped[bool] = mapped_column(Boolean, default=True)
+    ip_hash: Mapped[str] = mapped_column(String(64), default="")
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 
 

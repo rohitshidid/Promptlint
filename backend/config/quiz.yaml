@@ -1,0 +1,52 @@
+# Prompt-engineering quiz (/quiz.html). Each round: a weak prompt plus a scenario with the facts a
+# good rewrite should use. Players rewrite every prompt; the server scores each rewrite with the
+# same Lint Score as the analyzer, after checking it still asks for the scenario's task.
+#
+# Grades are on the average Lint Score of the rewrites. Changing rounds changes the leaderboard,
+# so bump `version` when you edit them (older results then show as a previous version).
+
+version: 1
+
+grades:
+  - { min: 90, grade: A+, title: "Prompt whisperer" }
+  - { min: 80, grade: A, title: "Prompt engineer" }
+  - { min: 70, grade: B, title: "Solid communicator" }
+  - { min: 60, grade: C, title: "Getting there" }
+  - { min: 50, grade: D, title: "Needs practice" }
+  - { min: 0, grade: F, title: "Vague vibes" }
+
+rounds:
+  - id: email
+    title: The late invoice
+    scenario: >-
+      You run a small design studio. Client Mr. Tan hasn't paid invoice #1042 for ₹48,000, now 21 days
+      overdue. You want to stay friendly because he's a repeat client, but you need payment by Friday.
+    weak: write an email about the invoice
+
+  - id: code
+    title: The broken function
+    scenario: >-
+      Your Python 3.12 function median(xs) returns xs[len(xs)//2] after sorting. For [1, 2, 3, 4] it returns
+      3 instead of 2.5. You want the fixed function only, with a one-line comment explaining the fix.
+    weak: fix my median code
+
+  - id: trip
+    title: The weekend trip
+    scenario: >-
+      You and a friend live in Bengaluru, have ₹10,000 total, don't drive, love old temples and easy
+      hikes, and have one weekend (Saturday morning to Sunday night) in December.
+    weak: plan a trip for me
+
+  - id: explain
+    title: The science question
+    scenario: >-
+      Your 10-year-old niece asked why the sky is blue. You want an explanation she'll understand in
+      under 100 words, with one everyday comparison and no scientific jargon.
+    weak: explain why the sky is blue
+
+  - id: compare
+    title: The job decision
+    scenario: >-
+      You have two offers: A pays ₹28 LPA at a stable company with slow promotions; B pays ₹24 LPA plus
+      stock at a startup, fully remote, broader role. Growth matters most to you, then pay, then stability.
+    weak: which job should I take

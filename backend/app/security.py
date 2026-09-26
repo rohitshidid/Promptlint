@@ -95,3 +95,32 @@ def prompt_digest(prompt: str, system: str | None, salt: str) -> str:
 
 def new_request_id() -> str:
     return "req_" + secrets.token_hex(12)
+
+
+# ---------------------------------------------------------------- provider keys (encrypted at rest)
+class KeyVault:
+    """Encrypts users' LLM provider keys with Fernet (AES-128-CBC + HMAC-SHA256).
+
+    The Fernet key is derived from PROVIDER_KEY_SECRET, so any long random string works. Losing or
+    changing that secret makes saved provider keys unreadable (users must re-add them).
+    """
+
+    def __init__(self, secret: str):
+        import base64 as _b64
+
+        from cryptography.fernet import Fernet
+
+        derived = hashlib.sha256(("promptlint-provider-keys:" + secret).encode()).digest()
+        self._f = Fernet(_b64.urlsafe_b64encode(derived))
+
+    def encrypt(self, plaintext: str) -> str:
+        return self._f.encrypt(plaintext.encode()).decode()
+
+    def decrypt(self, token: str) -> str:
+        return self._f.decrypt(token.encode()).decode()
+
+
+def key_hint(key: str) -> str:
+    """What we show for a saved provider key: never more than the last 4 characters."""
+    key = key.strip()
+    return "…" + key[-4:] if len(key) >= 8 else "…"

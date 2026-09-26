@@ -60,6 +60,19 @@ class Settings(BaseSettings):
     event_retention_days: int = 90
     stored_prompt_retention_days: int = 90
 
+    # Routing pipeline (/v1/route): calling LLMs with users' own provider keys.
+    # Secret used to encrypt saved provider keys. Required in production; any long random string.
+    provider_key_secret: str = ""
+    # Let users point openai_compatible models at private/local addresses (e.g. Ollama on localhost).
+    # Keep False on a public server (blocks SSRF); None = allow only with a local SQLite database.
+    allow_private_provider_urls: bool | None = None
+    provider_timeout_s: float = 120.0
+    default_max_output_tokens: int = 16000
+    max_provider_keys_per_user: int = 10
+
+    # Quiz (/quiz.html)
+    quiz_rate_limit: str = "5/hour"
+
     # CORS: comma-separated origins. Empty means same-origin only (the default deploy).
     allowed_origins: str = ""
 
@@ -76,6 +89,23 @@ class Settings(BaseSettings):
         v = re.sub(r"^TYPESAFE_API_KEY\s*=\s*", "", v)
         v = v.strip().strip("'\"").strip()
         return re.sub(r"^Bearer\s+", "", v, flags=re.IGNORECASE).strip()
+
+    @property
+    def is_local_db(self) -> bool:
+        return self.database_url.startswith("sqlite")
+
+    @property
+    def private_provider_urls_allowed(self) -> bool:
+        return (
+            self.is_local_db if self.allow_private_provider_urls is None else self.allow_private_provider_urls
+        )
+
+    @property
+    def effective_provider_key_secret(self) -> str:
+        """Saved provider keys need a secret. Local SQLite gets a fixed dev secret; production must set one."""
+        if self.provider_key_secret:
+            return self.provider_key_secret
+        return "dev-only-provider-key-secret" if self.is_local_db else ""
 
     @property
     def origins(self) -> list[str]:
