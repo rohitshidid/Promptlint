@@ -288,8 +288,22 @@
       const status = k.revoked ? `<span class="kpill off">Revoked</span>`
         : used ? `<span class="kpill on">Uses your LLM keys</span>`
         : k.checks ? `<span class="kpill">Recommendations only</span>` : `<span class="kpill">Not used yet</span>`;
-      const chips = (list, label) => (list.length
-        ? `<div class="kc-row"><span class="kc-label">${label}</span><div class="kc-chips">${list.join("")}</div></div>` : "");
+      // Two tidy lists: what the router picked, and where prompts were really sent.
+      const list = (title, rows, empty) => `<section class="kc-list"><h4>${title}</h4>${
+        rows.length ? `<ul>${rows.join("")}</ul>` : `<p class="kc-empty">${empty}</p>`}</section>`;
+      const topPick = Math.max(1, ...k.recommended.map((x) => x.count));
+      const topSent = Math.max(1, ...k.sent_to.map((x) => x.calls));
+      const MAX = 8;
+      const picks = k.recommended.slice(0, MAX).map((x) => `<li>
+          <div class="kc-line"><span class="kc-nm" title="${esc(x.name)}">${esc(x.name)}${x.not_connected ? '<span class="kc-tag">not connected</span>' : ""}</span><b>×${fmt(x.count)}</b></div>
+          <div class="kc-bar"><i style="width:${(x.count / topPick) * 100}%"></i></div>
+          ${x.not_connected && x.instead.length ? `<div class="kc-note">→ ${x.instead.map((y) => esc(y.name)).join(", ")} used instead</div>` : ""}</li>`);
+      if (k.recommended.length > MAX) picks.push(`<li class="kc-more">+ ${k.recommended.length - MAX} more</li>`);
+      const sent = k.sent_to.slice(0, MAX).map((x) => `<li>
+          <div class="kc-line"><span class="kc-nm" title="${esc(x.name)}">${esc(x.name)}</span><b>×${fmt(x.calls)}</b></div>
+          <div class="kc-bar sent"><i style="width:${(x.calls / topSent) * 100}%"></i></div>
+          <div class="kc-note plain">${usd(x.spent_usd)} spent</div></li>`);
+      if (k.sent_to.length > MAX) sent.push(`<li class="kc-more">+ ${k.sent_to.length - MAX} more</li>`);
       return `<article class="kcard">
         <header><div class="kc-name"><b>${esc(k.name)}</b><code>${esc(k.masked)}</code></div>${status}</header>
         <div class="kc-stats">
@@ -298,10 +312,10 @@
           <div><small>Spent</small><b>${usd(k.spent_usd)}</b></div>
           <div class="save"><small>Saved</small><b>${usd(k.saved_usd)}</b><span>est. ${usd(k.est_saved_usd)}</span></div>
         </div>
-        ${chips(k.recommended.slice(0, 6).map((x) => x.not_connected
-          ? `<span class="chipx nc" title="Best fit, but you haven't connected this provider">${esc(x.name)}<i>×${fmt(x.count)}</i><em>not connected${x.instead.length ? ` → ${x.instead.map((y) => esc(y.name)).join(", ")} instead` : ""}</em></span>`
-          : `<span class="chipx">${esc(x.name)}<i>×${fmt(x.count)}</i></span>`), "Router picked")}
-        ${chips(k.sent_to.map((x) => `<span class="chipx sent">${esc(x.name)}<i>×${fmt(x.calls)}</i></span>`), "Sent to")}
+        ${k.checks ? `<div class="kc-lists">
+          ${list("Router picked", picks, "Nothing routed yet.")}
+          ${list("Sent to your LLMs", sent, "Recommendations only so far. Turn on execute in /v1/route to send prompts.")}
+        </div>` : ""}
         ${k.providers_used.length ? `<p class="kc-foot">Providers used: ${esc(k.providers_used.join(", "))}</p>` : ""}
       </article>`;
     };

@@ -6,8 +6,8 @@
 <title>Account · PromptLint</title>
 <meta name="description" content="Create a free PromptLint API key, manage keys, and see your usage.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=1.2.9">
-<link rel="stylesheet" href="assets/report.css?v=1.2.9">
+<link rel="stylesheet" href="assets/site.css?v=1.2.10">
+<link rel="stylesheet" href="assets/report.css?v=1.2.10">
 <style>
   .acct-head { padding: 40px 0 8px; position: relative; }
   .acct-head::before {
@@ -89,7 +89,7 @@
   .mbar em { font-style: normal; color: var(--ink-faint); font-size: .8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .mbar span.nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   @media (max-width: 600px) { .mbar { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; } .mbar .track { grid-column: 1 / -1; grid-row: 2; } }
-  .kcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 12px; margin-top: 10px; }
+  .kcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 14px; margin-top: 10px; }
   .kcard { border: 1px solid var(--line); border-radius: 16px; padding: 16px; background: #fff; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
   .kcard header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
   .kc-name { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -106,15 +106,21 @@
   .kc-stats span.bad { color: var(--bad-ink); }
   .kc-stats .save { background: var(--accent-soft); }
   .kc-stats .save b { color: var(--good-ink); }
-  .kc-row { display: grid; gap: 6px; }
-  .kc-label { font-size: .7rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
-  .kc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chipx { display: inline-flex; align-items: baseline; gap: 5px; max-width: 100%; font-size: .8rem; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; color: var(--ink-soft); background: #fff; overflow-wrap: anywhere; }
-  .chipx i { font-style: normal; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
-  .chipx.nc { border-style: dashed; flex-wrap: wrap; row-gap: 0; }
-  .chipx.nc em { font-style: normal; font-size: .72rem; color: var(--warn-ink); flex-basis: 100%; }
+  .kc-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; }
+  .kc-list { border: 1px solid var(--line-soft); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+  .kc-list h4 { margin: 0 0 8px; font-size: .7rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
+  .kc-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .kc-line { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: .86rem; }
+  .kc-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+  .kc-line b { font-size: .82rem; font-weight: 600; color: var(--ink-soft); font-variant-numeric: tabular-nums; flex: none; }
+  .kc-tag { display: inline-block; margin-left: 6px; font-size: .66rem; font-weight: 650; padding: 1px 7px; border-radius: 999px; background: var(--warn-soft); color: var(--warn-ink); vertical-align: 1px; }
+  .kc-bar { height: 5px; border-radius: 3px; background: var(--bg-tint); margin-top: 5px; overflow: hidden; }
+  .kc-bar i { display: block; height: 100%; border-radius: 3px; background: rgba(16,185,129,.45); }
+  .kc-bar.sent i { background: var(--accent-mid); }
+  .kc-note { font-size: .74rem; color: var(--warn-ink); margin-top: 4px; }
+  .kc-note.plain { color: var(--ink-faint); }
+  .kc-more, .kc-empty { font-size: .8rem; color: var(--ink-faint); margin: 0; }
   .nc-tag { color: var(--warn-ink); }
-  .chipx.sent { background: var(--accent-soft); border-color: rgba(4,120,87,.25); color: var(--accent); }
   .kc-foot { margin: 0; font-size: .78rem; color: var(--ink-faint); }
   table.keys { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: .88rem; }
   table.keys th { text-align: left; font-size: .72rem; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; padding: 0 6px 8px; border-bottom: 1px solid var(--line); }
@@ -331,7 +337,7 @@
   </div>
 </footer>
 
-<script src="assets/report.js?v=1.2.9"></script>
-<script src="assets/account.js?v=1.2.9"></script>
+<script src="assets/report.js?v=1.2.10"></script>
+<script src="assets/account.js?v=1.2.10"></script>
 </body>
 </html>
