@@ -170,6 +170,7 @@
     const off = $("prov-disabled");
     off.hidden = d.storage_enabled;
     if (!d.storage_enabled) { off.className = "msg err"; off.textContent = "This server isn't set up to store provider keys (PROVIDER_KEY_SECRET is missing). You can still send keys per request."; }
+    if (!d.providers.length) $("add-prov").open = true;
     $("prov-rows").innerHTML = d.providers.length
       ? d.providers.map((p) => `<tr>
           <td>${esc(PROVIDER_LABEL[p.provider] || p.provider)}${p.provider === "openai_compatible" ? `<br><span class="muted">${esc(p.label)}</span>` : ""}</td>
@@ -196,6 +197,7 @@
       await api("/v1/providers", { method: "POST", headers: CSRF, body: JSON.stringify(body) });
       $("prov-key").value = "";
       ["prov-label", "prov-url", "prov-model"].forEach((id) => { $(id).value = ""; });
+      $("add-prov").open = false;
       show($("prov-msg"), `Added ${PROVIDER_LABEL[kind]}.${kind !== "openai_compatible" ? " It replaces any earlier key for the same provider." : ""}`, "ok");
       await loadProviders();
     } catch (err) { show($("prov-msg"), err.message, "err"); }
@@ -344,7 +346,7 @@
   }
 
   function chart(days) {
-    const W = 560, H = 170, L = 34, R = 6, T = 10, B = 22;
+    const W = 560, H = 140, L = 34, R = 6, T = 10, B = 22;
     const max = Math.max(4, ...days.map((d) => d.prompts));
     const nice = Math.pow(10, Math.floor(Math.log10(max)));
     const top = Math.ceil(max / nice) * nice;

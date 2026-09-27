@@ -9,29 +9,31 @@
 <link rel="stylesheet" href="assets/site.css?v=1.2.17">
 <link rel="stylesheet" href="assets/report.css?v=1.2.17">
 <style>
-  .acct-head { padding: 40px 0 8px; position: relative; }
+  .acct-head { padding: 22px 0 0; position: relative; }
   .acct-head::before {
     content: ""; position: absolute; inset: -200px 0 auto; height: 480px; z-index: -1; pointer-events: none;
     background: radial-gradient(560px 300px at 30% 10%, rgba(16,185,129,.12), transparent 70%),
                 radial-gradient(420px 260px at 80% 0%, rgba(13,148,164,.08), transparent 70%);
   }
   .acct-head-in { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  .acct-head h1 { font-size: clamp(2rem, 4.4vw, 2.9rem); }
-  .acct-head p { margin: 8px 0 0; color: var(--ink-soft); font-size: 1.02rem; }
-  main.wrap { padding: 22px 0 90px; }
+  .acct-head h1 { font-size: clamp(1.6rem, 3.6vw, 2.3rem); }
+  .acct-head p { margin: 4px 0 0; color: var(--ink-soft); font-size: .95rem; }
+  main.wrap { padding: 16px 0 48px; }
 
-  .box { background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-sm); padding: 24px; min-width: 0; }
+  .box { background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-sm); padding: 18px 20px; min-width: 0; }
+  @media (max-width: 600px) { .box { padding: 14px; border-radius: 16px; } }
+  #signed-in > * + * { margin-top: 14px; }
   .box h2 { font-size: 1.15rem; letter-spacing: -0.015em; }
-  .box .sub { color: var(--ink-soft); font-size: .92rem; margin: 6px 0 0; }
+  .box .sub { color: var(--ink-soft); font-size: .88rem; margin: 4px 0 0; }
 
   /* ---- auth */
   .auth { max-width: 440px; margin: 10px auto 0; }
   .seg { display: flex; padding: 4px; gap: 4px; background: rgba(22,24,29,.05); border-radius: 999px; margin-bottom: 20px; }
   .seg button { flex: 1; font: inherit; font-size: .9rem; font-weight: 550; border: 0; background: transparent; color: var(--ink-soft); padding: 9px 12px; border-radius: 999px; cursor: pointer; }
   .seg button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
-  label.f { display: block; font-size: .82rem; font-weight: 600; color: var(--ink-soft); margin: 14px 0 6px; }
+  label.f { display: block; font-size: .82rem; font-weight: 600; color: var(--ink-soft); margin: 10px 0 4px; }
   input.t {
-    width: 100%; font: inherit; font-size: .98rem; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line);
+    width: 100%; font: inherit; font-size: .95rem; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
     background: var(--bg-tint); color: var(--ink); transition: border-color .15s, box-shadow .15s, background .15s;
   }
   input.t:focus { outline: none; border-color: var(--accent-mid); background: #fff; box-shadow: 0 0 0 4px var(--accent-glow); }
@@ -46,17 +48,17 @@
   #captcha { margin-top: 16px; }
 
   /* ---- dashboard */
-  .grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; align-items: start; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; align-items: start; }
   @media (max-width: 920px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
-  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
   @media (max-width: 820px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .tile { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
-  .tile small { display: block; font-size: .74rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
-  .tile b { display: block; font-size: 1.7rem; letter-spacing: -0.03em; margin-top: 6px; line-height: 1.1; }
-  .tile span { display: block; font-size: .8rem; color: var(--ink-faint); margin-top: 4px; }
-  .tile .meter { margin-top: 10px; }
+  .tile { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; min-width: 0; }
+  .tile small { display: block; font-size: .68rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
+  .tile b { display: block; font-size: 1.3rem; letter-spacing: -0.03em; margin-top: 3px; line-height: 1.15; }
+  .tile span { display: block; font-size: .76rem; color: var(--ink-faint); margin-top: 2px; }
+  .tile .meter { margin-top: 6px; }
 
-  .new-key { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .new-key { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
   .new-key input { flex: 1 1 200px; }
   .reveal-key {
     margin-top: 16px; border: 1px solid rgba(4,120,87,.3); background: var(--accent-soft); border-radius: 14px; padding: 14px; display: none;
@@ -67,21 +69,21 @@
   .keyline code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; display: block; padding: 9px 10px; background: #fff; font-size: .8rem; }
   .key-done { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 12px; font-size: .84rem; color: var(--ink-soft); }
   /* routing stats */
-  .saved { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+  .saved { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
   @media (max-width: 720px) { .saved { grid-template-columns: minmax(0, 1fr); } }
-  .saved > div { border-radius: 16px; padding: 18px; border: 1px solid var(--line); background: #fff; min-width: 0; }
+  .saved > div { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: #fff; min-width: 0; }
   .saved > div.save-hero { background: linear-gradient(180deg, var(--accent-soft), #fff); border-color: rgba(4,120,87,.28); }
   .saved small { display: block; font-size: .74rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
   .saved .save-hero small { color: var(--accent); }
-  .saved > div > b { display: block; font-size: 2rem; letter-spacing: -0.03em; margin-top: 6px; line-height: 1.1; }
-  .saved > div > span { display: block; font-size: .84rem; color: var(--ink-soft); margin-top: 6px; line-height: 1.45; }
-  .rt-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+  .saved > div > b { display: block; font-size: 1.55rem; letter-spacing: -0.03em; margin-top: 3px; line-height: 1.1; }
+  .saved > div > span { display: block; font-size: .8rem; color: var(--ink-soft); margin-top: 4px; line-height: 1.4; }
+  .rt-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
   @media (max-width: 720px) { .rt-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .rt-facts div { background: var(--bg-tint); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+  .rt-facts div { background: var(--bg-tint); border-radius: 10px; padding: 7px 12px; min-width: 0; }
   .rt-facts small { display: block; font-size: .7rem; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
-  .rt-facts b { display: block; font-size: 1.15rem; margin-top: 2px; }
-  .box h3 { font-size: .95rem; margin: 22px 0 4px; }
-  .mbar { display: grid; grid-template-columns: minmax(0, 170px) minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: .86rem; padding: 6px 0; }
+  .rt-facts b { display: block; font-size: 1.05rem; margin-top: 1px; }
+  .box h3 { font-size: .95rem; margin: 16px 0 2px; }
+  .mbar { display: grid; grid-template-columns: minmax(0, 170px) minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: .86rem; padding: 3px 0; }
   .mbar .track { height: 10px; background: var(--bg-tint); border-radius: 5px; overflow: hidden; display: flex; }
   .mbar .track i { display: block; height: 100%; }
   .mbar .track i.sent { background: var(--accent-mid); }
@@ -98,10 +100,10 @@
     border: 1.3px solid currentColor; background: transparent; color: var(--ink-faint); font: 700 .62rem/1 var(--mono); letter-spacing: 0;
     text-transform: none; vertical-align: 1px; cursor: help; }
   button.info:hover, button.info:focus-visible { color: var(--accent); outline: none; }
-  .kcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 14px; margin-top: 10px; }
+  .kcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 10px; margin-top: 8px; align-items: start; }
   .kcards.many { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .kcard { border: 1px solid var(--line); border-radius: 16px; background: #fff; min-width: 0; }
-  .kcard > summary { list-style: none; cursor: pointer; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-radius: 16px; }
+  .kcard > summary { list-style: none; cursor: pointer; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-radius: 16px; }
   .kcard > summary::-webkit-details-marker { display: none; }
   .kcard > summary:hover { background: var(--bg-tint); }
   .kcard > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -111,7 +113,7 @@
   .kcard[open] .kc-brief { display: none; }
   .kc-chev { width: 8px; height: 8px; border-right: 2px solid var(--ink-faint); border-bottom: 2px solid var(--ink-faint); transform: rotate(45deg); margin: -4px 4px 0; transition: transform .15s; flex: none; }
   .kcard[open] .kc-chev { transform: rotate(-135deg); margin-top: 4px; }
-  .kc-body { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .kc-body { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; }
   .kc-name { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
   .kc-name b { font-size: 1rem; overflow-wrap: anywhere; }
   .kc-name code { font-size: .74rem; color: var(--ink-faint); overflow-wrap: anywhere; }
@@ -142,9 +144,9 @@
   .kc-more, .kc-empty { font-size: .8rem; color: var(--ink-faint); margin: 0; }
   .nc-tag { color: var(--warn-ink); }
   .kc-foot { margin: 0; font-size: .78rem; color: var(--ink-faint); }
-  table.keys { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: .88rem; }
+  table.keys { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: .88rem; }
   table.keys th { text-align: left; font-size: .72rem; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; padding: 0 6px 8px; border-bottom: 1px solid var(--line); }
-  table.keys td { padding: 10px 6px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+  table.keys td { padding: 7px 6px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
   tr.revoked-row td { opacity: .6; }
   .qual { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
   .qual select { max-width: 100%; }
@@ -162,7 +164,7 @@
   .linkbtn { font: inherit; font-size: .82rem; color: var(--bad-ink); background: none; border: 0; cursor: pointer; padding: 4px 6px; border-radius: 8px; }
   .linkbtn:hover { background: var(--bad-soft); }
 
-  .chart { width: 100%; height: 170px; display: block; margin-top: 12px; }
+  .chart { width: 100%; height: 140px; display: block; margin-top: 8px; }
   .chart .bar { fill: var(--accent-mid); }
   .chart .bar.deg { fill: #6da7ec; }
   .chart .grid { stroke: #e1e0d9; stroke-width: 1; }
@@ -178,19 +180,27 @@
   details.data td, details.data th { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line-soft); }
   details.data td:first-child, details.data th:first-child { text-align: left; }
 
-  .prov-form { margin-top: 6px; max-width: 760px; }
-  .prov-form select.t { width: 100%; font: inherit; font-size: .98rem; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-tint); color: var(--ink); margin-top: 6px; }
-  .prov-form label.f input.t { margin-top: 6px; }
+  .prov-form { max-width: 760px; }
+  .prov-form select.t { width: 100%; font: inherit; font-size: .95rem; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-tint); color: var(--ink); margin-top: 4px; }
+  .prov-form label.f input.t { margin-top: 4px; }
   .prov-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
   @media (max-width: 640px) { .prov-grid { grid-template-columns: minmax(0, 1fr); } }
-  .danger { margin-top: 18px; border-color: rgba(208,59,59,.25); }
+  .danger { border-color: rgba(208,59,59,.25); padding-top: 12px; padding-bottom: 12px; }
   .danger summary { cursor: pointer; font-weight: 600; color: var(--bad-ink); }
   .danger form { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
   .danger input { flex: 1 1 220px; }
   .btn-danger { background: var(--bad); color: #fff; }
   .btn-danger:hover { background: var(--bad-ink); }
-  .try-box { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
-  .try-box > div { flex: 1 1 320px; }
+  /* collapsible sections: "Add a provider", "Quick start" */
+  details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--ink-faint); border-bottom: 2px solid var(--ink-faint);
+    transform: rotate(45deg); margin: -4px 6px 0; transition: transform .15s; flex: none; }
+  details.fold[open] > summary::after { transform: rotate(-135deg); margin-top: 4px; }
+  details.fold > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 8px; }
+  .add-prov { margin-top: 12px; border: 1px solid var(--line-soft); border-radius: 12px; padding: 10px 14px; }
+  .add-prov > summary { font-weight: 600; font-size: .9rem; color: var(--accent); }
+  .add-prov[open] { padding-bottom: 14px; }
   [hidden] { display: none !important; }
   #signed-in, #signed-out { padding: 0; }
 </style>
@@ -278,26 +288,20 @@
       </div>
     </div>
 
-    <div class="box" style="margin-top:18px" id="routing-box">
+    <div class="box" id="routing-box">
       <h2>LLM routing, last 30 days</h2>
-      <p class="sub">Which model the router picked for your prompts, which ones were really sent to your LLMs through <code>/v1/route</code>, and what that saved. Per API key and per model.</p>
+      <p class="sub">What the router picked, what was really sent to your LLMs through <code>/v1/route</code>, and what that saved.</p>
       <div id="routing-stats"><p class="sub">Loading…</p></div>
     </div>
 
-    <div class="box try-box" style="margin-top:18px">
-      <div>
-        <h2>Try your key in the browser</h2>
-        <p class="sub">Paste a key and a prompt in the tester to see the full API result explained in plain words. No terminal needed.</p>
-      </div>
-      <a class="btn btn-fill btn-md" href="tester.html">Open the tester <span class="arrow">→</span></a>
-    </div>
-
-    <div class="box" style="margin-top:18px" id="providers-box">
+    <div class="box" id="providers-box">
       <h2>Connected LLM providers <span class="pill" style="font-size:.72rem;vertical-align:3px">optional</span></h2>
-      <p class="sub">Add the LLM accounts you use, and <code>POST /v1/route</code> will pick the best model for each prompt,
-        call it with your key, and return the answer. Without keys, you still get the recommendation as JSON.
-        Keys are encrypted on our server, never shown again (only the last 4 characters), and you can delete them any time.</p>
+      <p class="sub">With your LLM keys added, <code>POST /v1/route</code> calls the best model for each prompt and returns the answer; without them you get the recommendation only.
+        Keys are encrypted, only the last 4 characters are shown, and you can remove them any time.</p>
       <div class="msg" id="prov-disabled" hidden></div>
+      <div class="table-scroll"><table class="keys"><thead><tr><th>Provider</th><th>Model / key</th><th>Added</th><th>Last used</th><th></th></tr></thead><tbody id="prov-rows"></tbody></table></div>
+      <details class="fold add-prov" id="add-prov">
+      <summary>Add a provider</summary>
       <form class="prov-form" id="prov-form">
         <label class="f" for="prov-kind">Provider
           <select class="t" id="prov-kind">
@@ -327,20 +331,21 @@
             it, so under "balanced" a clearly better-fitting built-in model wins. You can change and save it any time in the list below.</p>
           <p class="hint">An online server can't reach <code>localhost</code> on your computer. For a local Ollama, expose it with a public HTTPS address (for example a tunnel) and use that.</p>
         </div>
-        <button class="btn btn-fill btn-md" type="submit" style="margin-top:16px">Add provider</button>
+        <button class="btn btn-fill btn-md" type="submit" style="margin-top:14px">Add provider</button>
       </form>
+      </details>
       <div class="msg" id="prov-msg" role="alert"></div>
-      <div class="table-scroll"><table class="keys"><thead><tr><th>Provider</th><th>Model / key</th><th>Added</th><th>Last used</th><th></th></tr></thead><tbody id="prov-rows"></tbody></table></div>
     </div>
 
-    <div class="box" style="margin-top:18px">
-      <h2>Quick start</h2>
-      <p class="sub">Set your key once in the terminal, then run the commands as they are. Full reference in the <a href="docs.html">API docs</a>.</p>
-<pre class="codeblock" id="quickstart" style="margin-top:14px"></pre>
-    </div>
+    <details class="box fold" id="qs-box">
+      <summary><div><h2>Quick start</h2>
+        <p class="sub">Copy-paste terminal commands for your key, or <a href="tester.html">try it in the browser tester</a> with no terminal.</p></div></summary>
+      <p class="sub" style="margin-top:12px">Set your key once in the terminal, then run the commands as they are. Full reference in the <a href="docs.html">API docs</a>.</p>
+<pre class="codeblock" id="quickstart" style="margin-top:10px"></pre>
+    </details>
 
-    <details class="box danger">
-      <summary>Delete account</summary>
+    <details class="box fold danger">
+      <summary><span>Delete account</span></summary>
       <p class="sub">Deletes your account, every key, your usage history and any prompts you opted to store. This can't be undone.</p>
       <form id="delete-form">
         <input class="t" id="delete-password" type="password" autocomplete="current-password" placeholder="Your password" aria-label="Password to confirm">
