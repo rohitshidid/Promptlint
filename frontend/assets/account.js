@@ -296,7 +296,10 @@
         ${u.models.map((m) => `<tr><td>${esc(m.name)}<br><span class="muted">${esc(m.provider || "")}</span></td><td>${fmt(m.recommended)}</td><td>${fmt(m.sent)}</td>
           <td class="muted">${fmt(m.input_tokens)} / ${fmt(m.output_tokens)}</td><td>${usd(m.spent_usd)}</td></tr>`).join("")}</tbody></table></div></details>`;
     // With several keys, each card collapses to a one-line summary; tap one to open its details.
-    const many = u.keys.length > 1;
+    // Revoked keys go in their own folded section below, so the active ones stay front and center.
+    const active = u.keys.filter((k) => !k.revoked), revoked = u.keys.filter((k) => k.revoked);
+    const many = active.length > 1;
+    const revokedOpen = !!box.querySelector("details.revoked-keys[open]");
     const wasOpen = new Set([...box.querySelectorAll("details.kcard[open]")].map((d) => d.dataset.key));
     const keyCard = (k) => {
       const used = k.sent || k.failed;
@@ -319,7 +322,7 @@
           <div class="kc-bar sent"><i style="width:${(x.calls / topSent) * 100}%"></i></div>
           <div class="kc-note plain">${usd(x.spent_usd)} spent</div></li>`);
       if (k.sent_to.length > MAX) sent.push(`<li class="kc-more">+ ${k.sent_to.length - MAX} more</li>`);
-      const open = !many || wasOpen.has(k.masked);
+      const open = k.revoked ? wasOpen.has(k.masked) : !many || wasOpen.has(k.masked);
       return `<details class="kcard" data-key="${esc(k.masked)}"${open ? " open" : ""}>
         <summary><div class="kc-name"><b>${esc(k.name)}</b><code>${esc(k.masked)}</code></div>
           <div class="kc-sum">${status}<span class="kc-brief">${fmt(k.checks)} routed · ${usd(k.saved_usd)} saved</span><span class="kc-chev" aria-hidden="true"></span></div></summary>
@@ -339,7 +342,10 @@
       </details>`;
     };
     html += `<h3>By API key</h3>
-      ${u.keys.length ? `${many ? `<p class="sub" style="margin:0 0 6px">Tap a key to see its details.</p>` : ""}<div class="kcards${many ? " many" : ""}">${u.keys.map(keyCard).join("")}</div>` : `<p class="sub">No keys yet.</p>`}
+      ${active.length ? `${many ? `<p class="sub" style="margin:0 0 6px">Tap a key to see its details.</p>` : ""}<div class="kcards${many ? " many" : ""}">${active.map(keyCard).join("")}</div>`
+        : `<p class="sub">${revoked.length ? "No active keys." : "No keys yet."}</p>`}
+      ${revoked.length ? `<details class="fold revoked-keys"${revokedOpen ? " open" : ""}><summary>Revoked keys (${fmt(revoked.length)})</summary>
+        <div class="kcards many">${revoked.map(keyCard).join("")}</div></details>` : ""}
       <p class="sub" style="margin:14px 0 0"><b>Saved</b> is real money: only prompts actually sent to your LLMs, what they cost vs the same tokens on your priciest model.
         <b>If all sent</b> is an estimate: what you would have saved if every routed prompt, including recommendation-only ones, had been sent to the router's pick. Hover or tap <span class="info" aria-hidden="true">i</span> for the details.</p>`;
     box.innerHTML = html;

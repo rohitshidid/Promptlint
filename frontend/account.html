@@ -198,6 +198,10 @@
     transform: rotate(45deg); margin: -4px 6px 0; transition: transform .15s; flex: none; }
   details.fold[open] > summary::after { transform: rotate(-135deg); margin-top: 4px; }
   details.fold > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 8px; }
+  .revoked-keys { margin-top: 10px; border: 1px dashed var(--line); border-radius: 14px; padding: 10px 14px; }
+  .revoked-keys > summary { font-weight: 600; font-size: .88rem; color: var(--ink-soft); }
+  .revoked-keys[open] { padding-bottom: 14px; }
+  .revoked-keys .kcard { opacity: .8; }
   .add-prov { margin-top: 12px; border: 1px solid var(--line-soft); border-radius: 12px; padding: 10px 14px; }
   .add-prov > summary { font-weight: 600; font-size: .9rem; color: var(--accent); }
   .add-prov[open] { padding-bottom: 14px; }
