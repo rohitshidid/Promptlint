@@ -292,7 +292,7 @@
             `${fmt(m.sent)} sent${m.spent_usd ? ` · ${usd(m.spent_usd)}` : ""}`,
           ].filter(Boolean).join(" · ")}</em></div>`;
       }).join("")}
-      <details class="data"><summary>Show as a table</summary><div class="table-scroll"><table class="keys"><thead><tr><th>Model</th><th>Picked</th><th>Sent</th><th>Tokens in / out</th><th>Spent</th></tr></thead><tbody>
+      <details class="data"><summary><span class="shut">Show as a table</span><span class="opened">Hide table</span></summary><div class="table-scroll"><table class="keys"><thead><tr><th>Model</th><th>Picked</th><th>Sent</th><th>Tokens in / out</th><th>Spent</th></tr></thead><tbody>
         ${u.models.map((m) => `<tr><td>${esc(m.name)}<br><span class="muted">${esc(m.provider || "")}</span></td><td>${fmt(m.recommended)}</td><td>${fmt(m.sent)}</td>
           <td class="muted">${fmt(m.input_tokens)} / ${fmt(m.output_tokens)}</td><td>${usd(m.spent_usd)}</td></tr>`).join("")}</tbody></table></div></details>`;
     // With several keys, each card collapses to a one-line summary; tap one to open its details.
@@ -380,11 +380,15 @@
     });
     $("chart").innerHTML = s + "</svg>";
     const active = days.filter((d) => d.requests || d.prompts).reverse();
+    const dayName = (iso) => new Date(iso + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+    const num = (n) => (n ? fmt(n) : `<span class="zero">–</span>`);
+    const sum = (f) => active.reduce((a, d) => a + (d[f] || 0), 0);
     $("usage-table").innerHTML = active.length
       ? `<div class="data-scroll"><table><thead><tr><th>Day (UTC)</th><th>Requests</th><th>Prompts</th><th>Fallback</th></tr></thead><tbody>${
-          active.map((d) => `<tr><td>${d.day}</td><td>${fmt(d.requests)}</td><td>${fmt(d.prompts)}</td><td>${fmt(d.degraded)}</td></tr>`).join("")
-        }</tbody></table></div><p class="muted" style="margin:6px 0 0">Days with no checks are left out.</p>`
-      : `<p class="muted" style="margin:8px 0 0">No checks in the last 30 days.</p>`;
+          active.map((d) => `<tr><td>${dayName(d.day)}</td><td>${num(d.requests)}</td><td>${num(d.prompts)}</td><td>${num(d.degraded)}</td></tr>`).join("")
+        }</tbody><tfoot><tr><td>Total</td><td>${fmt(sum("requests"))}</td><td>${fmt(sum("prompts"))}</td><td>${num(sum("degraded"))}</td></tr></tfoot></table></div>
+        <p class="data-note">Days with no checks are left out. Fallback = scored by the heuristic instead of Jev.</p>`
+      : `<p class="data-note">No checks in the last 30 days.</p>`;
   }
 
   function quickstart(key) {
