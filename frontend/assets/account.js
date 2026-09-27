@@ -293,6 +293,9 @@
       <details class="data"><summary>Show as a table</summary><div class="table-scroll"><table class="keys"><thead><tr><th>Model</th><th>Picked</th><th>Sent</th><th>Tokens in / out</th><th>Spent</th></tr></thead><tbody>
         ${u.models.map((m) => `<tr><td>${esc(m.name)}<br><span class="muted">${esc(m.provider || "")}</span></td><td>${fmt(m.recommended)}</td><td>${fmt(m.sent)}</td>
           <td class="muted">${fmt(m.input_tokens)} / ${fmt(m.output_tokens)}</td><td>${usd(m.spent_usd)}</td></tr>`).join("")}</tbody></table></div></details>`;
+    // With several keys, each card collapses to a one-line summary; tap one to open its details.
+    const many = u.keys.length > 1;
+    const wasOpen = new Set([...box.querySelectorAll("details.kcard[open]")].map((d) => d.dataset.key));
     const keyCard = (k) => {
       const used = k.sent || k.failed;
       const status = k.revoked ? `<span class="kpill off">Revoked</span>`
@@ -314,8 +317,11 @@
           <div class="kc-bar sent"><i style="width:${(x.calls / topSent) * 100}%"></i></div>
           <div class="kc-note plain">${usd(x.spent_usd)} spent</div></li>`);
       if (k.sent_to.length > MAX) sent.push(`<li class="kc-more">+ ${k.sent_to.length - MAX} more</li>`);
-      return `<article class="kcard">
-        <header><div class="kc-name"><b>${esc(k.name)}</b><code>${esc(k.masked)}</code></div>${status}</header>
+      const open = !many || wasOpen.has(k.masked);
+      return `<details class="kcard" data-key="${esc(k.masked)}"${open ? " open" : ""}>
+        <summary><div class="kc-name"><b>${esc(k.name)}</b><code>${esc(k.masked)}</code></div>
+          <div class="kc-sum">${status}<span class="kc-brief">${fmt(k.checks)} routed · ${usd(k.saved_usd)} saved</span><span class="kc-chev" aria-hidden="true"></span></div></summary>
+        <div class="kc-body">
         <div class="kc-stats">
           <div><small>Routed</small><b>${fmt(k.checks)}</b></div>
           <div><small>Sent</small><b>${fmt(k.sent)}</b>${k.failed ? `<span class="bad">${fmt(k.failed)} failed</span>` : ""}</div>
@@ -327,10 +333,11 @@
           ${list("Sent to your LLMs", sent, "Recommendations only so far. Turn on execute in /v1/route to send prompts.")}
         </div>` : ""}
         ${k.providers_used.length ? `<p class="kc-foot">Providers used: ${esc(k.providers_used.join(", "))}</p>` : ""}
-      </article>`;
+        </div>
+      </details>`;
     };
     html += `<h3>By API key</h3>
-      ${u.keys.length ? `<div class="kcards">${u.keys.map(keyCard).join("")}</div>` : `<p class="sub">No keys yet.</p>`}
+      ${u.keys.length ? `${many ? `<p class="sub" style="margin:0 0 6px">Tap a key to see its details.</p>` : ""}<div class="kcards${many ? " many" : ""}">${u.keys.map(keyCard).join("")}</div>` : `<p class="sub">No keys yet.</p>`}
       <p class="sub" style="margin:14px 0 0"><b>Saved</b> is real money: only prompts actually sent to your LLMs, what they cost vs the same tokens on your priciest model.
         <b>If all sent</b> is an estimate: what you would have saved if every routed prompt, including recommendation-only ones, had been sent to the router's pick. Hover or tap <span class="info" aria-hidden="true">i</span> for the details.</p>`;
     box.innerHTML = html;
