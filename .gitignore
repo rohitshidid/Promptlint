@@ -11,3 +11,6 @@ __pycache__/
 eval/results/cache/
 eval/results/first_try_cache.jsonl
 backend/data/
+# Generated media: launch video (/brag) and architecture diagram (archify).
+brag-output*/
+docs/architecture/
