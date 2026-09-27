@@ -387,7 +387,7 @@
       ? `<div class="data-scroll"><table><thead><tr><th>Day (UTC)</th><th>Requests</th><th>Prompts</th><th>Fallback</th></tr></thead><tbody>${
           active.map((d) => `<tr><td>${dayName(d.day)}</td><td>${num(d.requests)}</td><td>${num(d.prompts)}</td><td>${num(d.degraded)}</td></tr>`).join("")
         }</tbody><tfoot><tr><td>Total</td><td>${fmt(sum("requests"))}</td><td>${fmt(sum("prompts"))}</td><td>${num(sum("degraded"))}</td></tr></tfoot></table></div>
-        <p class="data-note">Days with no checks are left out. Fallback = scored by the heuristic instead of Jev.</p>`
+        <p class="data-note">Days with no checks are left out. Fallback = heuristic scoring.</p>`
       : `<p class="data-note">No checks in the last 30 days.</p>`;
   }
 
